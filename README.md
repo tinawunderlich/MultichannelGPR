@@ -1,4 +1,4 @@
 # MultichannelGPR
-A collection of MATLAB scripts for proccesing and visualization of (Multichannel) GPR data
+A collection of MATLAB scripts for processing and visualization of (multichannel) GPR data
 
 ## This page is under construction :-)
