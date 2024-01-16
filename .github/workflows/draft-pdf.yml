@@ -1,4 +1,8 @@
-on: [push]
+name: draft-pdf
+
+on: 
+  push:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
