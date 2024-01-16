@@ -1,6 +1,8 @@
+name: draft-pdf
+
 on: 
-  [push]
-  # Allows you to run this workflow manually from the Actions tab
+  push:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
