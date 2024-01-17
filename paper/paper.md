@@ -8,13 +8,12 @@ tags:
 authors:
   - name: Tina Wunderlich
     orcid: 0000-0003-2275-704X
-    equal-contrib: true
     corresponding: true
     affiliation: "1" # (Multiple affiliations must be quoted)
 affiliations:
  - name: Institute of Geosciences, Kiel University, Kiel, Germany
    index: 1
-date: 10 January 2024
+date: 17 January 2024
 bibliography: paper.bib
 
 
@@ -41,11 +40,11 @@ Therefore, `MultichannelGPR` was developed in order to
 - enabling data export at any stage of the processing workflow for control and visualization purposes.
 - enabling a possibility (for more experienced Matlab users) to easily implement own processing functions.
 
-The input multichannel Malå MIRA data consists of 8 or 16 parallel channels collected with 8 cm profile spacing in one swath, a configuration file and a GPS positioning file. After coordinate assignment to each trace, the best flow of processing steps has to be determined. Two GUIs are provided for this task (see \autoref{fig:workflow}): One for the determination of time zero and adjustment between the channels (Check_t0.m) and one for the order of further processing steps (Process_SingleProfile.m). The used processing steps and parameters can be saved and then used for the processing of the complete data set. After determining the processing steps, the main script for Malå MIRA data is Mala3D.m. It reads the data, applies the processing steps and bins the data on a rectangular grid with a defined grid spacing. Some measures for handling data larger than the computer memory are applied. All data is saved as Matlab-files and thus can also be read without the MultichannelGPR software.
+The input multichannel Malå MIRA data consists of 8 or 16 parallel channels collected with 8 cm profile spacing in one swath, a configuration file and a GPS positioning file. After coordinate assignment to each trace, the best flow of processing steps has to be determined. Two GUIs are provided for this task (see \autoref{fig:workflow}): One for the determination of time zero and adjustment between the channels (Check_t0.m) and one for the order of further processing steps (Process_SingleProfile.m). The used processing steps and parameters can be saved and then used for the processing of the complete data set. After determining the processing steps, the main script for Malå MIRA data is Mala3D.m. It reads the data, applies the processing steps and bins the data on a rectangular grid with a defined grid spacing. Some measures for handling data larger than the computer memory are applied. All data is saved as Matlab-files and thus can also be read without the `MultichannelGPR` software.
 
 ![Workflow of MultichannelGPR showing the main scripts for processing and visualization.\label{fig:workflow}](Workflow.png)
 
-Also other single-channel data by GSSI (and Sensors&Software and Radarteam, but not tested too well yet) can be imported and processed. The remaining scripts of MultichannelGPR can be used on the processed radargrams and binned data independently of their origin. Further routines include the creation of timeslices, the extraction of radargrams from the binned data, and 3D processing on the binned data.
+Also other single-channel data by GSSI (and Sensors&Software and Radarteam, but not tested too well yet) can be imported and processed. The remaining scripts of `MultichannelGPR` can be used on the processed radargrams and binned data independently of their origin. Further routines include the creation of timeslices, the extraction of radargrams from the binned data, and 3D processing on the binned data.
 The 3D blocks can be visualized and sliced in three directions using View_3Dblock.m. Both radargrams and timeslices can be compared using Tsl_Radargrams.m with a visual aid using a copied mouse pointer in both data sets. For picking of layers across the radargrams a script LayerPicking.m is provided. Radargrams and timeslices can be exported as georeferenced PNG images and imported directly into a GIS for producing publication-ready figures.
 For experienced Matlab users, it is also possible (a) to use single processing functions for own specialised applications that are not covered by the standard processing flow, (b) to include own processing functions or (c) to extract data between processing steps for analysis. 
 
