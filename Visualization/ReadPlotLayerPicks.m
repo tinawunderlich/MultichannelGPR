@@ -99,7 +99,7 @@ end
 fid=fopen(fullfile(folder,file),'r');
 anz=fscanf(fid,'%d',1);
 for i=1:anz
-    temp{i}=textscan(fid,'%s',3);
+    temp{i}=textscan(fid,'%s',4); % ID - name (1:line/2:points)
 end
 tempcol=textscan(fid,'%f%f%f',anz);
 col=[tempcol{1} tempcol{2} tempcol{3}];
@@ -107,16 +107,17 @@ col=[tempcol{1} tempcol{2} tempcol{3}];
 for i=1:anz
     layerlist{i}=temp{i}{1}{3};
     layerID(i)=str2num(temp{i}{1}{1});
+    flag{i}=temp{i}{1}{4};
 end
-temp=textscan(fid,'%f%f%f%f%d%d%d','Headerlines',2);
-% picks=[x z E N ID profnum linenum];
-picks=[temp{1} temp{2} temp{3} temp{4} double(temp{5}) double(temp{6}) double(temp{7})];
+temp=textscan(fid,'%f%f%f%f%d%d%d%d','Headerlines',2);
+% picks=[x z E N ID profnum linenum flag];
+picks=[temp{1} temp{2} temp{3} temp{4} double(temp{5}) double(temp{6}) double(temp{7}) double(temp{8})];
 fclose(fid);
 
 %%%
-% Now you have picks=[x z E N ID profnum linenum], where x and z (or t) are
+% Now you have picks=[x z E N ID profnum linenum flag], where x and z (or t) are
 % local profile coordinates and E/N global_coordinates. col is a matrix of
-% colors for the different layers.
+% colors for the different layers. flag is =1 for line and =2 for points.
 %%%
 
 clear temp, clear tempcol;
@@ -187,9 +188,13 @@ for i=1:length(rad)
     colormap(flipud(gray))
     hold on
     for j=1:length(p)   % for all IDs
-        lines=unique(pi(pi(:,5)==p(j),7));  % all line numbers for this ID
-        for k=1:length(lines)
-            plot(pi(pi(:,5)==p(j) & pi(:,7)==lines(k),1),pi(pi(:,5)==p(j) & pi(:,7)==lines(k),2),'linewidth',2,'Color',col(p(j),:))
+        linenum=unique(pi(pi(:,5)==p(j),7));  % all line numbers for this ID
+        for k=1:length(linenum)
+            if pi(pi(:,5)==p(j),8)==1 % line
+                plot(pi(pi(:,5)==p(j) & pi(:,7)==linenum(k),1),pi(pi(:,5)==p(j) & pi(:,7)==linenum(k),2),'linewidth',2,'Color',col(p(j),:))
+            else % points
+                plot(pi(pi(:,5)==p(j) & pi(:,7)==linenum(k),1),pi(pi(:,5)==p(j) & pi(:,7)==linenum(k),2),'*','linewidth',2,'Color',col(p(j),:))
+            end
         end
     end
     axis xy
