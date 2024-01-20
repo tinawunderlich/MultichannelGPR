@@ -69,7 +69,7 @@ addpath(fullfile(curFold,'GUIs'));
 load(fullfile(pfad,'radargrams.mat'));
 load(fullfile(pfad,'x.mat'));
 load(fullfile(pfad,'global_coords.mat'));
-load(fullfile(pfad,'t.mat')); % migth also contain z
+load(fullfile(pfad,'t.mat')); % might also contain z
 
 % Start GUI
 plot_layerpicking(radargrams,global_coords,x,t,tzflag,pfad);

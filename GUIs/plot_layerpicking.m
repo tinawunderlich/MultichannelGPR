@@ -36,7 +36,6 @@ S.prof_old=1;
 
 % get screensize
 S.siz = get( 0, 'Screensize' );
-S.fh.Position=S.siz;  % default: screensize
 
 % Add the UI components
 S=addcomponents(S);
@@ -53,16 +52,24 @@ S.fh.Visible='on';
             'menubar','none',...
             'name','Layer picking',...
             'numbertitle','off',...
-            'resize','on','Visible','off','SizeChangedFcn',@resizeui);
+            'resize','on','Visible','off','SizeChangedFcn',@resizeui,'Renderer','painters');
         
+        % --
+        % upper plot for comparison
+        % scrollbar:
+        S.panel1=uipanel('Parent',S.fh);
+        S.panel1a=uipanel('Parent',S.panel1);
+        set(S.panel1,'Position',[210 80+S.siz(4)/2+80 S.siz(3)-220 S.siz(4)/2-100],'Units','pixels'); % panel for cutting frame with slider
+        set(S.panel1a,'Position',[210 80+S.siz(4)/2+80 2000 S.siz(4)/2-100],'Units','pixels'); % panel inside cutting frame with image
+
+        S.slider1=uicontrol('Style','Slider','Parent',S.fh,'Units','pixels','Position',[210 80+S.siz(4)/2+80 S.siz(3)-220 0.05],'Value',0.5,'Callback',@slider_callback1);
         
-        S.ax1 = axes('unit','pix',...
-            'position',[200 100 S.siz(3)-200 S.siz(4)-500]);
+        S.ax1 = axes('OuterPosition',[0.02 0.02 0.98 0.98],'Units','normalized','Parent',S.panel1a);
         % make initial plot
         if isnan(S.z)
-            S.Plot1 = imagesc(S.x{1},S.t,S.radargrams{1});
+            S.Plot1 = imagesc(S.ax1,S.x{1},S.t,S.radargrams{1});
         else
-            S.Plot1 = imagesc(S.x{1},S.z,S.radargrams{1});
+            S.Plot1 = imagesc(S.ax1,S.x{1},S.z,S.radargrams{1});
         end
         colormap(flipud(gray));
         xlabel('x [m]')
@@ -73,17 +80,29 @@ S.fh.Visible='on';
             ylabel('t [ns]')
             axis ij
         end
-       set(S.ax1,'DataAspectratio',[0.5 1 1])
-        title(['For comparison: Profile #'])
+        set(S.ax1,'DataAspectratio',[0.5 1 1])
         
+        S.title1 = uicontrol(S.fh,'style','text',...
+            'unit','pix',...
+            'position',[210 900 200 25],'String','For comparison: Profile #','FontWeight','bold');
         
-        S.ax2 = axes('unit','pix',...
-            'position',[200 500 S.siz(3)-200 S.siz(4)-500]);
+
+        %--
+        % Lower plot for picking:
+        % scrollbar:
+        S.panel2=uipanel('Parent',S.fh);
+        S.panel2a=uipanel('Parent',S.panel2);
+        set(S.panel2,'Position',[210 120 S.siz(3)-220 S.siz(4)/2-100],'Units','pixels');
+        set(S.panel2a,'Position',[210 120 2000 S.siz(4)/2-100],'Units','pixels');
+
+        S.slider2=uicontrol('Style','Slider','Parent',S.fh,'Units','pixels','Position',[210 120 S.siz(3)-220 0.05],'Value',0.5,'Callback',@slider_callback2);
+        
+        S.ax2 = axes('OuterPosition',[0.02 0.02 0.98 0.98],'Units','normalized','Parent',S.panel2a);
         % make initial plot
         if isnan(S.z)
-            S.Plot2 = imagesc(S.x{1},S.t,S.radargrams{1});
+            S.Plot2 = imagesc(S.ax2,S.x{1},S.t,S.radargrams{1});
         else
-            S.Plot2 = imagesc(S.x{1},S.z,S.radargrams{1});
+            S.Plot2 = imagesc(S.ax2,S.x{1},S.z,S.radargrams{1});
         end
         colormap(flipud(gray));
         xlabel('x [m]')
@@ -95,11 +114,18 @@ S.fh.Visible='on';
             axis ij
         end
        set(S.ax2,'DataAspectratio',[0.5 1 1],'nextplot','add');
-       title(['Active Picking: Profile #',int2str(1)])
+
+       S.title2 = uicontrol(S.fh,'style','text',...
+            'unit','pix',...
+            'position',[210 450 200 25],'String',['Active Picking: Profile #',int2str(1)],'FontWeight','bold');
+
         
         % UI control for comparison profile number
         S.comparenum=uicontrol(S.fh,'style','edit','String','1','Position',[400 900 30 25],'Callback',@compare_call);
         S.auto=uicontrol(S.fh,'style','checkbox','Value',1,'String','auto','Position',[450 900 100 25]);
+
+        % UI control for connect sliders button
+        S.connect=uicontrol(S.fh,'Style','checkbox','Value',1,'String','connect scrollbars','Position',[550 900 150 20]);
         
         % UI control aspectratio
         S.asp_String=[{'10/1'} {'5/1'} {'4/1'} {'3/1'} {'2/1'} {'1/1'} {'1/2'} {'1/3'} {'1/4'} {'1/5'} {'1/10'} {'1/20'}];
@@ -166,19 +192,68 @@ guidata(S.fh,S);
 
 %%% Callback functions:
 
+    function slider_callback1(varargin)
+        S=guidata(gcbf);
+        val = get(S.slider1,'Value');
+        set(S.panel1a,'Position',[-val 0 2 1],'Units','normalized')
+        if S.connect.Value==1
+            set(S.panel2a,'Position',[-val 0 2 1],'Units','normalized')
+            set(S.slider2,'Value',val);
+        end
+        guidata(gcbf,S); % Update
+    end
+
+    function slider_callback2(varargin)
+        S=guidata(gcbf);
+        val = get(S.slider2,'Value');
+        set(S.panel2a,'Position',[-val 0 2 1],'Units','normalized')
+        if S.connect.Value==1
+            set(S.panel1a,'Position',[-val 0 2 1],'Units','normalized')
+            set(S.slider1,'Value',val);
+        end
+        guidata(gcbf,S); % Update
+    end
+
     function resizeui(hObject,event)
+
         % get current size of figure
-        wid_fig=S.fh.Position(3); % Figure width
+        Position=get(hObject,'Position');
+        wid_fig=Position(3); % Figure width
         wid=wid_fig-300; % width of axes
-        hei_fig=S.fh.Position(4); % figure height
+        hei_fig=Position(4); % figure height
         hei=hei_fig-200;    % height of axes
         
         % change size of axes
-        S.ax1.Position=[230 100+hei/2+80 wid hei/2-10];
-        S.ax2.Position=[230 140 wid hei/2-10];
-        S.comparenum.Position=[230+wid/2+80 170+hei 40 20];
-        S.auto.Position=[230+wid/2+80+60 170+hei 100 20];
+        set(S.ax1,'OuterPosition',[0.02 0.02 0.98 0.98],'Units','normalized','Parent',S.panel1a) % top
+        set(S.ax2,'OuterPosition',[0.02 0.02 0.98 0.98],'Units','normalized','Parent',S.panel2a) % bottom
+
+        % change size of panels (top)
+        S.panel1.Position=[210 80+hei/2+80 wid_fig-220 hei_fig/2-100];
+
+        % change size of panels (bottom)
+        S.panel2.Position=[210 120 wid_fig-220 hei_fig/2-100];
+
+        % change size of sliders
+        S.slider2.Position=[210 120 wid_fig-220 0.05]; % bottom
+        S.slider1.Position=[210 80+hei/2+80 wid_fig-220 0.05]; % top
+
+        % change position of auto and comparenum-boxes
+        S.comparenum.Position=[380 170+hei 40 20];
+        S.auto.Position=[440 170+hei 100 20];
+        S.connect.Position=[550 170+hei 200 20];
+
+        % change position of titles:
+        S.title1.Position=[210 170+hei 200 20];
+        S.title2.Position=[210 120+hei/2 200 20];
+
+        % slider update
+        val1 = get(S.slider1,'Value');
+        set(S.panel1a,'Position',[-val1 0 2 1],'Units','normalized');
+        val2 = get(S.slider2,'Value');
+        set(S.panel2a,'Position',[-val2 0 2 1],'Units','normalized');
     end
+
+
 
     function [] = asp_call(varargin)
         % Callback for aspectratio
@@ -189,6 +264,10 @@ guidata(S.fh,S);
         drawnow;
         set(S.ax2,'DataAspectratio',[S.aspval 1 1]);
         drawnow;
+
+        S.slider1.Value=0.5;
+        S.slider2.Value=0.5;
+
         guidata(gcbf,S); % Update
     end
 
@@ -255,10 +334,10 @@ guidata(S.fh,S);
         for o=1:nobj-1
             delete(obj(o));
         end
-        % plot new profile
+        % plot new profile for picking
         set(S.Plot2,'CData',S.radargrams{S.prof.Value},'xdata',S.x{S.prof.Value});
         set(S.ax2,'DataAspectratio',[str2num(S.asp_String{S.asp.Value}) 1 1],'nextplot','add','Xlim',[min(S.x{S.prof.Value}) max(S.x{S.prof.Value})]);
-        title(['Active Picking: Profile #',int2str(S.prof.Value)])
+        S.title2.String=['Active Picking: Profile #',int2str(S.prof.Value)];
         rb_call();
         if S.auto.Value==1
             S.comparenum.String=num2str(S.prof_old);
@@ -295,7 +374,8 @@ guidata(S.fh,S);
                 for j=1:length(numlay)
                     xtemp=picks(picks(:,5)==n(i) & picks(:,7)==numlay(j),1);
                     ytemp=picks(picks(:,5)==n(i) & picks(:,7)==numlay(j),2);
-                    if length(xtemp)>1 % line
+                    flag=mean(picks(picks(:,5)==n(i) & picks(:,7)==numlay(j),8));
+                    if flag==1 % line
                         plot(S.ax2,xtemp,ytemp,'Linewidth',2,'Color',S.col(w(i),:),'ButtonDownFcn',@delone_call,'Tag',num2str(n(i)),'UserData',numlay(j));
                     else % points
                         plot(S.ax2,xtemp,ytemp,'*','Linewidth',2,'Color',S.col(w(i),:),'ButtonDownFcn',@delone_call,'Tag',num2str(n(i)),'UserData',numlay(j));
@@ -310,20 +390,30 @@ guidata(S.fh,S);
     function [] = newlayer_call(varargin)
         % Callback for new line of layer
         S=guidata(gcbf);
+        % check if line or point:
+        if S.Switchbutton.Value==1 % line
+            flag=1; % line
+        else
+            flag=2; % points
+        end
         % make new list entry or check for old one
         IDstr=S.id.String;
         name=S.name.String;
         l_list=S.layerlist.String; % list of layers
         for k=1:length(l_list)
-            l_list{k}=l_list{k}(28:end-14); % extract only ID - name
+            l_list{k}=l_list{k}(28:end-14); % extract only "ID - name (flag)"
         end
-        if isempty(l_list)
+        if isempty(l_list) % if first layer
             % Color management
             S.col = [S.col; uisetcolor([1 1 0],'Select a color')];
             laynum=1;
             numlayer=1; % number of line for this layer
-            S.layerlist.String={['<HTML><FONT color="',rgb2Hex(S.col(1,:).*255),'">',[IDstr,' - ',name],'</FONT></HTML>']}; % add first layer to list
-        else
+            if flag==1
+                S.layerlist.String={['<HTML><FONT color="',rgb2Hex(S.col(1,:).*255),'">',[IDstr,' - ',name,' (line)'],'</FONT></HTML>']}; % add first layer to list
+            else
+                S.layerlist.String={['<HTML><FONT color="',rgb2Hex(S.col(1,:).*255),'">',[IDstr,' - ',name,' (points)'],'</FONT></HTML>']}; % add first layer to list
+            end
+        else % if there are already layers
             for i=1:length(l_list)
                 % get ID
                 ii=1;
@@ -335,9 +425,16 @@ guidata(S.fh,S);
             end
             if any(in==1) % this layer ID is already in use...
                 w=find(in==1);
-                if ~strcmp(l_list{w},['<HTML><FONT color="',rgb2Hex(S.col(w,:).*255),'">',[IDstr,' - ',name],'</FONT></HTML>']) % if not same name
-                    % change name of layer
-                    S.layerlist.String{w}=['<HTML><FONT color="',rgb2Hex(S.col(w,:).*255),'">',[IDstr,' - ',name],'</FONT></HTML>'];
+                if flag==1 % line
+                    if ~strcmp(l_list{w},[IDstr,' - ',name,' (line)']) % if not same name
+                        % change name of layer
+                        S.layerlist.String{w}=['<HTML><FONT color="',rgb2Hex(S.col(w,:).*255),'">',[IDstr,' - ',name,' (line)'],'</FONT></HTML>'];
+                    end
+                else
+                    if ~strcmp(l_list{w},[IDstr,' - ',name,' (points)']) % if not same name
+                        % change name of layer
+                        S.layerlist.String{w}=['<HTML><FONT color="',rgb2Hex(S.col(w,:).*255),'">',[IDstr,' - ',name,' (points)'],'</FONT></HTML>'];
+                    end
                 end
                 laynum=w;
                 % check if already layer with this ID in this profile
@@ -358,19 +455,51 @@ guidata(S.fh,S);
                 S.col = [S.col; uisetcolor([1 1 0],'Select a color')];
                 laynum=length(S.col(:,1));
                 numlayer=1;  % number of line for this layer
-                S.layerlist.String=[S.layerlist.String; {['<HTML><FONT color="',rgb2Hex(S.col(laynum,:).*255),'">',[IDstr,' - ',name],'</FONT></HTML>']}]; % new entry in layerlist
+                if flag==1
+                    S.layerlist.String=[S.layerlist.String; {['<HTML><FONT color="',rgb2Hex(S.col(laynum,:).*255),'">',[IDstr,' - ',name,' (line)'],'</FONT></HTML>']}]; % new entry in layerlist
+                else
+                    S.layerlist.String=[S.layerlist.String; {['<HTML><FONT color="',rgb2Hex(S.col(laynum,:).*255),'">',[IDstr,' - ',name,' (points)'],'</FONT></HTML>']}]; % new entry in layerlist
+                end
             end
         end
         guidata(gcbf,S); % Update
         % picking:
-        if S.Switchbutton.Value==1 % line
-            [xx,zz]=ginput(); % picking
+        if flag==1 % line
+            b=1; % initialize button
+            xx=[];
+            zz=[];
+            while ~isempty(b)
+                [xt,zt,b]=ginput(1); % picking
+                xx=[xx; xt]; % append to list
+                zz=[zz; zt];
+                plot(S.ax2,xx,zz,'-.','Marker','+','Linewidth',2,'Color',S.col(laynum,:),'Tag','temp');
+            end
+            obj=get(S.ax2,'Children');
+            for i=1:length(obj)-1
+                if ~isempty(obj(i).Tag) && strcmp(obj(i).Tag,'temp')
+                    delete(obj(i)); 
+                end
+            end
             plot(S.ax2,xx,zz,'Linewidth',2,'Color',S.col(laynum,:),'ButtonDownFcn',@delone_call,'Tag',IDstr,'UserData',numlayer);
             text(S.ax2,xx(1),zz(1)+10*S.dtz,IDstr,'Color',S.col(laynum,:));
             E=interp1(S.x{S.prof.Value},S.global_coords{S.prof.Value}(:,1),xx);
             N=interp1(S.x{S.prof.Value},S.global_coords{S.prof.Value}(:,2),xx);
         else % points
-            [xx,zz]=ginput(); % picking
+            b=1; % initialize button
+            xx=[];
+            zz=[];
+            while ~isempty(b)
+                [xt,zt,b]=ginput(1); % picking
+                xx=[xx; xt]; % append to list
+                zz=[zz; zt];
+                plot(S.ax2,xx,zz,'+','Linewidth',2,'Color',S.col(laynum,:),'Tag','temp');
+            end
+            obj=get(S.ax2,'Children');
+            for i=1:length(obj)-1
+                if ~isempty(obj(i).Tag) && strcmp(obj(i).Tag,'temp')
+                    delete(obj(i)); 
+                end
+            end
             plot(S.ax2,xx,zz,'*','Linewidth',2,'Color',S.col(laynum,:),'ButtonDownFcn',@delone_call,'Tag',IDstr,'UserData',numlayer);
             for xi=1:length(xx)
                 text(S.ax2,xx(xi),zz(xi)+10*S.dtz,IDstr,'Color',S.col(laynum,:));
@@ -378,8 +507,8 @@ guidata(S.fh,S);
             E=interp1(S.x{S.prof.Value},S.global_coords{S.prof.Value}(:,1),xx);
             N=interp1(S.x{S.prof.Value},S.global_coords{S.prof.Value}(:,2),xx);
         end
-        
-        S.allpicks=[S.allpicks; [xx zz E N zeros(length(E),1)+str2num(IDstr) zeros(length(E),1)+S.prof.Value zeros(length(E),1)+numlayer]];
+        % store picks: x z E N ID Profile# numlayer flag(1=line,2=point)
+        S.allpicks=[S.allpicks; [xx zz E N zeros(length(E),1)+str2num(IDstr) zeros(length(E),1)+S.prof.Value zeros(length(E),1)+numlayer zeros(length(E),1)+flag]];
         
         guidata(gcbf,S); % Update
     end
@@ -394,7 +523,16 @@ guidata(S.fh,S);
             i=i+1;
         end
         S.id.String=num;
-        S.name.String=w(i+2:end);   % get name        
+        % get name
+        name=extractBetween(w,'- ',' (');
+        S.name.String=name{1};     
+        % get line/point
+        flag=extractBetween(w,'(',')');
+        if strcmp(flag,'line')
+            S.Switchbutton.Value=1;
+        else
+            S.Switchbutton.Value=2;
+        end
         guidata(gcbf,S); % Update
     end
 
@@ -440,11 +578,13 @@ guidata(S.fh,S);
 
 
     function [] = name_call(varargin)
-        % Callback for name -> change name
+        % Callback for name -> change name (if layer is selected in list
+        % and then only name is changed)
         S=guidata(gcbf);
         l_list=S.layerlist.String;
         for k=1:length(l_list)
-            l_list{k}=l_list{k}(28:end-14); % extract only ID - name
+            l_list{k}=l_list{k}(28:end-14); % extract only "ID - name (flag)"
+            flag{k}=extractBetween(l_list{k},'(',')');
         end
         name=S.name.String;
         IDstr=S.id.String;
@@ -460,7 +600,11 @@ guidata(S.fh,S);
         if exist('in','var') && any(in==1)
             w=find(in==1);
             % change name of layer
-            S.layerlist.String{w}=['<HTML><FONT color="',rgb2Hex(S.col(w,:).*255),'">',[IDstr,' - ',name],'</FONT></HTML>'];
+            if strcmp(flag{w},'line') % line
+                S.layerlist.String{w}=['<HTML><FONT color="',rgb2Hex(S.col(w,:).*255),'">',[IDstr,' - ',name,' (line)'],'</FONT></HTML>'];
+            else % points
+                S.layerlist.String{w}=['<HTML><FONT color="',rgb2Hex(S.col(w,:).*255),'">',[IDstr,' - ',name,' (points)'],'</FONT></HTML>'];
+            end
         end
         guidata(gcbf,S); % Update
     end
@@ -569,11 +713,11 @@ guidata(S.fh,S);
             end
             fprintf(fid,'%4.1f\t%4.1f\t%4.1f\n',S.col'); % layer colors
             if isnan(S.z)
-                fprintf(fid,'x[m]\tt[ns]\tEasting[m]\tNorthing[m]\tID\tProfile\tlinenumber\n');
+                fprintf(fid,'x[m]\tt[ns]\tEasting[m]\tNorthing[m]\tID\tProfile\tlinenumber\tflag\n');
             else
-                fprintf(fid,'x[m]\tz[m]\tEasting[m]\tNorthing[m]\tID\tProfile\tlinenumber\n');
+                fprintf(fid,'x[m]\tz[m]\tEasting[m]\tNorthing[m]\tID\tProfile\tlinenumber\tflag\n');
             end
-            fprintf(fid,'%8.2f\t%8.2f\t%8.2f\t%8.2f\t%d\t%d\t%d\n',S.allpicks');
+            fprintf(fid,'%8.2f\t%8.2f\t%8.2f\t%8.2f\t%d\t%d\t%d\t%d\n',S.allpicks');
             fclose(fid);
         end
     end
@@ -595,16 +739,16 @@ guidata(S.fh,S);
             fid=fopen(fullfile(pa,file),'r');
             anz=fscanf(fid,'%d',1);
             for i=1:anz
-                temp{i}=textscan(fid,'%s',3);
+                temp{i}=textscan(fid,'%s',4); % ID - name (flag)
             end
             tempcol=textscan(fid,'%f%f%f',anz);
             S.col=[tempcol{1} tempcol{2} tempcol{3}];
             % make layer strings with color
             for i=1:anz
-                S.layerlist.String{i}=['<HTML><FONT color="',rgb2Hex(S.col(i,:).*255),'">',[temp{i}{1}{1},' ',temp{i}{1}{2},' ',temp{i}{1}{3}],'</FONT></HTML>'];
+                S.layerlist.String{i}=['<HTML><FONT color="',rgb2Hex(S.col(i,:).*255),'">',[temp{i}{1}{1},' ',temp{i}{1}{2},' ',temp{i}{1}{3},' ',temp{i}{1}{4}],'</FONT></HTML>'];
             end
-            temp=textscan(fid,'%f%f%f%f%d%d%d','Headerlines',2);
-            S.allpicks=[temp{1} temp{2} temp{3} temp{4} double(temp{5}) double(temp{6}) double(temp{7})];
+            temp=textscan(fid,'%f%f%f%f%d%d%d%d','Headerlines',2);
+            S.allpicks=[temp{1} temp{2} temp{3} temp{4} double(temp{5}) double(temp{6}) double(temp{7}) double(temp{8})];
             fclose(fid);
             guidata(gcbf,S); % Update
             % plot picks in ax1
@@ -638,7 +782,8 @@ guidata(S.fh,S);
                     for j=1:length(numline)
                         xtemp=picks(picks(:,5)==n(i) & picks(:,7)==numline(j),1);
                         ytemp=picks(picks(:,5)==n(i) & picks(:,7)==numline(j),2);
-                        if length(xtemp)>1 % line
+                        flag=mean(picks(picks(:,5)==n(i) & picks(:,7)==numline(j),8));
+                        if flag==1 % line
                             plot(S.ax2,xtemp,ytemp,'Linewidth',2,'Color',S.col(w(i),:),'ButtonDownFcn',@delone_call,'Tag',num2str(n(i)),'UserData',numline(j));
                             text(S.ax2,xtemp(1),ytemp(1)+10*S.dtz,num2str(n(i)),'Color',S.col(w(i),:));
                         else % points
@@ -665,7 +810,7 @@ guidata(S.fh,S);
         for o=1:nobj-1
             delete(obj(o));
         end
-        % plot new profile
+        % plot new profile for comparison (top plot)
         set(S.Plot1,'CData',S.radargrams{num},'xdata',S.x{num});
         set(S.ax1,'xlim',[min(S.x{num}) max(S.x{num})]);
         % plot picks if available
@@ -697,8 +842,16 @@ guidata(S.fh,S);
                 for j=1:length(numline)
                     xtemp=picks(picks(:,5)==n(i) & picks(:,7)==numline(j),1);
                     ytemp=picks(picks(:,5)==n(i) & picks(:,7)==numline(j),2);
-                    plot(S.ax1,xtemp,ytemp,'Linewidth',2,'Color',S.col(w(i),:),'Tag',num2str(n(i)),'UserData',numline(j));
-                    text(S.ax1,xtemp(1),ytemp(1)+10*S.dtz,num2str(n(i)),'Color',S.col(w(i),:));
+                    flag=mean(picks(picks(:,5)==n(i) & picks(:,7)==numline(j),8));
+                    if flag==1 % line
+                        plot(S.ax1,xtemp,ytemp,'Linewidth',2,'Color',S.col(w(i),:),'ButtonDownFcn',@delone_call,'Tag',num2str(n(i)),'UserData',numline(j));
+                        text(S.ax1,xtemp(1),ytemp(1)+10*S.dtz,num2str(n(i)),'Color',S.col(w(i),:));
+                    else % points
+                        plot(S.ax1,xtemp,ytemp,'*','Linewidth',2,'Color',S.col(w(i),:),'ButtonDownFcn',@delone_call,'Tag',num2str(n(i)),'UserData',numline(j));
+                        for xi=1:length(xtemp)
+                            text(S.ax1,xtemp(xi),ytemp(xi)+10*S.dtz,num2str(n(i)),'Color',S.col(w(i),:));
+                        end
+                    end
                 end
             end
         end
