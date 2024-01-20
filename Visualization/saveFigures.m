@@ -26,6 +26,12 @@ ampSpec_flag=0; % 1: amplitude spectrum, 0: radargram
 dxtick=[]; % spacing between x-ticks in m (leave empty for automatic determination)
 dytick=[]; % spacing between y-ticks in ns or m (leave empty for automatic determination)
 
+% plot picks on radargrams? (created with LayerPicking.m)
+plot_picks=1; % =1: I want to plot picks on the radargrams, =0: no picks
+flag=0; % =1: only lines, =2: only points, =0: all
+linewidth=1; % linewidth
+markersize=5; % markersize of points
+
 % save as georeferenced png?
 save_georef=1; % yes=1, no=0
 
@@ -87,13 +93,77 @@ else
     fclose(fid);
 end
 
+if plot_picks==1  %load picks.txt
+    if ~ispc; menu('Choose *.txt-file with picks.','OK'); end
+    if ispc
+    if exist('picks.temp') % read last opened folder from temp.temp
+        fid=fopen('picks.temp','r');
+        fn=textscan(fid,'%s');
+        fclose(fid);
+        if ~isempty(fn{1})
+            [file,folder]=uigetfile('*.txt','Choose *.txt file with picks',fn{1}{1});
+        else
+            [file,folder]=uigetfile('*.txt','Choose *.txt file with picks');
+        end
+        fileattrib('picks.temp','-h');
+        fid=fopen('picks.temp','wt');
+        fprintf(fid,'%s',foldername);
+        fclose(fid);
+        fileattrib('picks.temp','+h');
+    else
+        [file,folder]=uigetfile('*.txt','Choose *.txt file with picks'); % path to radargram-folder
+
+        fid=fopen('picks.temp','wt');
+        fprintf(fid,'%s',fullfile(folder,file));
+        fclose(fid);
+        fileattrib('picks.temp','+h');
+    end
+else
+    if exist('.picks.temp') % read last opened folder from temp.temp
+        fid=fopen('.picks.temp','r');
+        fn=textscan(fid,'%s');
+        fclose(fid);
+        if ~isempty(fn{1})
+            [file,folder]=uigetfile('*.txt','Choose *.txt file with picks',fn{1}{1});
+        else
+            [file,folder]=uigetfile('*.txt','Choose *.txt file with picks');
+        end
+    else
+        [file,folder]=uigetfile('*.txt','Choose *.txt file with picks'); % path to radargram-folder
+    end
+
+    fid=fopen('.picks.temp','wt');
+    fprintf(fid,'%s',fullfile(folder,file));
+    fclose(fid);
+end
+end
+
 
 % temporarily set path to required scripts
 oldpath=path;
 addpath('../Subfunctions/');
 
 
-%%% Read data
+%% read pick file
+fid=fopen(fullfile(folder,file),'r');
+anz=fscanf(fid,'%d',1);
+for i=1:anz
+    temp{i}=textscan(fid,'%s',4); % ID - name (1:line/2:points)
+end
+tempcol=textscan(fid,'%f%f%f',anz);
+col=[tempcol{1} tempcol{2} tempcol{3}];
+% make layer strings 
+for i=1:anz
+    layerlist{i}=temp{i}{1}{3};
+    layerID(i)=str2num(temp{i}{1}{1});
+end
+temp=textscan(fid,'%f%f%f%f%d%d%d%d','Headerlines',2);
+% picks=[x z E N ID profnum linenum flag];
+picks=[temp{1} temp{2} temp{3} temp{4} double(temp{5}) double(temp{6}) double(temp{7}) double(temp{8})];
+fclose(fid);
+
+
+%% Read data
 disp('Reading data...')
 temp=load(fullfile(pfad_rad,'global_coords.mat'));
 global_coords=temp.global_coords; % global coordinates of starting end ending point
@@ -120,6 +190,11 @@ for kk=numbers % loop over radargrams
     if ~isempty(data{kk}) && any(~isnan(data{kk}(:))) && ~all(global_coords{kk}(:)==0)
         
         datatraces=data{kk}; % read radargrams
+
+        if plot_picks==1
+            p=unique(picks(picks(:,6)==kk,5)); % LayerIDs in this profile
+            pi=picks(picks(:,6)==kk,:); % all picks in this profile
+        end
         
         f=figure('Visible','off');
         
@@ -129,6 +204,19 @@ for kk=numbers % loop over radargrams
                 imagesc(x{kk},t,datatraces)
             else
                 wigglesc(datatraces,t,x{kk},wigglescale);
+            end
+            if plot_picks==1
+                hold on
+                for j=1:length(p)   % for all IDs
+                    linenum=unique(pi(pi(:,5)==p(j),7));  % all line numbers for this ID
+                    for k=1:length(linenum)
+                        if pi(pi(:,5)==p(j),8)==1 & (flag==0 || flag==1) % line
+                            plot(pi(pi(:,5)==p(j) & pi(:,7)==linenum(k),1),pi(pi(:,5)==p(j) & pi(:,7)==linenum(k),2),'linewidth',linewidth,'Color',col(p(j),:))
+                        elseif pi(pi(:,5)==p(j),8)==2 & (flag==0 || flag==2) % points
+                            plot(pi(pi(:,5)==p(j) & pi(:,7)==linenum(k),1),pi(pi(:,5)==p(j) & pi(:,7)==linenum(k),2),'*','Markersize',markersize,'linewidth',linewidth,'Color',col(p(j),:))
+                        end
+                    end
+                end
             end
             grid on
             xlabel('x [m]')
