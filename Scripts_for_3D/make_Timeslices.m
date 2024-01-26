@@ -29,7 +29,7 @@ thick=2; % in ns (or m if dsl=1)
 overlap = 0; % in ns (or m if dsl=1)
 
 % ending time of timeslices
-t_end=40; % in ns (or m if dsl=1, meters below top of data, positive!)
+t_end=60; % in ns (or m if dsl=1, meters below top of data, positive!)
 
 % dx of timeslices (<=dx of bins)
 dx_tsl=0.05;    % in m
