@@ -46,9 +46,10 @@ for i=1:length(in)
     if i==1; c1=clock; end
     
     dist=sqrt((xy(:,1)-x(in(i))).^2+(xy(:,2)-y(in(i))).^2);   % distance to all points
-    
+    w=dist<=r; % these points will be used for interpolation
+
     for j=1:n
-        neu{j}(in(i))=sum(xy(dist<=r,j+2)./dist(dist<=r).^p)/sum(1./dist(dist<=r).^p);
+        neu{j}(in(i))=sum(xy(w,j+2)./dist(w).^p)/sum(1./dist(w).^p);
     end
     
     if i==1

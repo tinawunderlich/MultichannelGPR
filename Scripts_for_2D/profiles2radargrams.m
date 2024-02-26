@@ -15,10 +15,10 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Filename (without folder!) (folder is selected later)
-name='Prenzlau'; % Name of datafiles without '_...'
-profiles=1:90;  % profile numbers
+name='Timetest'; % Name of datafiles without '_...'
+profiles=0:5;  % profile numbers
 
-channels=[1]; % choose channels (one or several)
+channels=[1:16]; % choose channels (one or several)
 
 % Choose rSlicer folder!
 
