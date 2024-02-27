@@ -107,9 +107,9 @@ else % Topomigration
     end
     
     % Estimate width of aperture to reduce matrix size later
-    maxi_z=t(end)./2.*max(v(:)); % max. penetration depth
-    l=2*pi*maxi_z/360*aperture; % length of semicircle for aperture width and maximum depth
-    width=ceil(max(maxi_z,l)); % width of area for matrix reduction
+    maxi_z=t(end)./2.*max(v(:)); % max. penetration depth [m]
+    l=2*pi*maxi_z/360*aperture; % length of semicircle for aperture width and maximum depth [m]
+    width=ceil(max(maxi_z,l)).*2; % width of area for matrix reduction [m]
     
     % pad radargram (and corresponding matrices) with zeros in the beginning and end to reduce edge
     % effects

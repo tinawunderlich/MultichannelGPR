@@ -18,7 +18,7 @@ vconst=0.08; % v in m/ns
 % vopt=2: Constant velocity (but different) for each profile in radargrams.mat
 vall=[0.1 0.08]; % v for each profile in m/ns
 % vopt=3: 1D velocity model for all profiles
-v1d=[0.16 0.1]; % v at different times in m/ns
+v1d=[0.16 0.1]; % vRMS at different times in m/ns
 t1d=[0 18]; % corresponding times in ns
 
 % Choose options for topography:
@@ -29,7 +29,7 @@ topoopt=1;
 % profile coordinate (2. Column) and topography (3. column), all in m, This
 % file should be in the same folder as radargrams.mat
 topofile='Topo.txt'; % file for topoopt==2
-smooth_topo=55; % n>0: smooth topography over n samples, if no smoothing=0
+smooth_topo=55; % n>0: smooth topography over n samples, if no smoothing =0
 
 removeOutliers=0; % if =1: remove outliers in topo data (is done before smoothing)
 num=101; % odd(!) number of points for median calculation if removeOutliers==1
@@ -97,14 +97,19 @@ if vopt==1
     for i=1:length(global_coords)
         v{i}=vconst;
     end
+    maxdepth=max(t)/2*vconst; % maximum depth of radargram
 elseif vopt==2
     for i=1:length(global_coords)
         v{i}=vall(i);
     end
+    maxdepth=max(max(t)./2.*vall); % maximum depth of radargram
 elseif vopt==3
     for i=1:length(global_coords)
         v{i}=repmat(interp1(t1d,v1d,t,'linear',v1d(end)),[1 length(global_coords{i}(:,1))]);
+        % get depth for each profile
+        d(i)=max(t)/2*v{i}(end);
     end
+    maxdepth=max(d); % maximum depth of radargram
 end
 save(fullfile(pfad_rad,'vgrid.mat'),'v');
 
@@ -221,6 +226,20 @@ if topoopt>0
         end
         save(fullfile(pfad_rad,'global_coords.mat'),'global_coords');
     end
+    % get min/max of topo
+    for i=1:length(topo)
+        mintop(i)=min(topo{i});
+        maxtop(i)=max(topo{i});
+    end
+    mintopo=min(mintop);
+    maxtopo=max(maxtop);
+
+    % Displaying min/max depth values for migration
+    disp(['Maximum z of topography is ',num2str(maxtopo,5),' m.'])
+    disp(['Minimum z of topography is ',num2str(mintopo,5),' m.'])
+    disp(['Maximum depth range of all radargrams is ',num2str(maxdepth,5),' m.'])
+    disp(['  -> Recommended values for zmin and zmax in settings.txt are: zmax = ',int2str(ceil(maxtopo)),' m and zmin = ',int2str(floor(mintopo-maxdepth)),' m.'])
+
     save(fullfile(pfad_rad,'topo.mat'),'topo');
 end
 
