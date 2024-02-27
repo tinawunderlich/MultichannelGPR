@@ -102,8 +102,12 @@ if exist([pathstr,'/',fname,'.DZG'])    % falls koordinatendatei vorhanden
                         else
                             GPGGALine=strsplit(temp{1}{j+1},',');
                         end
-                        % ectract the coordinate information
-                        x(count) = str2double(GPGGALine{5});
+                        % extract the coordinate information
+                        if strcmp(GPGGALine{6},'E')
+                            x(count) = str2double(GPGGALine{5});
+                        else
+                            x(count) = -str2double(GPGGALine{5}); % West of Greenwich -> negative
+                        end
                         y(count) = str2double(GPGGALine{3});
                         z(count) = str2double(GPGGALine{10});
 
@@ -441,7 +445,11 @@ if zone~=0 % convert to UTM
         temp=strsplit(lattemp(j,:),'.');
         lat(j)=str2num(temp{1}(1:end-2))+str2num([temp{1}(end-1:end),'.',temp{2}])/60;
         temp=strsplit(lontemp(j,:),'.');
-        lon(j)=str2num(temp{1}(1:end-2))+str2num([temp{1}(end-1:end),'.',temp{2}])/60;
+        if strcmp(temp{1}(1),'-') % negative longitude
+            lon(j)=-1*(str2num(temp{1}(2:end-2))+str2num([temp{1}(end-1:end),'.',temp{2}])/60);
+        else
+            lon(j)=str2num(temp{1}(1:end-2))+str2num([temp{1}(end-1:end),'.',temp{2}])/60;
+        end
     end
     [xneu,yneu]=wgs2utm(lat,lon,zone,'N');
     xyz(:,2)=xneu;
@@ -756,11 +764,14 @@ if plotten==1
     t=0:h.dt:h.dt*(h.ns-1);
     for i=1:rh_nchan
         if i==1
+            if DF==1
+                t=t.*1e9;
+            end
             figure
             imagesc([1:length(data(1,:))/rh_nchan],t,data(:,1:rh_ntraces))
             hold on
             colorbar
-            if ~all(mark==0)
+            if ~all(mark==0) && length(mark)<rh_ntraces/50
                 for ii=1:length(mark)
                     plot([mark(ii) mark(ii)],[0 10],'k')
                 end
@@ -774,7 +785,7 @@ if plotten==1
                 imagesc([1:length(data(1,:))/rh_nchan],t,data(:,rh_ntraces+1:end))
                 hold on
                 colorbar
-                if ~all(mark==0)
+                if ~all(mark==0) && length(mark)<rh_ntraces/50
                     for ii=1:length(mark)
                         plot([mark(ii) mark(ii)],[0 10],'k')
                     end
@@ -783,12 +794,12 @@ if plotten==1
                 xlabel('Trace number')
                 ylabel('t [ns]')
             else
-                t2=0:h.dt2:h.dt2*(h.ns-1);
+                t2=(0:h.dt2:h.dt2*(h.ns-1)).*1e9;
                 figure
                 imagesc([1:length(data(1,:))/rh_nchan],t2,data(:,rh_ntraces+1:end))
                 hold on
                 colorbar
-                if ~all(mark==0)
+                if ~all(mark==0) && length(mark)<rh_ntraces/50
                     for ii=1:length(mark)
                         plot([mark(ii) mark(ii)],[0 10],'k')
                     end
