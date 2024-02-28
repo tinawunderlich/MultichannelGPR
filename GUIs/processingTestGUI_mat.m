@@ -830,13 +830,13 @@ guidata(S.fh,S);
             set(S.ax,'YDir','reverse')
         else % proc data
             if isempty(S.zmig) && isempty(S.f) % normal time data
-                %set(S.rad,'CData',S.proc,'XData',S.xprof,'YData',S.tproc);
-                S.rad=imagesc(S.ax,S.xprof,S.tproc,S.proc);
+                set(S.rad,'CData',S.proc,'XData',S.xprof,'YData',S.tproc);
+                %S.rad=imagesc(S.ax,S.xprof,S.tproc,S.proc);
                 ylabel(S.ax,'t [ns]')
                 set(S.ax,'YDir','reverse')
             elseif ~isempty(S.zmig) && isempty(S.f) % z-mig data
-                %set(S.rad,'CData',S.proc,'XData',S.xprof,'YData',S.zmig);
-                S.rad=imagesc(S.ax,S.xprof,S.zmig,S.proc);
+                set(S.rad,'CData',S.proc,'XData',S.xprof,'YData',S.zmig);
+                %S.rad=imagesc(S.ax,S.xprof,S.zmig,S.proc);
                 ylabel(S.ax,'z [m]')
                 set(S.ax,'YDir','normal')
             else % amplitude spectrum
@@ -848,12 +848,7 @@ guidata(S.fh,S);
         end
         drawnow;
         guidata(gcbf,S); % Update
-        if ~isfield(S,'zmig') || (isempty(S.zmig) && isempty(S.f)) % normal time data
-            colorscale_call();
-        elseif isfield(S,'zmig') && ~isempty(S.zmig) && isempty(S.f) % z-mig data
-            colorscale_call();
-        end
-
+        colorscale_call();
         set(findobj('Type','Figure','Name','Processing test'), 'pointer', 'arrow');
     end
 
@@ -891,11 +886,7 @@ guidata(S.fh,S);
         % plotting
         plot_call();
         guidata(gcbf,S); % Update
-        if isempty(S.zmig) && isempty(S.f) % normal time data
-            colorscale_call();
-        elseif ~isempty(S.zmig) && isempty(S.f) % z-mig data
-            colorscale_call();
-        end
+        colorscale_call();
         set(findobj('Type','Figure','Name','Processing test'), 'pointer', 'arrow');
     end
 
