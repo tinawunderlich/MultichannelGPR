@@ -1,5 +1,5 @@
 ---
-title: 'MultichannelGPR: A MATLAB tool for GPR data processing'
+title: 'MultichannelGPR: A MATLAB tool for Ground Penetrating Radar data processing'
 tags:
   - MATLAB
   - Ground Penetrating Radar (GPR)
