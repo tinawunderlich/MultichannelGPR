@@ -19,10 +19,10 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Select number of profiles:
-profile_min=3;  % minimum profile number
-profile_max=6;  % maximum profile number
+profile_min=1;  % minimum profile number
+profile_max=31;  % maximum profile number
 % number of channels for this dataset
-channels=22; % number of channels
+channels=16; % number of channels
 
 changeDir=0; % if =1: change the sign of the y-antenna-GPS-offset, if =0: use offsets as written in file
 

@@ -15,10 +15,10 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Filename (without folder!) (folder is selected later)
-name='Timetest'; % Name of datafiles without '_...'
-profiles=0:5;  % profile numbers
+name='Schwissel'; % Name of datafiles without '_...'
+profiles=1:3;  % profile numbers
 
-channels=[1:16]; % choose channels (one or several)
+channels=[1:2:16]; % choose channels (one or several)
 
 % Choose rSlicer folder!
 
@@ -101,7 +101,17 @@ global_coords=cell(1,length(profiles)*length(channels));
 x=cell(1,length(profiles)*length(channels));
 pc=zeros(length(profiles)*length(channels),2);
 for i=1:length(profiles)
-    if exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(profiles(i)),'_info.mat']),'file')
+    if exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(profiles(i)),'_info_proc.mat']),'file')
+        load(fullfile(foldername,'profiles2mat',[name,'_',int2str(profiles(i)),'_info_proc.mat']));
+        for j=1:length(channels)
+            numtraces(anz)=length(info(3,info(3,:)==channels(j)));
+            num{anz}=info(9,info(3,:)==channels(j));    % column number in file
+            global_coords{anz}=[info(4,info(3,:)==channels(j))' info(5,info(3,:)==channels(j))' info(6,info(3,:)==channels(j))'];
+            x{anz}=[0; cumsum(sqrt(diff(global_coords{anz}(:,1)).^2+diff(global_coords{anz}(:,2)).^2))];
+            pc(anz,:)=[profiles(i) channels(j)]; % profile and channels number
+            anz=anz+1;
+        end
+    elseif ~exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(profiles(i)),'_info_proc.mat']),'file') && exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(profiles(i)),'_info.mat']),'file')
         load(fullfile(foldername,'profiles2mat',[name,'_',int2str(profiles(i)),'_info.mat']));
         for j=1:length(channels)
             numtraces(anz)=length(info(3,info(3,:)==channels(j)));

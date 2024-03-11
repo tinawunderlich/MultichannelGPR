@@ -13,7 +13,7 @@ clc
 % Dr. Tina Wunderlich, CAU Kiel 2021, tina.wunderlich@ifg.uni-kiel.de
 
 
-numbers=[]; % give numbers of processed radargrams or leave empty =[] for all
+numbers=[1]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Plotting options for radargrams:
 colorclip=3; % 0 is colorscale from min(data) to max(data), 1 is 1% clip value, 2 is 2% clip value and 3 is 3% clip value, ... (will not be saved, for plotting only!)
@@ -27,7 +27,7 @@ dxtick=[]; % spacing between x-ticks in m (leave empty for automatic determinati
 dytick=[]; % spacing between y-ticks in ns or m (leave empty for automatic determination)
 
 % plot picks on radargrams? (created with LayerPicking.m)
-plot_picks=1; % =1: I want to plot picks on the radargrams, =0: no picks
+plot_picks=0; % =1: I want to plot picks on the radargrams, =0: no picks
 flag=0; % =1: only lines, =2: only points, =0: all
 linewidth=1; % linewidth
 markersize=5; % markersize of points
@@ -144,23 +144,23 @@ oldpath=path;
 addpath('../Subfunctions/');
 
 
-%% read pick file
-fid=fopen(fullfile(folder,file),'r');
-anz=fscanf(fid,'%d',1);
-for i=1:anz
-    temp{i}=textscan(fid,'%s',4); % ID - name (1:line/2:points)
-end
-tempcol=textscan(fid,'%f%f%f',anz);
-col=[tempcol{1} tempcol{2} tempcol{3}];
-% make layer strings 
-for i=1:anz
-    layerlist{i}=temp{i}{1}{3};
-    layerID(i)=str2num(temp{i}{1}{1});
-end
-temp=textscan(fid,'%f%f%f%f%d%d%d%d','Headerlines',2);
-% picks=[x z E N ID profnum linenum flag];
-picks=[temp{1} temp{2} temp{3} temp{4} double(temp{5}) double(temp{6}) double(temp{7}) double(temp{8})];
-fclose(fid);
+% %% read pick file
+% fid=fopen(fullfile(pfad_rad,file),'r');
+% anz=fscanf(fid,'%d',1);
+% for i=1:anz
+%     temp{i}=textscan(fid,'%s',4); % ID - name (1:line/2:points)
+% end
+% tempcol=textscan(fid,'%f%f%f',anz);
+% col=[tempcol{1} tempcol{2} tempcol{3}];
+% % make layer strings 
+% for i=1:anz
+%     layerlist{i}=temp{i}{1}{3};
+%     layerID(i)=str2num(temp{i}{1}{1});
+% end
+% temp=textscan(fid,'%f%f%f%f%d%d%d%d','Headerlines',2);
+% % picks=[x z E N ID profnum linenum flag];
+% picks=[temp{1} temp{2} temp{3} temp{4} double(temp{5}) double(temp{6}) double(temp{7}) double(temp{8})];
+% fclose(fid);
 
 
 %% Read data

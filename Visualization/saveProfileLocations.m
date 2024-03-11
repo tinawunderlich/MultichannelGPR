@@ -62,6 +62,7 @@ disp('Reading data...')
 
 list=dir([pfad_rad,'/*.pos']);
 for i=1:length(list)
+    if ~startsWith(list(i).name,'.')
     % get profile number
     temp=extractBetween(list(i).name,'_','_');
     numbers(i,1)=str2num(temp{1});
@@ -71,6 +72,7 @@ for i=1:length(list)
     temp=textscan(fid,'%f%f%f%f','Headerlines',1);
     fclose(fid);
     data{i}=[temp{1} temp{3} temp{2} temp{4}]; % change order of x and y here!
+    end
 end
 
 %% save as shape file
