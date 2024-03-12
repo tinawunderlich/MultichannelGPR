@@ -28,7 +28,7 @@ end
 mask=NaN(size(trnum));
 mask(x)=1; % set given traces to valid
 for i=1:length(miss)
-    if min(abs(miss(i)-x))<gap
+    if min(abs(miss(i)-x))<gap/2
         mask(miss(i))=1;
     end
 end

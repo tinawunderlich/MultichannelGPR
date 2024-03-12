@@ -11,7 +11,7 @@ option=2;   % Option=1: plot arrow from start to endpoint of profile
 % Option=2: plot original coordinates
 % Option=3: plot smoothed profile coordinates (Matlab only! For Octave the same as option=2.)
 
-convert2utm=1; % convert WGS Lat/Long to UTM (=1 if measured with e.g. Stonex-GPS)
+convert2utm=0; % convert WGS Lat/Long to UTM (=1 if measured with e.g. Stonex-GPS)
 zone=32; % if convert2utm==1 -> give UTM-zone
 
 checkCoords=0; % normally use =0; checkCoords=1: Check for large coordinate jumps and remove them (occurs sometimes for measurements with total station)

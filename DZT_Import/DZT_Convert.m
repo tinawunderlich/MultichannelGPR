@@ -13,13 +13,13 @@ clc
 
 app='Tablet';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet
 
-dataplot=1; % plot radargram for controlling? 1=yes, 0=no
+dataplot=0; % plot radargram for controlling? 1=yes, 0=no
 
-convert2utm=1; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
+convert2utm=0; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
 zone=32; % if convert2utm==1 -> give UTM-zone
 
 offsetGPS_X=0; % Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
-offsetGPS_Y=-0.12; % Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
+offsetGPS_Y=0.12; % Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
 
 % Options for calculating inline coordinates for each trace:
 coords_opt=1;   % =1: trace coordinate is difference to beginning of profile (only use this for straight profiles!)
@@ -156,6 +156,20 @@ for i=1:length(list)
         
         % correct GPS-antenna offset:
         if offsetGPS_X~=0 || offsetGPS_Y~=0
+            % if there are traces at the same position -> delete
+            d1=diff(trh.x);
+            d2=diff(trh.y);
+            weg=(d1==0 & d2==0);
+            trh.x=trh.x(~weg);
+            trh.y=trh.y(~weg);
+            trh.z=trh.z(~weg);
+            trh.time=trh.time(~weg);
+            trh.mark=trh.mark(~weg);
+            trh.channum=trh.channum(~weg);
+            trh.tracenum=1:length(trh.mark);
+            data=data(:,~weg);
+
+            % now correct for offsets:
             anz2=round(0.5/mean(sqrt(diff(trh.x).^2+diff(trh.y).^2))); % number of points for direction determination (using mean trace spacing for 0.5 m distance)
             if anz2/2==round(anz2/2)
                 anz2=anz2+1; % make odd

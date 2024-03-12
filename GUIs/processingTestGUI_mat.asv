@@ -216,7 +216,7 @@ S.fh.Visible='on';
         S.aperture=uicontrol(S.fh,'Style','edit','String','30','Enable','off','Position',[1120-off1-off5 210 35 20]);
         S.vtext=uicontrol(S.fh,'Style','text','String','v [m/ns]','Position',[1160-off1-off5 270 140 20],'HorizontalAlignment','left');
         S.tvtext=uicontrol(S.fh,'Style','text','String','corresp. t [ns]','Position',[1160-off1-off5 240 140 20],'HorizontalAlignment','left');
-        S.aperturetext=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 210 140 20],'HorizontalAlignment','left');
+        S.aperturetext=uicontrol(S.fh,'Style','text','String','aperture [Â°]','Position',[1160-off1-off5 210 140 20],'HorizontalAlignment','left');
         
         % Topomigration/korrektur (reduced to constant v for easier input)
         S.topo=uicontrol(S.fh,'Style','checkbox','String','Topographic migration (const. v)','FontWeight','bold','Position',[1100-off1-off5 180 200 15],'Value',0,'Callback',@topo_call);
@@ -225,10 +225,10 @@ S.fh.Visible='on';
         S.aperture2=uicontrol(S.fh,'Style','edit','String','30','Enable','off','Position',[1120-off1-off5 90 35 20]);
         S.v2text=uicontrol(S.fh,'Style','text','String','v [m/ns]','Position',[1160-off1-off5 150 140 20],'HorizontalAlignment','left');
         S.flagtopotext=uicontrol(S.fh,'Style','text','String','correction(1), migration(2)','Position',[1160-off1-off5 120 140 20],'HorizontalAlignment','left');
-        S.aperture2text=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 90 140 20],'HorizontalAlignment','left');
+        S.aperture2text=uicontrol(S.fh,'Style','text','String','aperture [Â°]','Position',[1160-off1-off5 90 140 20],'HorizontalAlignment','left');
         
         % 6th column:
-        off6=-70;
+        off6=130;
         % median filter on traces
         S.medfilt=uicontrol(S.fh,'Style','checkbox','String','Trace-wise median filter','FontWeight','bold','Position',[1100-off1-off6 300 200 15],'Value',0,'Callback',@medfilt_call);
         S.numsamp=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[1120-off1-off6 270 35 20]);
@@ -371,11 +371,7 @@ guidata(S.fh,S);
             fprintf(fid,['do_exchange_x_y 0\n\n']);
         end
 
-        if any(ismember(steps,'Trace-wise median filter'))
-            fprintf(fid,['do_medfilt ',int2str(order(ismember(steps,'Trace-wise median filter'))),'\nnumsamp ',S.numsamp.String,'\n\n']);
-        else
-            fprintf(fid,['do_medfilt 0\nnumsamp 3\n\n']);
-        end
+        
 
         if any(ismember(steps,'Coordinate transformation'))
             fprintf(fid,['do_helmertTransformation ',int2str(order(ismember(steps,'Coordinate transformation'))),'\ncoordsfile coords.txt\n\n']);
@@ -478,20 +474,6 @@ guidata(S.fh,S);
     end
 
 %% Processing steps calls
-    function [] = medfilt_call(varargin) % trace median filter
-        S=guidata(gcbf);
-        if S.medfilt.Value==1
-            S.proclist.String=[S.proclist.String; {'Trace-wise median filter'}];
-            S.apply.Enable='on';
-            S.delete.Enable='on';
-            S.numsamp.Enable='on';
-        else
-            S.proclist.String(ismember(S.proclist.String,'Trace-wise median filter'))=[];
-            S.numsamp.Enable='off';
-        end
-        guidata(gcbf,S); % Update
-    end
-
     function [] = turn_call(varargin) % turn profiles
         S=guidata(gcbf);
         if S.turn.Value==1
@@ -889,7 +871,7 @@ guidata(S.fh,S);
         steps=S.proclist.String; % list of processing steps
         order=1:length(steps);
         % Parameter
-        params=struct('numsamp',str2num(S.numsamp.String),'tmax',str2num(S.tmax.String),'numtraces_mean',str2num(S.numtrace.String),...
+        params=struct('tmax',str2num(S.tmax.String),'numtraces_mean',str2num(S.numtrace.String),...
             'numtraces_median',str2num(S.numtrace2.String),'gap',str2num(S.gap.String),...
             'g1',str2num(S.g1.String),...
             'g2',str2num(S.g2.String),'g3',str2num(S.g3.String),'g4',str2num(S.g4.String),...
@@ -928,7 +910,6 @@ guidata(S.fh,S);
         S.apply.Enable='off';
         S.d2.Enable='off';
         % turn checkboxes off
-        S.medfilt.Value=0;
         S.DCrem.Value=0;
         S.traceinterp.Value=0;
         S.spherDiv.Value=0;
@@ -950,7 +931,6 @@ guidata(S.fh,S);
         S.ex_xy.Value=0;
         S.helmert.Value=0;
         % enable parameters off
-        S.numsamp.Enable='off';
         S.fmin_sw.Enable='off';
         S.fmax_sw.Enable='off';
         S.alpha.Enable='off';
@@ -1011,10 +991,6 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         S.wb1=patch(S.wbax,[numsteps*(k-1) numsteps*k numsteps*k numsteps*(k-1) numsteps*(k-1)],[0 0 1 1 0],[1 0 0]);
         set(S.wbax,'XTick',[],'XTickLabel',[],'YTick',[],'YTickLabel',[])
         drawnow;
-    end
-
-    if strcmp(steps{order==k},'Trace-wise median filter')
-        [datatraces]=medfilt(datatraces,params.numsamp);
     end
     
     if strcmp(steps{order==k},'Turn profiles')

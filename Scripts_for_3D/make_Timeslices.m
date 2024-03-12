@@ -23,7 +23,7 @@ followTopo=0;
 t_start=0;  % in ns (or m if depth slice starting from top of data (=0m))
 
 % thickness of timeslices
-thick=5; % in ns (or m if dsl=1)
+thick=2; % in ns (or m if dsl=1)
 
 % overlap of timeslices
 overlap = 0; % in ns (or m if dsl=1)

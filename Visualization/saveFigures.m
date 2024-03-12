@@ -13,7 +13,7 @@ clc
 % Dr. Tina Wunderlich, CAU Kiel 2021, tina.wunderlich@ifg.uni-kiel.de
 
 
-numbers=[1]; % give numbers of processed radargrams or leave empty =[] for all
+numbers=[]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Plotting options for radargrams:
 colorclip=3; % 0 is colorscale from min(data) to max(data), 1 is 1% clip value, 2 is 2% clip value and 3 is 3% clip value, ... (will not be saved, for plotting only!)
