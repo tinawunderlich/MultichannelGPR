@@ -14,11 +14,11 @@ clc
 
 
 
-numbers=[]; % give numbers of processed radargrams or leave empty =[] for all
+numbers=[1]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Processing options:
 settings='settings.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
-plotflag=0; % =1 plot and show all radargrams during processing, =0 do not plot
+plotflag=1; % =1 plot and show all radargrams during processing, =0 do not plot
 
 % Plotting options
 colorclip=3; % 0 is colorscale from min(data) to max(data), 1 is 1% clip value, 2 is 2% clip value and 3 is 3% clip value, ... (will not be saved, for plotting only!)
@@ -102,6 +102,7 @@ if ~exist(fullfile(pfad_rad,settings),'file') % if no settings-file is found: cr
     fid=fopen(fullfile(pfad_rad,settings),'wt');
     fprintf(fid,'do_DCremoval 1\n\n');
     fprintf(fid,'do_bandpass 2\nfstart 100\nfend 600\n\n');
+    fprintf(fid,'do_medfilt 0\nnumsamp 3\n\n');
     fprintf(fid,'do_constTraceDist 4\ndist 0.02\n\n');
     fprintf(fid,'do_reduceNumberOfSamples 0\nn 2\n\n');
     fprintf(fid,'do_cutTWT 3\ncutT 80\n\n');
@@ -130,7 +131,7 @@ else
     temp=textscan(fid,'%s%s');
     fclose(fid);
     % get order of processing steps:
-    steps=[{'do_DCremoval'} {'do_helmertTransformation'} {'do_turnProfiles'} {'do_t0Threshold'} {'do_exchange_x_y'} {'do_migration'} {'do_reduceNumberOfSamples'} {'do_constTraceDist'} {'do_topomigration'} {'do_t0correction'} {'do_t0shift'} {'do_cutTWT'} {'do_makeAmpSpec'} {'do_sphericalDivergence'} {'do_attenuationCorrection'} {'do_bandpass'} {'do_normalization'} {'do_removeMeanTrace'} {'do_kHighpass'} {'do_applyGain'} {'do_interpolation'}];
+    steps=[{'do_DCremoval'} {'do_medfilt'} {'do_helmertTransformation'} {'do_turnProfiles'} {'do_t0Threshold'} {'do_exchange_x_y'} {'do_migration'} {'do_reduceNumberOfSamples'} {'do_constTraceDist'} {'do_topomigration'} {'do_t0correction'} {'do_t0shift'} {'do_cutTWT'} {'do_makeAmpSpec'} {'do_sphericalDivergence'} {'do_attenuationCorrection'} {'do_bandpass'} {'do_normalization'} {'do_removeMeanTrace'} {'do_kHighpass'} {'do_applyGain'} {'do_interpolation'}];
     for i=1:length(steps)
         for j=1:length(temp{1})
             if strcmp(temp{1}{j},steps{i})
@@ -144,6 +145,8 @@ else
             sigma=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'eps')
             eps=str2num(temp{2}{i});
+        elseif strcmp(temp{1}(i),'numsamp')
+            numsamp=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'t0')
             t0=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'t0s')
@@ -207,6 +210,8 @@ else
             disp(['  fend = ',num2str(fend),' MHz'])
         elseif strcmp('do_constTraceDist',steps{order==i})
             disp(['  dist = ',num2str(dist),' m'])
+        elseif strcmp('do_medfilt',steps{order==i})
+            disp(['  numsamp = ',num2str(numsamp)])
         elseif strcmp('do_normalization',steps{order==i})
             disp(['  qclip = ',num2str(qclip)])
         elseif strcmp('do_cutTWT',steps{order==i})
@@ -307,6 +312,10 @@ for kk=numbers % loop over radargrams
         
         for k=1:length(order(order>0))  % for all processing steps in right order
             
+            %%% trace-wise median filter
+            if strcmp(steps{order==k},'do_medfilt')
+                [datatraces]=medfilt(datatraces,numsamp);
+            end
             
             %%% Make constant trace distance
             if strcmp(steps{order==k},'do_constTraceDist')

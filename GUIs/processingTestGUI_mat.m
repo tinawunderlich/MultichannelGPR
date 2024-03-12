@@ -109,7 +109,7 @@ S.fh.Visible='on';
         
         % Const Trace Distance
         S.constDist=uicontrol(S.fh,'Style','checkbox','String','Constant trace distance','FontWeight','bold','Position',[300-off1 270 200 15],'Value',0,'Callback',@constDist_call);
-        S.dist=uicontrol(S.fh,'Style','edit','String','0','Value',0,'Enable','off','Position',[320-off1 240 35 20]);
+        S.dist=uicontrol(S.fh,'Style','edit','String','0.02','Value',0,'Enable','off','Position',[320-off1 240 35 20]);
         S.disttext=uicontrol(S.fh,'Style','text','String','dx [m]','Position',[360-off1 240 140 20],'HorizontalAlignment','left');
         
         % Trace interpolation
@@ -290,7 +290,7 @@ guidata(S.fh,S);
         % Callback for colorscale limits
         S=guidata(gcbf);
         if isfield(S,'rad') % only for radargram, not for amplitude spectrum
-            temp=get(S.rad,'CData');
+            temp=S.ax.Children.CData;
             coldata=sort(unique(temp(~isnan(temp))));
             S.cmin1=coldata(round(length(coldata)/100*1));
             S.cmax1=coldata(end-round(length(coldata)/100*1));
@@ -873,9 +873,38 @@ guidata(S.fh,S);
                 set(S.ax,'YDir','normal')
             end
         end
-        drawnow;
+        % colorscale
+        if isfield(S,'rad') % only for radargram, not for amplitude spectrum
+            temp=S.ax.Children.CData;
+            coldata=sort(unique(temp(~isnan(temp))));
+            S.cmin1=coldata(round(length(coldata)/100*1));
+            S.cmax1=coldata(end-round(length(coldata)/100*1));
+            S.cmin3=coldata(round(length(coldata)/100*3));
+            S.cmax3=coldata(end-round(length(coldata)/100*3));
+            val1=S.rb1.Value;
+            val2=S.rb2.Value;
+            val3=S.rb3.Value;
+            if val1==1
+                S.rb2.Value=0;
+                S.rb3.Value=0;
+                set(S.ax,'ClimMode','auto');
+                drawnow;
+                S.flag_cs=1;
+            elseif val2==1
+                S.rb1.Value=0;
+                S.rb3.Value=0;
+                set(S.ax,'ClimMode','manual','CLim',[S.cmin1 S.cmax1]);
+                drawnow;
+                S.flag_cs=2;
+            elseif val3==1
+                S.rb1.Value=0;
+                S.rb2.Value=0;
+                set(S.ax,'ClimMode','manual','CLim',[S.cmin3 S.cmax3]);
+                drawnow;
+                S.flag_cs=3;
+            end
+        end
         guidata(gcbf,S); % Update
-        colorscale_call();
         set(findobj('Type','Figure','Name','Processing test'), 'pointer', 'arrow');
     end
 
@@ -912,9 +941,8 @@ guidata(S.fh,S);
         guidata(gcbf,S); % Update
         % plotting
         plot_call();
-        guidata(gcbf,S); % Update
-        colorscale_call();
         set(findobj('Type','Figure','Name','Processing test'), 'pointer', 'arrow');
+        guidata(gcbf,S); % Update
     end
 
 %% delete list of processing steps
