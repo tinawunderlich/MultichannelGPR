@@ -3,17 +3,15 @@ close all
 clc
 
 
-% Read single profile of Mala Mira data (prepared for rSlicer) or GSSI DZT-data or
+% Read single profile of Mala Mira data (prepared for rSlicer) or
 % radargrams.mat (=import into MultichannelGPR from various systems) and do processing individually
-% Only for testing of processing options, no saving of data!
+% Only for testing of processing options, no saving of data, just saving of settings-file!
 %
 % Dr. Tina Wunderlich, CAU Kiel 2020-2023, tina.wunderlich@ifg.uni-kiel.de
 %
 % requires folders Export_Import, Processing, Subfunctions, Migration,
 % Plotting
-%
-% in case of DZT-Data the utm zone needs to be specified
-UTMzone = 32;
+
 
 % -------------------------------------------------------------------------
 % Do not change the following part! (Add processing in the main part of this script!)
@@ -87,26 +85,7 @@ if (~isempty(temp)) % if Mala mira data available
 
     processingTestGUI(folder,name,profilelist);
 end
-%% GSSI
-temp=dir(fullfile(folder,'/*.DZT')); % get list of all DZT-files (GSSI)
-if (~isempty(temp)) % if GSSI data available
-    disp('GSSI DZT data found. Please wait!')
-    anz=1;
-    for i=1:length(temp)
-        if ~startsWith(temp(i).name,'.')
-            profilelist(anz)=str2num(temp(i).name(end-6:end-4)); % profile number
-            anz=anz+1;
-        end
-    end
 
-    tempname=strsplit(temp(end).name,'_'); % Name of data files without '_???.dzt'
-    name=[tempname{1}];
-    for i=2:length(tempname)-1
-        name=[name,'_',tempname{i}];
-    end
-
-    processingTestGUI_gssi(folder,name,profilelist,UTMzone);
-end
 
 %% MultichannelGPR format
 temp=dir(fullfile(folder,'/*.mat')); % get list of all mat-files

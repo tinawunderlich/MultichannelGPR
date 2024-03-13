@@ -58,7 +58,7 @@ nofig=0;    % if =1: no figures will be shown
 
 % save radargrams.mat of processed profile data in one variable (requires large memory -> probably not
 % working for every data set)?
-rad=1; % if =0, processed data will be saved in folder proc, but not all radargrams in one file radargrams.mat
+rad=0; % if =0, processed data will be saved in folder proc, but not all radargrams in one file radargrams.mat
         % if =1, processed data will be saved in radargrams.mat...
 
 % Save to sgy for Kingdom
@@ -589,41 +589,35 @@ if useprocdata==0
     end
     params.maxz=params.maxz+0.5;
     params.minz=params.maxz-info(7,1)*info(8,1)/2*params.v-0.5-(params.maxz-params.minz);
-
+    
     % if do_crossprofileshift -> determine shiftsamples now!
     if any(strcmp(steps,'do_crossprofileshift')) && order(strcmp(steps,'do_crossprofileshift'))>0
-        if ~exist(fullfile(foldername,'shiftsamples_cps.txt'),'file')
-            disp('Determine shiftsamples for crossprofileshift...')
-            prof=NaN(length(numbers),1);
-            for i=1:length(numbers) % (is not working as parfor!)
-                % load raw data
-                if exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']),'file')
-                    mat=matfile(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']));
-                    load(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']));
-
-                    cps{i}=mat.traces(:,find(info(3,:)==1)); % get all first channel traces
-                    prof(i,1)=numbers(i);
-                end
+        disp('Determine shiftsamples for crossprofileshift...')
+        prof=NaN(length(numbers),1);
+        for i=1:length(numbers) % (is not working as parfor!)
+            % load raw data
+            if exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']),'file')
+                load(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']));
+                load(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']));
+                
+                cps{i}=traces(:,info(3,:)==1); % get all first channels
+                prof(i,1)=numbers(i);
             end
-
-            % delete empty cells
-            cps(isnan(prof))=[];
-            prof(isnan(prof))=[];
-
-            % determine shiftsamples_cps
-            [~,params.shiftsamples_cps]=channelshift(cps,params.maxshift_cps);
-
-            params.shiftsamples_cps=[prof params.shiftsamples_cps]; % profilenumber shiftsamples
-
-            fid=fopen(fullfile(foldername,'shiftsamples_cps.txt'),'wt');
-            fprintf(fid,'%d\t%d\n',params.shiftsamples_cps');
-            fclose(fid);
-            clear cps;
-            disp('   Done and saved in shiftsamples_cps.txt')
-        else
-            disp('   Reading shiftsamples_cps from shiftsamples_cps.txt')
-            params.shiftsamples_cps=load(fullfile(foldername,'shiftsamples_cps.txt'));
         end
+
+        % delete empty cells
+        cps(isnan(prof))=[];
+        prof(isnan(prof))=[];
+        
+        % determine shiftsamples_cps
+        [~,params.shiftsamples_cps]=channelshift(cps,params.maxshift_cps);
+        
+        params.shiftsamples_cps=[prof params.shiftsamples_cps]; % profilenumber shiftsamples
+        
+        fid=fopen(fullfile(foldername,'shiftsamples_cps.txt'),'wt');
+        fprintf(fid,'%d\t%d\n',params.shiftsamples_cps');
+        fclose(fid);
+        disp('   Done and saved in shiftsamples_cps.txt')
     end
     
     
@@ -633,8 +627,10 @@ if useprocdata==0
         if exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']),'file')
             tic
             disp(['Profile #',int2str(numbers(i))]);
-            load(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']));
-            load(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']));
+            temp=load(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']));
+            traces=temp.traces;
+            temp2=load(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']));
+            info=temp2.info;
 
             params.dt=info(7,1);
             t=0:params.dt:params.dt*(info(8,1)-1);
@@ -652,9 +648,6 @@ if useprocdata==0
             
             % processing:
             [traces,ns,t,zmig,info]=processing(steps,order,traces,info,t,params,fhProc,b);
-
-            % update (e.g. if number of traces has changed):
-            profileinfotemp{i}=[numbers(i) params.dt info(8,1) max(info(3,:)) max(info(2,:))]; % profilnumber, dt, ns, channels, numtraces-per-channel
             
             if rad==1
                 % write all profiles in one variable
@@ -670,7 +663,6 @@ if useprocdata==0
             parsave(fullfile(foldername,'profiles2mat','proc',[name,'_',int2str(numbers(i)),'.mat']),traces);
             parsave(fullfile(foldername,'profiles2mat','proc','t.mat'),t);
             parsave(fullfile(foldername,'profiles2mat','proc','zmig.mat'),zmig);
-            parsave(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info_proc.mat']),info);
 
             % save figure
             parprintfigure(fullfile(foldername,'profiles2mat','proc',['Processing_',int2str(numbers(i)),'.jpg']),fhProc);
@@ -749,8 +741,8 @@ profileinfo=sortrows(profileinfo,1);
 xylist=zeros(sum(profileinfo(:,4).*profileinfo(:,5)),6);
 anz=0;
 for i=1:length(numbers)
-    if exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info_proc.mat']),'file')
-        m=matfile(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info_proc.mat']));
+    if exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']),'file')
+        m=matfile(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']));
         if i==1
             xylist(1:profileinfo(i,4)*profileinfo(i,5),:)=[zeros(length(m.info(4,:)),1)+numbers(i) m.info(4,:)' m.info(5,:)' m.info(6,:)' m.info(3,:)' [1:profileinfo(i,4)*profileinfo(i,5)]']; % Number, x, y, z, channel of profile, tracenumber in profile
             anz=anz+profileinfo(i,4)*profileinfo(i,5);
@@ -1331,6 +1323,19 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         end
     end
     
+    
+    if strcmp(steps{order==k},'do_traceInterpolation')
+        disp('  ...Trace interpolation')
+        datatraces=traceInterpolation(datatraces,params.minfactor,params.maxfactor);
+        if exist('fh','var')
+            subplot(4,3,k+1)
+            hold on
+            plot(t,datatraces(:,b))
+            grid on
+            xlabel('t [ns]')
+            title('Trace interpolation')
+        end
+    end
     
     if strcmp(steps{order==k},'do_t0CorrectionThreshold')
         disp('  ...t0 correction with threshold')

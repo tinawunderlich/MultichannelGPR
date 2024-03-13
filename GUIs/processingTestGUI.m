@@ -135,7 +135,7 @@ S.fh.Visible='on';
         S.tendtext=uicontrol(S.fh,'Style','text','String','tend [ns]','Position',[360-off1 240 140 20],'HorizontalAlignment','left');
         
         % Trace interpolation
-        S.traceinterp=uicontrol(S.fh,'Style','checkbox','String','Trace interpolation','FontWeight','bold','Position',[300-off1 210 200 15],'Value',0,'Callback',@traceinterp_call);
+        S.badtrace=uicontrol(S.fh,'Style','checkbox','String','Bad trace removal','FontWeight','bold','Position',[300-off1 210 200 15],'Value',0,'Callback',@badtraceremoval_call);
         S.minfactor=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[320-off1 180 35 20]);
         S.maxfactor=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[320-off1 150 35 20]);
         S.minfactortext=uicontrol(S.fh,'Style','text','String','minfactor','Position',[360-off1 180 140 20],'HorizontalAlignment','left');
@@ -245,7 +245,7 @@ S.fh.Visible='on';
         S.aperture2text=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 90 140 20],'HorizontalAlignment','left');
         
         % 6th column:
-        off6=130;
+        off6=120;
         % spectralWhitening
         S.sw=uicontrol(S.fh,'Style','checkbox','String','Spectral Whitening','FontWeight','bold','Position',[1300-off1-off6 300 200 15],'Value',0,'Callback',@sw_call);
         S.fmin_sw=uicontrol(S.fh,'Style','edit','String','100','Enable','off','Position',[1320-off1-off6 270 35 20]);
@@ -254,6 +254,22 @@ S.fh.Visible='on';
         S.fmax_sw_text=uicontrol(S.fh,'Style','text','String','fmax [MHz]','Position',[1360-off1-off6 240 140 20],'HorizontalAlignment','left');
         S.alpha=uicontrol(S.fh,'Style','edit','String','0.01','Enable','off','Position',[1320-off1-off6 210 35 20]);
         S.alpha_text=uicontrol(S.fh,'Style','text','String','alpha','Position',[1360-off1-off6 210 140 20],'HorizontalAlignment','left');
+
+        off6=-80;
+        % median filter on traces
+        S.medfilt=uicontrol(S.fh,'Style','checkbox','String','Trace-wise median filter','FontWeight','bold','Position',[1100-off1-off6 180 200 15],'Value',0,'Callback',@medfilt_call);
+        S.numsamp=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[1120-off1-off6 150 35 20]);
+        S.numsamptext=uicontrol(S.fh,'Style','text','String','number of samples','Position',[1160-off1-off6 150 140 20],'HorizontalAlignment','left');
+
+        % Const Trace Distance
+        S.constDist=uicontrol(S.fh,'Style','checkbox','String','Constant trace distance','FontWeight','bold','Position',[1100-off1-off6 120 200 15],'Value',0,'Callback',@constDist_call);
+        S.dist=uicontrol(S.fh,'Style','edit','String','0.02','Value',0,'Enable','off','Position',[1120-off1-off6 90 35 20]);
+        S.disttext=uicontrol(S.fh,'Style','text','String','dx [m]','Position',[1160-off1-off6 90 140 20],'HorizontalAlignment','left');
+
+        % Trace interpolation
+        S.traceinterp=uicontrol(S.fh,'Style','checkbox','String','Trace interpolation','FontWeight','bold','Position',[1100-off1-off6 60 200 15],'Value',0,'Callback',@traceinterp_call);
+        S.gap=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[1120-off1-off6 30 35 20]);
+        S.gaptext=uicontrol(S.fh,'Style','text','String','number of traces','Position',[1160-off1-off6 30 140 20],'HorizontalAlignment','left');
     end
 
 
@@ -301,33 +317,35 @@ guidata(S.fh,S);
     function [] = colorscale_call(varargin)
         % Callback for colorscale limits
         S=guidata(gcbf);
-        temp=get(S.rad,'CData');
-        coldata=sort(unique(temp(~isnan(temp))));
-        S.cmin1=coldata(round(length(coldata)/100*1));
-        S.cmax1=coldata(end-round(length(coldata)/100*1));
-        S.cmin3=coldata(round(length(coldata)/100*3));
-        S.cmax3=coldata(end-round(length(coldata)/100*3));
-        val1=S.rb1.Value;
-        val2=S.rb2.Value;
-        val3=S.rb3.Value;
-        if val1==1 && S.flag_cs~=1
-            S.rb2.Value=0;
-            S.rb3.Value=0;
-            set(S.ax,'ClimMode','auto');
-            drawnow;
-            S.flag_cs=1;
-        elseif val2==1 && S.flag_cs~=2
-            S.rb1.Value=0;
-            S.rb3.Value=0;
-            set(S.ax,'ClimMode','manual','CLim',[S.cmin1 S.cmax1]);
-            drawnow;
-            S.flag_cs=2;
-        elseif val3==1 && S.flag_cs~=3
-            S.rb1.Value=0;
-            S.rb2.Value=0;
-            set(S.ax,'ClimMode','manual','CLim',[S.cmin3 S.cmax3]);
-            drawnow;
-            S.flag_cs=3;
+        if isfield(S,'rad') % only for radargram, not for amplitude spectrum
+            temp=get(S.rad,'CData');
+            coldata=sort(unique(temp(~isnan(temp))));
+            S.cmin1=coldata(round(length(coldata)/100*1));
+            S.cmax1=coldata(end-round(length(coldata)/100*1));
+            S.cmin3=coldata(round(length(coldata)/100*3));
+            S.cmax3=coldata(end-round(length(coldata)/100*3));
+            val1=S.rb1.Value;
+            val2=S.rb2.Value;
+            val3=S.rb3.Value;
+            if val1==1 && S.flag_cs~=1
+                S.rb2.Value=0;
+                S.rb3.Value=0;
+                set(S.ax,'ClimMode','auto');
+                drawnow;
+                S.flag_cs=1;
+            elseif val2==1 && S.flag_cs~=2
+                S.rb1.Value=0;
+                S.rb3.Value=0;
+                set(S.ax,'ClimMode','manual','CLim',[S.cmin1 S.cmax1]);
+                drawnow;
+                S.flag_cs=2;
+            elseif val3==1 && S.flag_cs~=3
+                S.rb1.Value=0;
+                S.rb2.Value=0;
+                set(S.ax,'ClimMode','manual','CLim',[S.cmin3 S.cmax3]);
+                drawnow;
+                S.flag_cs=3;
+            end
         end
         guidata(gcbf,S); % Update (for flag_cs)
     end
@@ -370,10 +388,25 @@ guidata(S.fh,S);
         else
             fprintf(fid,['do_amplitudeOffset 0\ntstart[ns] 0\ntend[ns] 100\n\n']);
         end
-        if any(ismember(steps,'Trace interpolation'))
-            fprintf(fid,['do_traceInterpolation ',int2str(order(ismember(steps,'Trace interpolation'))),'\nminfactor ',S.minfactor.String,'\nmaxfactor ',S.maxfactor.String,'\n\n']);
+        if any(ismember(steps,'Bad trace removal'))
+            fprintf(fid,['do_badTraceRemoval ',int2str(order(ismember(steps,'Bad trace removal'))),'\nminfactor ',S.minfactor.String,'\nmaxfactor ',S.maxfactor.String,'\n\n']);
         else
-            fprintf(fid,['do_traceInterpolation 0\nminfactor 2\nmaxfactor 2\n\n']);
+            fprintf(fid,['do_badTraceRemoval 0\nminfactor 2\nmaxfactor 2\n\n']);
+        end
+        if any(ismember(steps,'Constant trace distance'))
+            fprintf(fid,['do_constTraceDist ',int2str(order(ismember(steps,'Constant trace distance'))),'\ndx[m] ',S.dist.String,'\n\n']);
+        else
+            fprintf(fid,['do_constTraceDist 0\ndx[m] 0.02\n\n']);
+        end
+        if any(ismember(steps,'Trace interpolation'))
+            fprintf(fid,['do_traceInterpolation ',int2str(order(ismember(steps,'Trace interpolation'))),'\ngap ',S.gap.String,'\n\n']);
+        else
+            fprintf(fid,['do_traceInterpolation 0\ngap 10\n\n']);
+        end
+        if any(ismember(steps,'Trace-wise median filter'))
+            fprintf(fid,['do_medfilt ',int2str(order(ismember(steps,'Trace-wise median filter'))),'\nnumsamp ',S.numsamp.String,'\n\n']);
+        else
+            fprintf(fid,['do_medfilt 0\nnumsamp 3\n\n']);
         end
         if any(ismember(steps,'Spherical divergence'))
             fprintf(fid,['do_sphericalDivergence ',int2str(order(ismember(steps,'Spherical divergence'))),'\n\n']);
@@ -487,6 +520,46 @@ guidata(S.fh,S);
     end
 
 %% Processing steps calls
+
+    function [] = medfilt_call(varargin) % trace median filter
+        S=guidata(gcbf);
+        if S.medfilt.Value==1
+            S.proclist.String=[S.proclist.String; {'Trace-wise median filter'}];
+            S.apply.Enable='on';
+            S.delete.Enable='on';
+            S.numsamp.Enable='on';
+        else
+            S.proclist.String(ismember(S.proclist.String,'Trace-wise median filter'))=[];
+            S.numsamp.Enable='off';
+        end
+        guidata(gcbf,S); % Update
+    end
+    function [] = constDist_call(varargin)
+        S=guidata(gcbf);
+        if S.constDist.Value==1
+            S.proclist.String=[S.proclist.String; {'Constant trace distance'}];
+            S.dist.Enable='on';
+            S.apply.Enable='on';
+            S.delete.Enable='on';
+        else
+            S.proclist.String(ismember(S.proclist.String,'Constant trace distance'))=[];
+            S.dist.Enable='off';
+        end
+        guidata(gcbf,S); % Update
+    end
+    function [] = traceinterp_call(varargin)
+        S=guidata(gcbf);
+        if S.traceinterp.Value==1
+            S.proclist.String=[S.proclist.String; {'Trace interpolation'}];
+            S.gap.Enable='on';
+            S.apply.Enable='on';
+            S.delete.Enable='on';
+        else
+            S.proclist.String(ismember(S.proclist.String,'Trace interpolation'))=[];
+            S.gap.Enable='off';
+        end
+        guidata(gcbf,S); % Update
+    end
     function [] = sw_call(varargin) % spectral whitening
         S=guidata(gcbf);
         if S.sw.Value==1
@@ -553,16 +626,16 @@ guidata(S.fh,S);
         end
         guidata(gcbf,S); % Update
     end
-    function [] = traceinterp_call(varargin)
+    function [] = badtraceremoval_call(varargin)
         S=guidata(gcbf);
-        if S.traceinterp.Value==1
-            S.proclist.String=[S.proclist.String; {'Trace interpolation'}];
+        if S.badtrace.Value==1
+            S.proclist.String=[S.proclist.String; {'Bad trace removal'}];
             S.minfactor.Enable='on';
             S.maxfactor.Enable='on';
             S.apply.Enable='on';
             S.delete.Enable='on';
         else
-            S.proclist.String(ismember(S.proclist.String,'Trace interpolation'))=[];
+            S.proclist.String(ismember(S.proclist.String,'Bad trace removal'))=[];
             S.minfactor.Enable='off';
             S.maxfactor.Enable='off';
         end
@@ -838,35 +911,63 @@ guidata(S.fh,S);
         else % proc data
             if isempty(num)
                 if isempty(S.zmig)
-                    set(S.rad,'CData',S.proc,'XData',S.xloc,'YData',S.tproc);
+                    set(S.rad,'CData',S.proc,'XData',S.xproc,'YData',S.tproc);
                     for i=1:length(S.xprof)-1
-                        plot(S.ax,[max(S.xloc(S.info==i)) max(S.xloc(S.info==i))],[0 max(S.tproc)],'r')
+                        plot(S.ax,[max(S.xproc(S.info==i)) max(S.xproc(S.info==i))],[0 max(S.tproc)],'r')
                     end
                     ylabel(S.ax,'t [ns]')
                     set(S.ax,'YDir','reverse')
                 else
-                    set(S.rad,'CData',S.proc,'XData',S.xloc,'YData',S.zmig);
+                    set(S.rad,'CData',S.proc,'XData',S.xproc,'YData',S.zmig);
                     for i=1:length(S.xprof)-1
-                        plot(S.ax,[max(S.xloc(S.info==i)) max(S.xloc(S.info==i))],[min(S.zmig) max(S.zmig)],'r')
+                        plot(S.ax,[max(S.xproc(S.info==i)) max(S.xproc(S.info==i))],[min(S.zmig) max(S.zmig)],'r')
                     end
                     ylabel(S.ax,'z [m]')
                     set(S.ax,'YDir','normal')
                 end
             else
                 if isempty(S.zmig)
-                    set(S.rad,'CData',S.proc(:,S.info==num),'XData',S.xloc(S.info==num)-min(S.xloc(S.info==num)),'YData',S.tproc);
+                    set(S.rad,'CData',S.proc(:,S.info==num),'XData',S.xproc(S.info==num)-min(S.xproc(S.info==num)),'YData',S.tproc);
                     ylabel(S.ax,'t [ns]')
                     set(S.ax,'YDir','reverse')
                 else
-                    set(S.rad,'CData',S.proc(:,S.info==num),'XData',S.xloc(S.info==num)-min(S.xloc(S.info==num)),'YData',S.zmig);
+                    set(S.rad,'CData',S.proc(:,S.info==num),'XData',S.xproc(S.info==num)-min(S.xproc(S.info==num)),'YData',S.zmig);
                     ylabel(S.ax,'z [m]')
                     set(S.ax,'YDir','normal')
                 end
             end
         end
-        drawnow;
+        if isfield(S,'rad')
+            temp=get(S.rad,'CData');
+            coldata=sort(unique(temp(~isnan(temp))));
+            S.cmin1=coldata(round(length(coldata)/100*1));
+            S.cmax1=coldata(end-round(length(coldata)/100*1));
+            S.cmin3=coldata(round(length(coldata)/100*3));
+            S.cmax3=coldata(end-round(length(coldata)/100*3));
+            val1=S.rb1.Value;
+            val2=S.rb2.Value;
+            val3=S.rb3.Value;
+            if val1==1
+                S.rb2.Value=0;
+                S.rb3.Value=0;
+                set(S.ax,'ClimMode','auto');
+                drawnow;
+                S.flag_cs=1;
+            elseif val2==1
+                S.rb1.Value=0;
+                S.rb3.Value=0;
+                set(S.ax,'ClimMode','manual','CLim',[S.cmin1 S.cmax1]);
+                drawnow;
+                S.flag_cs=2;
+            elseif val3==1
+                S.rb1.Value=0;
+                S.rb2.Value=0;
+                set(S.ax,'ClimMode','manual','CLim',[S.cmin3 S.cmax3]);
+                drawnow;
+                S.flag_cs=3;
+            end
+        end
         guidata(gcbf,S); % Update
-        colorscale_call();
         set(findobj('Type','Figure','Name','Processing test'), 'pointer', 'arrow');
     end
 
@@ -879,7 +980,7 @@ guidata(S.fh,S);
         order=1:length(steps);
         % Parameter
         params=struct('tstart',str2num(S.tstart.String),'tend',str2num(S.tend.String),...
-            'tmax',str2num(S.tmax.String),'numtraces_mean',str2num(S.numtrace.String),...
+            'tmax',str2num(S.tmax.String),'dist',str2num(S.dist.String),'gap',str2num(S.gap.String),'numsamp',str2num(S.numsamp.String),'numtraces_mean',str2num(S.numtrace.String),...
             'numtraces_median',str2num(S.numtrace2.String),'minfactor',str2num(S.minfactor.String),...
             'maxfactor',str2num(S.maxfactor.String),'g1',str2num(S.g1.String),...
             'g2',str2num(S.g2.String),'g3',str2num(S.g3.String),'g4',str2num(S.g4.String),...
@@ -921,7 +1022,7 @@ guidata(S.fh,S);
             end
         end
         % do processing:
-        [S.proc,S.ns,S.tproc,S.zmig]=processing(steps,order,S.raw,S.info,S.xloc,S.zz,S.t,params,S);
+        [S.proc,S.ns,S.tproc,S.zmig,S.xproc]=processing(steps,order,S.raw,S.info,S.xloc,S.zz,S.t,params,S);
         % set to processed data
         S.d1.Value=0;
         S.d2.Value=1;
@@ -931,7 +1032,6 @@ guidata(S.fh,S);
         % plotting
         plot_call();
         guidata(gcbf,S); % Update
-        colorscale_call();
         set(findobj('Type','Figure','Name','Processing test'), 'pointer', 'arrow');
     end
 
@@ -948,6 +1048,8 @@ guidata(S.fh,S);
         % turn checkboxes off
         S.DCrem.Value=0;
         S.traceinterp.Value=0;
+        S.badtrace.Value=0;
+        S.constDist.Value=0;
         S.spherDiv.Value=0;
         S.attenuation.Value=0;
         S.t0corr.Value=0;
@@ -955,6 +1057,7 @@ guidata(S.fh,S);
         S.cutTWT.Value=0;
         S.norm.Value=0;
         S.khigh.Value=0;
+        S.medfilt.Value=0;
         S.gain.Value=0;
         S.mean.Value=0;
         S.median.Value=0;
@@ -967,7 +1070,10 @@ guidata(S.fh,S);
         S.fmax_sw.Enable='off';
         S.alpha.Enable='off';
         S.v.Enable='off';
+        S.gap.Enable='off';
+        S.dist.Enable='off';
         S.tv.Enable='off';
+        S.numsamp.Enable='off';
         S.aperture.Enable='off';
         S.flagtopo.Enable='off';
         S.v2.Enable='off';
@@ -1007,12 +1113,14 @@ end
 
 
 %% subfunction:
-function [datatraces,ns,tproc,zmig]=processing(steps,order,datatraces,info,x,z,t,params,S)
+function [datatraces,ns,tproc,zmig,xproc]=processing(steps,order,datatraces,info,x,z,t,params,S)
 % (info=channel number for each trace)
 
+% initialize values
 ns=length(t);
 tproc=t;
 zmig=[];
+xproc=x;
 
 if ~isempty(S) % S is only given for real processing, for preparation give []
     % get parts in waitbar
@@ -1027,7 +1135,44 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         set(S.wbax,'XTick',[],'XTickLabel',[],'YTick',[],'YTickLabel',[])
         drawnow;
     end
-    
+
+    if strcmp(steps{order==k},'Constant trace distance')
+        channels=max(info);
+        temp=cell(channels,1);
+        xx=cell(channels,1);
+        for ch=1:channels
+            % create local global coords
+            xyz=zeros(length(x(info==ch)),3);
+            xyz(:,1)=x(info==ch);
+            % make const trace dist for each channel
+            minx(ch)=min(x(info==ch)); % for reducing x for each channel
+            [temp{ch},xx{ch},~]=constTraceDist(datatraces(:,info==ch),params.dist,x(info==ch)-minx(ch),xyz);
+        end
+        numtrch=min(cellfun(@(x) length(x),xx)); % minimum number of traces per channel
+
+        % replace new data (has different size than before!)
+        info=zeros(1,channels*numtrch);
+        datatraces=zeros(length(t),channels*numtrch);
+        xproc=zeros(1,channels*numtrch);
+        for ii=1:channels
+            info((ii-1)*numtrch+ii-(ii-1):ii*numtrch)=ii;
+            xproc((ii-1)*numtrch+ii-(ii-1):ii*numtrch)=xx{ch}(1:numtrch)+minx(ii); % add offset again for having coordinates along all channels
+            datatraces(:,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=temp{ii}(:,1:numtrch);
+        end
+        clear temp;
+        clear xx;
+    end
+
+    if strcmp(steps{order==k},'Trace interpolation')
+        for ch=1:max(info)
+            datatraces(:,info==ch)=interpolation(datatraces(:,info==ch),params.gap);
+        end
+    end
+
+    if strcmp(steps{order==k},'Trace-wise median filter')
+        [datatraces]=medfilt(datatraces,params.numsamp);
+    end
+
     if strcmp(steps{order==k},'Spectral Whitening')
         for i=1:max(info) % for each channel
             datatemp(:,info==i)=spectralWhitening(datatraces(:,info==i),params.dt,params.fmin_sw,params.fmax_sw,params.alpha);
@@ -1094,7 +1239,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         end
     end
     
-    if strcmp(steps{order==k},'do_traceInterpolation')
+    if strcmp(steps{order==k},'do_badtraceremoval')
         datatraces=traceInterpolation(datatraces,params.minfactor,params.maxfactor);
     end
     
