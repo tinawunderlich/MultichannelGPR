@@ -27,16 +27,16 @@ dxtick=[]; % spacing between x-ticks in m (leave empty for automatic determinati
 dytick=[]; % spacing between y-ticks in ns or m (leave empty for automatic determination)
 
 % plot picks on radargrams? (created with LayerPicking.m)
-plot_picks=0; % =1: I want to plot picks on the radargrams, =0: no picks
+plot_picks=1; % =1: I want to plot picks on the radargrams, =0: no picks
 flag=0; % =1: only lines, =2: only points, =0: all
 linewidth=1; % linewidth
 markersize=5; % markersize of points
 
 % save as georeferenced png?
-save_georef=1; % yes=1, no=0
+save_georef=0; % yes=1, no=0
 
 % save profile coordinates as shape file?
-save_shape=1; % yes=1, no=0
+save_shape=0; % yes=1, no=0
 shapename='GPR_Profiles.shp'; % give name for shape file
 
 % Plotting options for map:
@@ -111,7 +111,7 @@ if plot_picks==1  %load picks.txt
         fclose(fid);
         fileattrib('picks.temp','+h');
     else
-        [file,folder]=uigetfile('*.txt','Choose *.txt file with picks'); % path to radargram-folder
+        [file,folder]=uigetfile('*.txt','Choose *.txt file with picks',pfad_rad); % path to radargram-folder
 
         fid=fopen('picks.temp','wt');
         fprintf(fid,'%s',fullfile(folder,file));
@@ -129,7 +129,7 @@ else
             [file,folder]=uigetfile('*.txt','Choose *.txt file with picks');
         end
     else
-        [file,folder]=uigetfile('*.txt','Choose *.txt file with picks'); % path to radargram-folder
+        [file,folder]=uigetfile('*.txt','Choose *.txt file with picks',pfad_rad); % path to radargram-folder
     end
 
     fid=fopen('.picks.temp','wt');
@@ -144,23 +144,23 @@ oldpath=path;
 addpath('../Subfunctions/');
 
 
-% %% read pick file
-% fid=fopen(fullfile(pfad_rad,file),'r');
-% anz=fscanf(fid,'%d',1);
-% for i=1:anz
-%     temp{i}=textscan(fid,'%s',4); % ID - name (1:line/2:points)
-% end
-% tempcol=textscan(fid,'%f%f%f',anz);
-% col=[tempcol{1} tempcol{2} tempcol{3}];
-% % make layer strings 
-% for i=1:anz
-%     layerlist{i}=temp{i}{1}{3};
-%     layerID(i)=str2num(temp{i}{1}{1});
-% end
-% temp=textscan(fid,'%f%f%f%f%d%d%d%d','Headerlines',2);
-% % picks=[x z E N ID profnum linenum flag];
-% picks=[temp{1} temp{2} temp{3} temp{4} double(temp{5}) double(temp{6}) double(temp{7}) double(temp{8})];
-% fclose(fid);
+%% read pick file
+fid=fopen(fullfile(pfad_rad,file),'r');
+anz=fscanf(fid,'%d',1);
+for i=1:anz
+    temp{i}=textscan(fid,'%s',4); % ID - name (1:line/2:points)
+end
+tempcol=textscan(fid,'%f%f%f',anz);
+col=[tempcol{1} tempcol{2} tempcol{3}];
+% make layer strings 
+for i=1:anz
+    layerlist{i}=temp{i}{1}{3};
+    layerID(i)=str2num(temp{i}{1}{1});
+end
+temp=textscan(fid,'%f%f%f%f%d%d%d%d','Headerlines',2);
+% picks=[x z E N ID profnum linenum flag];
+picks=[temp{1} temp{2} temp{3} temp{4} double(temp{5}) double(temp{6}) double(temp{7}) double(temp{8})];
+fclose(fid);
 
 
 %% Read data
