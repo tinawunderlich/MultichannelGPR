@@ -57,6 +57,8 @@ S.cmax1=coldata(end-round(length(coldata)/100*1));
 S.cmin3=coldata(round(length(coldata)/100*3));
 S.cmax3=coldata(end-round(length(coldata)/100*3));
 
+S.tbox=10; % default length of t for box for auto v in ns
+
 % get screensize
 S.siz=get(0,'ScreenSize');
 S.fh.Position=S.siz;  % default: screensize
@@ -97,13 +99,13 @@ uimenu(figureToolBar,'Label','Pan','Callback','pan on');
         S.asptext=uicontrol(S.fh,'style','text','unit','pix','position',[20 85 100 20],'String','Aspect ratio t','HorizontalAlignment','left');
         
         % UI control - radiobuttons for colorscale
-        S.rb1=uicontrol('Style','radiobutton','String','Auto color scale','Position',[280 60 150 15],'Value',1,'Callback',@colorscale_call); % this button is on
+        S.rb1=uicontrol('Style','radiobutton','String','Auto color scale','Position',[280 60 150 15],'Callback',@colorscale_call); 
         S.rb2=uicontrol('Style','radiobutton','String','1 %','Position',[280 40 150 15],'Callback',@colorscale_call);
-        S.rb3=uicontrol('Style','radiobutton','String','3 %','Position',[280 20 150 15],'Callback',@colorscale_call);
-        S.flag_cs=1;
+        S.rb3=uicontrol('Style','radiobutton','String','3 %','Position',[280 20 150 15],'Value',1,'Callback',@colorscale_call); % this button is on
+        S.flag_cs=3;
         
         % UI control: gain
-        S.gain_cb=uicontrol(S.fh,'Style','checkbox','unit','pix','Position',[150 120 100 15],'String','Apply gain [dB]','Value',1,'Callback',@gain_call);
+        S.gain_cb=uicontrol(S.fh,'Style','checkbox','unit','pix','Position',[150 120 100 15],'String','Apply gain [dB]','Value',0,'Callback',@gain_call);
         S.gain1 = uicontrol(S.fh,'Style','edit','unit','pix','Position',[150 100 60 15],'String','-20','Callback',@gain_call);
         S.gain2 = uicontrol(S.fh,'Style','edit','unit','pix','Position',[150 80 60 15],'String','0','Callback',@gain_call);
         S.gain3 = uicontrol(S.fh,'Style','edit','unit','pix','Position',[150 60 60 15],'String','15','Callback',@gain_call);
@@ -114,16 +116,20 @@ uimenu(figureToolBar,'Label','Pan','Callback','pan on');
         S.new=uicontrol(S.fh,'Style','pushbutton','unit','pix','position',[480 55 100 20],'callback',{@new_call},'String','Make new v-pick');
         
         % UI control for semblance button
-        S.semb=uicontrol(S.fh,'Style','checkbox','unit','pix','position',[480 20 150 20],'callback',{@semb_call},'Value',0,'String','Auto v (via semblance)');
+        S.semb=uicontrol(S.fh,'Style','checkbox','unit','pix','position',[480 20 150 20],'callback',{@semb_call},'Value',0,'String','Auto v');
         
         % UI control for v-slider
-        S.vSlider=uicontrol(S.fh,'Style','slider','unit','pix','position',[650 30 100 20],'callback',{@v_call},'min',3,'max',18,'Value',10,'sliderstep',[0.1/15 1/15],'Enable','off');
-        S.text6=uicontrol(S.fh,'style','text','unit','pix','position',[650 55 100 20],'String','v =           cm/ns');
-        S.vtext=uicontrol(S.fh,'style','text','unit','pix','position',[675 55 30 20],'String','10');
+        S.vSlider=uicontrol(S.fh,'Style','slider','unit','pix','position',[650 50 100 20],'callback',{@v_call},'min',3,'max',18,'Value',10,'sliderstep',[0.1/15 1/15],'Enable','off');
+        S.text6=uicontrol(S.fh,'style','text','unit','pix','position',[650 75 100 20],'String','v =           cm/ns');
+        S.vtext=uicontrol(S.fh,'style','text','unit','pix','position',[675 75 30 20],'String','10');
+        
+        % UI control for tbox length
+        S.tboxedit=uicontrol(S.fh,'Style','edit','unit','pix','position',[650 20 40 20],'callback',@tbox_call,'Value',S.tbox,'Enable','off','String',num2str(S.tbox));
+        S.text9=uicontrol(S.fh,'style','text','unit','pix','position',[700 22 160 15],'String','Time range of box [ns]','HorizontalAlignment','Left');
         
         % UI control for Hyperbola length
-        S.hyplenedit=uicontrol(S.fh,'Style','edit','unit','pix','position',[800 20 40 20],'callback',{@hyplen_call},'Value',S.hyplen,'String',num2str(S.hyplen));
-        S.text7=uicontrol(S.fh,'style','text','unit','pix','position',[850 20 160 15],'String','Half width of hyperbola [m]','HorizontalAlignment','Left');
+        S.hyplenedit=uicontrol(S.fh,'Style','edit','unit','pix','position',[830 20 40 20],'callback',{@hyplen_call},'Value',S.hyplen,'String',num2str(S.hyplen));
+        S.text7=uicontrol(S.fh,'style','text','unit','pix','position',[880 20 160 15],'String','Half width of hyperbola [m]','HorizontalAlignment','Left');
         
         % UI control for saving of velocities
         S.save=uicontrol(S.fh,'Style','pushbutton','unit','pix','position',[800 55 120 20],'callback',{@save_call},'String','Save current velocity','Enable','off');
@@ -135,15 +141,44 @@ uimenu(figureToolBar,'Label','Pan','Callback','pan on');
         % Plot of radargram
         S.ax = axes('unit','pix',...
             'position',[200 140 S.siz(3)-300 S.siz(4)-200]);
-        S.Plot = imagesc(S.coord,S.t,S.tracesgain);
+        S.Plot = imagesc(S.coord,S.t,S.traces);
         hold on
         xlabel('x [m]')
         ylabel('t [ns]')
         grid on
         title(['Profile ',int2str(S.profiles(1)),', Channel ',int2str(S.currchan)])
         colormap(flipud(gray))
-        set(S.ax,'DataAspectratio',[S.aspval 1 1])
+        set(S.ax,'DataAspectratio',[S.aspval 1 1],'CLim',[S.cmin3 S.cmax3])
         
+        % read pickfile:
+        if exist(fullfile(S.foldername,'Velocity_picks.txt'),'file')
+            fid=fopen(fullfile(S.foldername,'Velocity_picks.txt'),'r');
+            temp=textscan(fid,'%f%f%f%f%f%f','Headerlines',1); % profnum channum x y t v
+            fclose(fid);
+            hyps=[temp{1} temp{2} temp{3} temp{4} temp{5} temp{6}];  % profnum channum x y t v
+            % get hyps for this prof/chan:
+            hypstemp=hyps(hyps(:,1)==S.profnum & hyps(:,2)==S.currchan,:);
+            if ~isempty(hypstemp) % there are hyps for this profile/chan
+                % plot
+                for i=1:length(hypstemp(:,1))
+                    % find x0 in profile
+                    xbest=find(abs(S.x-hypstemp(i,3))==min(abs(S.x-hypstemp(i,3)))); % best Easting
+                    ybest=find(abs(S.y-hypstemp(i,4))==min(abs(S.y-hypstemp(i,4)))); % best northing
+                    if range(S.x)>=range(S.y)
+                        x0=S.coord(xbest);
+                    else
+                        x0=S.coord(ybest);
+                    end
+                    % calculate x and t along hyperbola
+                    xhyp=S.coord(abs(S.coord-x0)<=S.hyplen);
+                    thyp=2.*sqrt((hypstemp(i,5)./2).^2+((xhyp-x0)./(hypstemp(i,6)/100)).^2);
+                    % plot hyperbola
+                    S.hyp=plot(xhyp,thyp,'y','linewidth',2);
+                end
+                drawnow;
+            end
+        end
+
     end
 
 % save handles
@@ -200,8 +235,17 @@ function [] = colorscale_call(varargin)
     end
 
 
+    function [] = tbox_call(varargin)
+        % callback for hyperbola time range for auto v
+        S=guidata(gcbf);
+        S.tbox=str2num(S.tboxedit.String);
+        % update handles
+        guidata(gcf,S);
+        semb_call(varargin);
+    end
+
     function [] = save_call(varargin)
-        % callback for hyperbola length
+        % callback for saving of velocities
         S=guidata(gcbf);
         if isfield(S,'v')
             v=S.v;
@@ -249,16 +293,18 @@ function [] = colorscale_call(varargin)
     end
 
     function [] = semb_call(varargin)
-        % callback for semblance checkbox
+        % callback for auto vsemblance checkbox
         S=guidata(gcbf);
         if S.semb.Value==1 % automatically determine velocity
             set(S.vSlider,'Enable','off');
+            set(S.tboxedit,'Enable','on');
             if isfield(S,'xpick')
                 S=calcsemblance(S); % result is in S.v
                 set(S.vtext,'String',num2str(S.v,3));
             end
         else  % manually fit hyperbola
             set(S.vSlider,'Enable','on');
+            set(S.tboxedit,'Enable','off');
             % get v
             S.v=S.vSlider.Value; % in cm/ns
             set(S.vtext,'String',num2str(S.v,3));
@@ -290,6 +336,12 @@ function [] = colorscale_call(varargin)
     function [] = new_call(varargin)
         % Callback for new v-pick-button
         S=guidata(gcbf);
+        % check if there is an old unsaved hyperbola
+        if isfield(S,'hyp')
+            if isvalid(S.hyp) && all(S.hyp.Color==[1 0 0]) % if not handle to deleted line and if red = unsaved
+                delete(S.hyp); % delete this old hyperbola
+            end
+        end
         % activate pick of apex
         [S.xpick,S.tpick]=ginput(1);
         if S.semb.Value==1 % automatically determine velocity
@@ -313,51 +365,86 @@ function [] = colorscale_call(varargin)
 
 
     function S = calcsemblance(S)
-        % calculate semblance
-        xx=S.coord(abs(S.coord-S.xpick)<=S.hyplen); % x-values
+        % calculate velocity via Thresholding/c3 clustering and x2t2-fit
+        % (s. hyperbola paper Wunderlich et al. 2022)
+        xx=S.coord(abs(S.coord-S.xpick)<=S.hyplen); % x-values of hyperbola depending on hyplen
         % change pointer
         set(findobj('Type','Figure','Name','Velocity picking'), 'pointer', 'watch')
         drawnow;
-        v=0.03:0.001:0.18; % in cm/ns
-        M=15; % window width for semblance calculation
-        for i=1:length(v)   % compute for every velocity
-            tt=2.*sqrt((S.tpick./2).^2+((xx-S.xpick)./v(i)).^2);    % t values along hyperbola
-            
-            % check if sample is in aperture of antenna
-            beta=atand((xx-S.xpick)./(tt/2*v(i)));
-            in=(abs(beta)<=40/2);
-            xx=xx(in);  % x-values in aperture
-            temp=ismember(S.coord,xx);
-            xx2{i}=find(temp==1);  % only use samples in aperture
-            tt2{i}=round(tt(in)/S.dt);
-            % xx2 and tt2 are now indices!
-            
-            if length(xx2{i})>1
-                % find samples around hyperbola
-                for j=1:length(xx2{i})
-                    if xx2{i}(j)>0 && tt2{i}(j)-M>=1 && tt2{i}(j)+M<=length(S.t)
-                        hyp(:,j)=S.traces(tt2{i}(j)-M:tt2{i}(j)+M,xx2{i}(j));
-                    else
-                        hyp(:,j)=NaN(2*M+1,1);
-                    end
-                end
-                hyp(:,isnan(hyp(1,:)))=[];
-                
-                % calculate semblance
-                klammer_oben=sum(hyp,2);
-                oben=sum(klammer_oben.^2);
-                klammer_unten=sum(hyp.^2,2);
-                unten=length(xx2{i})*sum(klammer_unten);
-                semblance(i)=oben/unten;    % semblance for current velocity
-            else
-                semblance(i)=0;
-            end
+        % cut out box around hyperbola
+        box=S.traces(S.t>=S.tpick-1 & S.t<=S.tpick+S.tbox-1,S.coord>=xx(1) & S.coord<=xx(end)); % height of box is 11 ns and width=2*hyplen
+        tt=S.t(S.t>=S.tpick-1 & S.t<=S.tpick+S.tbox-1); % t in ns for box
+
+        hyp=@(a,x) 2*sqrt(a(1).^2./4+(x-a(2)).^2./a(3).^2); % a(1)=t0, a(2)=x0, a(3)=v
+
+        % thresholding und cluster C3
+        [cluster,cst]=C3cluster(box,3); % cluster (all points in cluster) and centralstring (mean t values in cluster per trace)
+
+        % get list of edge points
+        points=[xx(cst(:,1))' tt(cst(:,2))']; % in m and ns
+
+        for jj=1:length(cst(:,1)) % go through all traces as possible apex point
+            x0=points(jj,1); % apex point
+            % fit
+            p(jj,:)=polyfit((points(:,1)-x0).^2,(points(:,2)./2).^2,1);
+            % RMS error of fit
+            RMS(jj)=sqrt(sum((points(:,2).^2-polyval(p(jj,:),(points(:,1)-x0).^2)).^2)/length(points(:,1)));
         end
+        best=find(RMS==min(RMS),1,'first');
+        S.xpick=points(best,1); % best apex point (x0) where rms is minimum
+        S.v=1/sqrt(p(best,1))*100; % best velocity in cm/ns
+        S.tpick=sqrt(p(best,2)).*2; % best t0
+
         % change pointer back to arrow
         set(findobj('Type','Figure','Name','Velocity picking'), 'pointer', 'arrow')
-        % index of max semblance
-        maxind=find(max(semblance)==semblance);
-        S.v=v(maxind(1))*100;  % best velocity in cm/ns
+
+
+        %%% OLD: Semblance (not working very well...)
+%         % calculate semblance
+%         xx=S.coord(abs(S.coord-S.xpick)<=S.hyplen); % x-values
+%         % change pointer
+%         set(findobj('Type','Figure','Name','Velocity picking'), 'pointer', 'watch')
+%         drawnow;
+%         v=0.03:0.001:0.18; % in cm/ns
+%         M=15; % window width for semblance calculation
+%         for i=1:length(v)   % compute for every velocity
+%             tt=2.*sqrt((S.tpick./2).^2+((xx-S.xpick)./v(i)).^2);    % t values along hyperbola
+%             
+%             % check if sample is in aperture of antenna
+%             beta=atand((xx-S.xpick)./(tt/2*v(i)));
+%             in=(abs(beta)<=40/2);
+%             xx=xx(in);  % x-values in aperture
+%             temp=ismember(S.coord,xx);
+%             xx2{i}=find(temp==1);  % only use samples in aperture
+%             tt2{i}=round(tt(in)/S.dt);
+%             % xx2 and tt2 are now indices!
+%             
+%             if length(xx2{i})>1
+%                 % find samples around hyperbola
+%                 for j=1:length(xx2{i})
+%                     if xx2{i}(j)>0 && tt2{i}(j)-M>=1 && tt2{i}(j)+M<=length(S.t)
+%                         hyp(:,j)=S.traces(tt2{i}(j)-M:tt2{i}(j)+M,xx2{i}(j));
+%                     else
+%                         hyp(:,j)=NaN(2*M+1,1);
+%                     end
+%                 end
+%                 hyp(:,isnan(hyp(1,:)))=[];
+%                 
+%                 % calculate semblance
+%                 klammer_oben=sum(hyp,2);
+%                 oben=sum(klammer_oben.^2);
+%                 klammer_unten=sum(hyp.^2,2);
+%                 unten=length(xx2{i})*sum(klammer_unten);
+%                 semblance(i)=oben/unten;    % semblance for current velocity
+%             else
+%                 semblance(i)=0;
+%             end
+%         end
+%         % change pointer back to arrow
+%         set(findobj('Type','Figure','Name','Velocity picking'), 'pointer', 'arrow')
+%         % index of max semblance
+%         maxind=find(max(semblance)==semblance);
+%         S.v=v(maxind(1))*100;  % best velocity in cm/ns
     end
 
 
@@ -410,6 +497,35 @@ function [] = colorscale_call(varargin)
         S.cmax1=coldata(end-round(length(coldata)/100*1));
         S.cmin3=coldata(round(length(coldata)/100*3));
         S.cmax3=coldata(end-round(length(coldata)/100*3));
+
+        % read pickfile:
+        if exist(fullfile(S.foldername,'Velocity_picks.txt'),'file')
+            fid=fopen(fullfile(S.foldername,'Velocity_picks.txt'),'r');
+            temp=textscan(fid,'%f%f%f%f%f%f','Headerlines',1); % profnum channum x y t v
+            fclose(fid);
+            hyps=[temp{1} temp{2} temp{3} temp{4} temp{5} temp{6}];  % profnum channum x y t v
+            % get hyps for this prof/chan:
+            hypstemp=hyps(hyps(:,1)==S.profnum & hyps(:,2)==S.currchan,:);
+            if ~isempty(hypstemp) % there are hyps for this profile/chan
+                % plot
+                for i=1:length(hypstemp(:,1))
+                    % find x0 in profile
+                    xbest=find(abs(S.x-hypstemp(i,3))==min(abs(S.x-hypstemp(i,3)))); % best Easting
+                    ybest=find(abs(S.y-hypstemp(i,4))==min(abs(S.y-hypstemp(i,4)))); % best northing
+                    if range(S.x)>=range(S.y)
+                        x0=S.coord(xbest);
+                    else
+                        x0=S.coord(ybest);
+                    end
+                    % calculate x and t along hyperbola
+                    xhyp=S.coord(abs(S.coord-x0)<=S.hyplen);
+                    thyp=2.*sqrt((hypstemp(i,5)./2).^2+((xhyp-x0)./(hypstemp(i,6)/100)).^2);
+                    % plot hyperbola
+                    S.hyp=plot(xhyp,thyp,'y','linewidth',2);
+                end
+                drawnow;
+            end
+        end
 
         % update handles
         guidata(gcf,S);
@@ -464,6 +580,35 @@ function [] = colorscale_call(varargin)
         S.cmax1=coldata(end-round(length(coldata)/100*1));
         S.cmin3=coldata(round(length(coldata)/100*3));
         S.cmax3=coldata(end-round(length(coldata)/100*3));
+
+        % read pickfile:
+        if exist(fullfile(S.foldername,'Velocity_picks.txt'),'file')
+            fid=fopen(fullfile(S.foldername,'Velocity_picks.txt'),'r');
+            temp=textscan(fid,'%f%f%f%f%f%f','Headerlines',1); % profnum channum x y t v
+            fclose(fid);
+            hyps=[temp{1} temp{2} temp{3} temp{4} temp{5} temp{6}];  % profnum channum x y t v
+            % get hyps for this prof/chan:
+            hypstemp=hyps(hyps(:,1)==S.profnum & hyps(:,2)==S.currchan,:);
+            if ~isempty(hypstemp) % there are hyps for this profile/chan
+                % plot
+                for i=1:length(hypstemp(:,1))
+                    % find x0 in profile
+                    xbest=find(abs(S.x-hypstemp(i,3))==min(abs(S.x-hypstemp(i,3)))); % best Easting
+                    ybest=find(abs(S.y-hypstemp(i,4))==min(abs(S.y-hypstemp(i,4)))); % best northing
+                    if range(S.x)>=range(S.y)
+                        x0=S.coord(xbest);
+                    else
+                        x0=S.coord(ybest);
+                    end
+                    % calculate x and t along hyperbola
+                    xhyp=S.coord(abs(S.coord-x0)<=S.hyplen);
+                    thyp=2.*sqrt((hypstemp(i,5)./2).^2+((xhyp-x0)./(hypstemp(i,6)/100)).^2);
+                    % plot hyperbola
+                    S.hyp=plot(xhyp,thyp,'y','linewidth',2);
+                end
+                drawnow;
+            end
+        end
         
         set(S.save,'Enable','Off');
         % update handles
@@ -516,4 +661,102 @@ function [] = colorscale_call(varargin)
         % chnage pointer back to arrow
         set(findobj('Type','Figure','Name','Velocity picking'), 'pointer', 'arrow')
     end
+end
+
+
+function [cluster,centralstring]=C3cluster(box,s) % box= cutout from picture, s: number of points per trace for cluster
+
+% C3 algorithm for clustering (Dou et al. 2016)
+
+thresh=0.5*max(box(:)); % threshold is determined automatically
+im=abs(box)>=thresh; % apply threshold -> im is binary image
+for i=1:length(im(1,:)) % scan all columns
+    trace=im(:,i); % aktuelle Spur
+    chunks{i}=findchunks(trace); % finde zusammenhängende Einträge
+    if ~isempty(chunks{i})
+        chunks{i}(:,3)=chunks{i}(:,2)-chunks{i}(:,1)+1; % dritte Spalte ist Anzahl der Sample in diesem Cluster
+        
+        for j=1:length(chunks{i}(:,1)) % jeden chunk durchgehen
+            if chunks{i}(j,3)>=s % falls lang genug
+                if i>1
+                    cflag=0;
+                    punkte2=[chunks{i}(j,1):chunks{i}(j,2)]'; % tind spalte i, dieses Cluster
+                    % Vergleich mit jedem chunk der letzten Spalte
+                    if ~isempty(chunks{i-1})
+                        for k=1:length(chunks{i-1}(:,1)) % jeden chunk der letzten Spalte durchgehen
+                            punkte1=[chunks{i-1}(k,1):chunks{i-1}(k,2)]'; % tind spalte i-1
+                            numpunkte=sum(ismember(punkte1,punkte2)); % anzahl an gleichen tind
+                            if numpunkte>=s % dann gleiches Cluster
+                                clust{i}{j}=[clust{i-1}{k}; zeros(chunks{i}(j,3),1)+i [chunks{i}(j,1):chunks{i}(j,2)]']; % Punkte vom alten cluster mit reinkopieren
+                                clust{i-1}{k}=[]; % ales cluster aus letzter Spalte löschen
+                                cflag=1; % weiterführung von altem cluster aus letzter Spalte
+                            end
+                        end
+                    end
+                    if cflag==0 % found no old fitting cluster -> start new cluster
+                        clust{i}{j}=[zeros(chunks{i}(j,3),1)+i [chunks{i}(j,1):chunks{i}(j,2)]'];
+                    end
+                    
+                else % i==1
+                    clust{i}{j}=[zeros(chunks{i}(j,3),1)+i [chunks{i}(j,1):chunks{i}(j,2)]']; % xind tind -> Punkteliste in diesem Cluster (anz)
+                end
+            end
+        end
+    end
+end
+
+anz=1; % Anzahl cluster hochzählen
+for i=1:length(clust)
+    if ~isempty(clust{i})
+        for j=1:length(clust{i})
+            if ~isempty(clust{i}{j})
+                clust1{anz}=clust{i}{j};
+                anz=anz+1;
+            end
+        end
+    end
+end
+% extract central string and find longest cluster
+for i=1:length(clust1)
+    u=unique(clust1{i}(:,1)); % all possible x-values
+    maxc(i,1)=length(u); % length of cluster = number of x-values
+    for j=1:length(u)
+        cs{i}(j,:)=[u(j) round(mean(clust1{i}(clust1{i}(:,1)==u(j),2)))]; % x mean(tind)
+    end
+end
+% give the longest cluster as output
+cluster=clust1{maxc==max(maxc)}; % xind tind
+centralstring=cs{maxc==max(maxc)}; % xind tind
+end
+
+
+function chunks=findchunks(ind)
+% find chunks in ind (=binary vector)
+chunks=[];
+flag=0;
+for ii=1:length(ind)-1
+    if ii==2 && ind(ii)==0 && ind(ii-1)==1
+        flag=flag+1;
+        chunks(flag-1,2)=ii-1; % End of interval, if only first trace is bad
+    end
+    if (ind(ii)==0 && ind(ii+1)>0)
+        flag=flag+1;
+        chunks(flag,1)=ii+1;  % start of interval with data
+        if ii==length(ind)-1
+            chunks(flag,2)=ii+1; % set end of interval
+        end
+    elseif (ii==1 && ind(ii)>0) % start of interval for first trace
+        flag=flag+1;
+        chunks(flag,1)=ii;  % start of interval with data
+    elseif (ind(ii)==1 && ind(ii+1)==0)
+        flag=flag+1;
+        chunks(flag-1,2)=ii;    % end of interval with data
+    elseif (ii+1==length(ind) && ind(ii+1)>0) % end of line
+        flag=flag+1;
+        chunks(flag-1,2)=ii+1;    % end of interval with data
+    end
+end
+if ~isempty(chunks)
+    chunks(chunks(:,1)==0 & chunks(:,2)==0,:)=[];
+end
 end
