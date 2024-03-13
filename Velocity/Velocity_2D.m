@@ -16,6 +16,8 @@ clc
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
 
+warning off
+
 % get folder name
 if exist('.temp.temp') % read last opened folder from temp.temp
     fid=fopen('.temp.temp','r');

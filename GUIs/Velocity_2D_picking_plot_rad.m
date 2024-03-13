@@ -94,8 +94,28 @@ uimenu(figureToolBar,'Label','Pan','Callback','pan on');
         S.fh= figure('menubar','none','Position',S.siz,...
             'name','Velocity picking',...
             'numbertitle','off',...
-            'resize','on','Visible','off','SizeChangedFcn',@resizeui);
+            'resize','on','Visible','off','SizeChangedFcn',@resizeui,'Renderer','painters');
         
+        % scrollbar for plot:
+        S.panel1=uipanel('Parent',S.fh);
+        S.panel1a=uipanel('Parent',S.panel1);
+        set(S.panel1,'Position',[150 160 S.siz(3)-100 S.siz(4)-200],'Units','pixels'); % panel for cutting frame with slider
+        set(S.panel1a,'Position',[150 160+S.siz(3)/2-100 S.siz(3) S.siz(4)-200],'Units','pixels'); % panel inside cutting frame with image
+
+        S.slider1=uicontrol('Style','Slider','Parent',S.fh,'Units','pixels','Position',[150 160 S.siz(3)-100 0.05],'Value',0.5,'Callback',@slider_callback1);
+        
+        % Plot of radargram
+        S.ax = axes('units','normalized','Parent',S.panel1a,...
+            'OuterPosition',[0.02 0.02 0.98 0.98]);
+        S.Plot = imagesc(S.ax,S.coord,S.t,S.traces);
+        hold on
+        xlabel('x [m]')
+        ylabel('t [ns]')
+        grid on
+        title(['Profile ',int2str(S.profiles(1)),', Channel ',int2str(S.currchan)])
+        colormap(flipud(gray))
+        set(S.ax,'DataAspectratio',[1/20 1 1],'CLim',[S.cmin3 S.cmax3])
+
         %%% UI control elements:
         % UI control - listbox for channel number
         S.chan = uicontrol(S.fh,'style','listbox','unit','pix','position',[20 220 50 60],'callback',{@chan_call},'Value',1,'String',int2str(S.chanlist));
@@ -145,23 +165,13 @@ uimenu(figureToolBar,'Label','Pan','Callback','pan on');
         S.text7=uicontrol(S.fh,'style','text','unit','pix','position',[880 22 160 15],'String','Half width of hyperbola [m]','HorizontalAlignment','Left');
         
         % UI control for saving of velocities
-        S.save=uicontrol(S.fh,'Style','pushbutton','unit','pix','position',[800 55 120 20],'callback',@save_call,'String','Save current velocity','Enable','off');
+        S.save=uicontrol(S.fh,'Style','pushbutton','unit','pix','position',[830 55 120 20],'callback',@save_call,'String','Save current velocity','Enable','off');
         
         % UI control for tmax
         S.tmax=uicontrol(S.fh,'Style','edit','unit','pix','position',[20 140 50 20],'callback',@tmax_call,'Value',max(S.t),'String',num2str(max(S.t)));
         S.text8=uicontrol(S.fh,'style','text','unit','pix','position',[20 160 80 20],'String','tmax [ns]','HorizontalAlignment','Left');
         
-        % Plot of radargram
-        S.ax = axes('unit','pix',...
-            'position',[200 140 S.siz(3)-300 S.siz(4)-200]);
-        S.Plot = imagesc(S.coord,S.t,S.traces);
-        hold on
-        xlabel('x [m]')
-        ylabel('t [ns]')
-        grid on
-        title(['Profile ',int2str(S.profiles(1)),', Channel ',int2str(S.currchan)])
-        colormap(flipud(gray))
-        set(S.ax,'DataAspectratio',[S.aspval 1 1],'CLim',[S.cmin3 S.cmax3])
+        
 
         % read pickfile:
         if exist(fullfile(S.foldername,'Velocity_picks.txt'),'file')
@@ -203,12 +213,29 @@ guidata(S.fh,S);
     function resizeui(hObject,event)
         % get current size of figure
         wid_fig=S.fh.Position(3); % Figure width
-        wid=wid_fig-300; % width of axes
+        wid=wid_fig-200; % width of axes
         hei_fig=S.fh.Position(4); % figure height
         hei=hei_fig-200;    % height of axes
         
         % change size of axes
-        S.ax.Position=[200 140 wid hei];
+        set(S.ax,'OuterPosition',[0.02 0.02 0.98 0.98],'Units','normalized','Parent',S.panel1a)
+    
+        % change size of panels
+        S.panel1.Position=[150 160 wid hei];
+
+        % change slider:
+        S.slider1.Position=[150 160 wid 0.05];
+
+        % slider update
+        val1 = get(S.slider1,'Value');
+        set(S.panel1a,'Position',[-val1 0 2 1],'Units','normalized');
+    end
+
+    function slider_callback1(varargin) % for scrollbar
+        S=guidata(gcbf);
+        val = get(S.slider1,'Value');
+        set(S.panel1a,'Position',[-val 0 2 1],'Units','normalized')
+        guidata(gcbf,S); % Update
     end
 
 function [] = colorscale_call(varargin)
@@ -397,7 +424,7 @@ function [] = colorscale_call(varargin)
         [cluster,cst]=C3cluster(box,3); % cluster (all points in cluster) and centralstring (mean t values in cluster per trace)
 
         % get list of edge points
-        points=[xx(cst(:,1))' tt(cst(:,2))']; % in m and ns
+        points=[reshape(xx(cst(:,1)),[length(cst(:,1)),1]) reshape(tt(cst(:,2)),[length(cst(:,1)),1])]; % in m and ns
 
         for jj=1:length(cst(:,1)) % go through all traces as possible apex point
             x0=points(jj,1); % apex point
@@ -556,6 +583,7 @@ function [] = colorscale_call(varargin)
         S=guidata(gcbf);
         S.aspval=S.asp_String(S.asp.Value);
         S.aspval=str2num(S.aspval{1});
+        S.slider1.Value=0.5; % update slider position
         guidata(gcbf,S); % Update
         % call plot function
         newprofile_call(varargin);
