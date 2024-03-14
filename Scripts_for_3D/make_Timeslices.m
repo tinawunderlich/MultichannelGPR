@@ -14,27 +14,27 @@ clc
 rectangles=[1]; % e.g. 1:3
 
 % depth slices instead of time slices (input is in m)
-dsl = 0; % =1: depth, =0: time
+dsl = 1; % =1: depth, =0: time
 
 % if depth slice, cut horizontally (=0) or follow topography (=1)?
-followTopo=0;
+followTopo=1;
 
 % starting time of first timeslice
 t_start=0;  % in ns (or m if depth slice starting from top of data (=0m))
 
 % thickness of timeslices
-thick=2; % in ns (or m if dsl=1)
+thick=0.5; % in ns (or m if dsl=1)
 
 % overlap of timeslices
 overlap = 0; % in ns (or m if dsl=1)
 
 % ending time of timeslices
-t_end=50; % in ns (or m if dsl=1, meters below top of data, positive!)
+t_end=3; % in ns (or m if dsl=1, meters below top of data, positive!)
 
 % dx of timeslices (<=dx of bins)
-dx_tsl=0.04;    % in m
+dx_tsl=0.05;    % in m
 
-% use processed data (if =1, then use data in /processed folder)
+% use 3D processed data (if =1, then use data in /processed folder in 3Dbins)
 proc=0;
 
 % normalize Timeslice to [0 1]
@@ -47,7 +47,7 @@ method=1;   % 1: sum absolute amplitudes,
             % 4: no summing, just absolute amplitudes at certain times
 
 % masking options
-nn_radius=2;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
+nn_radius=5;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
 
 % Interpolation
 griding=1;  % 1: Griddata (linear interpolation)
@@ -251,21 +251,23 @@ for j=1:length(rectangles)  % in each rectangle...
         if followTopo==0 % horizontal slices
             datatemp=matFileObj.data(:,:,t_ind{i});
         else % make Tsl following topography (for topocorr/mig data)
-            w=find(mask{j}==1);
+            w=find(mask{j}==1); % linear indices of data points in rectangle
             datatemp=NaN(length(z{j}(:,1)),length(z{j}(1,:)),length(t_ind{i}));
             len_ind=zeros(size(z{j}))+length(t_ind{i});
-            for k=1:length(w)
+            for k=1:length(w) % go through all data points
                 [k1,k2]=ind2sub(size(z{j}),w(k));
                 z_absolut=maxElevation-t;
                 topoind=find(min(abs(z_absolut-z{j}(k1,k2)))==abs(z_absolut-z{j}(k1,k2)),1,'first'); % index of topography at this point
                 ind=t_ind{i}+topoind;
                 ind(ind>length(t))=[]; % delete indices that are not available (=too deep)
-                tedata=matFileObj.data(k1,k2,ind);
-                if length(tedata)<length(t_ind{i})
-                    tedata(length(tedata)+1:length(t_ind{i}))=NaN;
+                if ~isempty(ind) % if not too deep...
+                    tedata=matFileObj.data(k1,k2,ind);
+                    if length(tedata)<length(t_ind{i})
+                        tedata(length(tedata)+1:length(t_ind{i}))=NaN;
+                    end
+                    datatemp(k1,k2,:)=tedata;
+                    len_ind(k1,k2)=length(ind); % number of used samples at this point
                 end
-                datatemp(k1,k2,:)=tedata;
-                len_ind(k1,k2)=length(ind); % number of used samples at this point
             end
         end
         if method==1  % sum absolute amplitudes
@@ -427,7 +429,7 @@ if proc==0
     save(fullfile(pfad,'Timeslices','t_startende.mat'),'t_startende','-v7.3');
     if dsl
         depth=t;
-        save(fullfile(pfad,'Timeslices','depth.mat'),'depth','maxElevation','-v7.3');
+        save(fullfile(pfad,'Timeslices','depth.mat'),'depth','maxElevation','followTopo','-v7.3'); % aldo save depth vector/maxElevation and followTopo-flag
     end
     % save interpolated timeslices
     save(fullfile(pfad,'Timeslices','interpolated','tsl_interp.mat'),'tsl_interp','-v7.3');
@@ -438,7 +440,7 @@ if proc==0
     save(fullfile(pfad,'Timeslices','interpolated','t_startende.mat'),'t_startende','-v7.3');
     if dsl
         depth=t;
-        save(fullfile(pfad,'Timeslices','interpolated','depth.mat'),'depth','maxElevation','-v7.3');
+        save(fullfile(pfad,'Timeslices','interpolated','depth.mat'),'depth','maxElevation','followTopo','-v7.3');
     end
     
     % write info-files
@@ -461,6 +463,7 @@ if proc==0
     fprintf(fid,'Grid increment dx: %4.2f m\n',dx);
     if dsl
         fprintf(fid,'Maximum Elevation (=0 m depth) is: %4.2f m\n',maxElevation);
+        fprintf(fid,'followTopo = %d\n',followTopo);
     end
     fclose(fid);
     
@@ -482,6 +485,7 @@ if proc==0
     end
     if dsl
         fprintf(fid,'Maximum Elevation (=0 m depth) is: %4.2f m\n',maxElevation);
+        fprintf(fid,'followTopo = %d\n',followTopo);
     end
     fprintf(fid,'Grid increment dx of interpolated timeslices: %4.2f m\n',dx_tsl);
     if griding==1
@@ -502,7 +506,7 @@ else
     save(fullfile(pfad,'Timeslices_proc','t_startende.mat'),'t_startende','-v7.3');
     if dsl
         depth=t;
-        save(fullfile(pfad,'Timeslices_proc','depth.mat'),'depth','maxElevation','-v7.3');
+        save(fullfile(pfad,'Timeslices_proc','depth.mat'),'depth','maxElevation','followTopo','-v7.3');
     end
     % save interpolated timeslices
     save(fullfile(pfad,'Timeslices_proc','interpolated','tsl_interp.mat'),'tsl_interp','-v7.3');
@@ -513,7 +517,7 @@ else
     save(fullfile(pfad,'Timeslices_proc','interpolated','t_startende.mat'),'t_startende','-v7.3');
     if dsl
         depth=t;
-        save(fullfile(pfad,'Timeslices_proc','interpolated','depth.mat'),'depth','maxElevation','-v7.3');
+        save(fullfile(pfad,'Timeslices_proc','interpolated','depth.mat'),'depth','maxElevation','followTopo','-v7.3');
     end
     
     % write info-files
@@ -536,6 +540,7 @@ else
     fprintf(fid,'Grid increment dx: %4.2f m\n',dx);
     if dsl
         fprintf(fid,'Maximum Elevation (=0 m depth) is: %4.2f m\n',maxElevation);
+        fprintf(fid,'followTopo = %d\n',followTopo);
     end
     fclose(fid);
     
@@ -558,6 +563,7 @@ else
     end
     if dsl
         fprintf(fid,'Maximum Elevation (=0 m depth) is: %4.2f m\n',maxElevation);
+        fprintf(fid,'followTopo = %d\n',followTopo);
     end
     fprintf(fid,'Grid increment dx of interpolated timeslices: %4.2f m\n',dx_tsl);
     if griding==1
@@ -589,9 +595,9 @@ if proc==0
         copyfile(fullfile(pfad,['3D_Grid_R',int2str(j)],'coordtrans.mat'),fullfile(pfad,'Timeslices','coordtrans.mat'));
         copyfile(fullfile(pfad,['3D_Grid_R',int2str(j)],'coordtrans.mat'),fullfile(pfad,'Timeslices','interpolated','coordtrans.mat'));
         % plot:
-        Tsl_slider_plot(xgrid_interp,ygrid_interp,tsl_interp,topo_interp,t_startende,fullfile(pfad,'Timeslices','interpolated'),dsl,maxElevation,coordtrans);
+        Tsl_slider_plot(xgrid_interp,ygrid_interp,tsl_interp,topo_interp,t_startende,fullfile(pfad,'Timeslices','interpolated'),dsl,maxElevation,followTopo,coordtrans);
     else
-        Tsl_slider_plot(xgrid_interp,ygrid_interp,tsl_interp,topo_interp,t_startende,fullfile(pfad,'Timeslices','interpolated'),dsl,maxElevation);
+        Tsl_slider_plot(xgrid_interp,ygrid_interp,tsl_interp,topo_interp,t_startende,fullfile(pfad,'Timeslices','interpolated'),dsl,maxElevation,followTopo);
     end
 else
     if exist(fullfile(pfad,['3D_Grid_R',int2str(j)],'processed','coordtrans.mat'),'file')
@@ -600,9 +606,9 @@ else
         copyfile(fullfile(pfad,['3D_Grid_R',int2str(j)],'processed','coordtrans.mat'),fullfile(pfad,'Timeslices_proc','coordtrans.mat'));
         copyfile(fullfile(pfad,['3D_Grid_R',int2str(j)],'processed','coordtrans.mat'),fullfile(pfad,'Timeslices_proc','interpolated','coordtrans.mat'));
         % plot:
-        Tsl_slider_plot(xgrid_interp,ygrid_interp,tsl_interp,topo_interp,t_startende,fullfile(pfad,'Timeslices_mig','interpolated'),dsl,maxElevation,coordtrans);
+        Tsl_slider_plot(xgrid_interp,ygrid_interp,tsl_interp,topo_interp,t_startende,fullfile(pfad,'Timeslices_mig','interpolated'),dsl,maxElevation,followTopo,coordtrans);
     else
-        Tsl_slider_plot(xgrid_interp,ygrid_interp,tsl_interp,topo_interp,t_startende,fullfile(pfad,'Timeslices_mig','interpolated'),dsl,maxElevation);
+        Tsl_slider_plot(xgrid_interp,ygrid_interp,tsl_interp,topo_interp,t_startende,fullfile(pfad,'Timeslices_mig','interpolated'),dsl,maxElevation,followTopo);
     end
 end
 

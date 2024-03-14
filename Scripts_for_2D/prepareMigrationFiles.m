@@ -22,12 +22,13 @@ v1d=[0.16 0.1]; % vRMS at different times in m/ns
 t1d=[0 18]; % corresponding times in ns
 
 % Choose options for topography:
-topoopt=1;
+topoopt=2;
 % topoopt=0: no topography file required
 % topoopt=1: topography is already set in global_coords(:,3)
 % topoopt=2: topography has to be set with file containing profile number (1. column),
 % profile coordinate (2. Column) and topography (3. column), all in m, This
-% file should be in the same folder as radargrams.mat
+% file should be in the same folder as radargrams.mat. The smoothed
+% topography is then also set in global_coords as height.
 topofile='Topo.txt'; % file for topoopt==2
 smooth_topo=55; % n>0: smooth topography over n samples, if no smoothing =0
 

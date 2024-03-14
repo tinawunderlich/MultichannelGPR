@@ -3,7 +3,7 @@ close all
 clc
 
 
-% Display Mala-GPR-data as Timeslices and Radargrams with connected plots
+% Display GPR-data as Timeslices and Radargrams with connected plots
 %
 % Dr. Tina Wunderlich, CAU Kiel 2020, tina.wunderlich@ifg.uni-kiel.de
 %
@@ -20,7 +20,7 @@ clc
 %
 % requires content of Plotting and Subfunctions folder
 
-timedepth=1; % 1=time, 2=depth
+timedepth=2; % 1=time, 2=depth
 
 % -------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
@@ -157,6 +157,19 @@ else
     tsl=temp.tsl;
 end
 dx=x(1,2)-x(1,1);   % dx of Tsl
+if exist(fullfile(pfad_tsl,'depth.mat'),'file')
+    temp=load(fullfile(pfad_tsl,'depth.mat'));
+    if isfield(temp,'followTopo')
+        followTopo=temp.followTopo;
+    else
+        beep
+        followTopo=input('Depthslices: Give followTopo=1 or 0: ');
+    end
+    maxElevation=temp.maxElevation;
+else
+    maxElevation=0;
+    followTopo=0;
+end
 
 %%% Radargrams
 temp=load(fullfile(pfad_rad,'global_coords.mat'));
@@ -171,7 +184,7 @@ profilliste=int2str([1:length(coords)]');
 
 
 % plot in GUI
-plot_TslRadargram(tsl,x,y,t,radar,tvec,coords,profilliste,timedepth);
+plot_TslRadargram(tsl,x,y,t,radar,tvec,coords,profilliste,timedepth,pfad_tsl,maxElevation,followTopo);
 
 waitfor(gcf);
 

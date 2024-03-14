@@ -11,7 +11,7 @@ clc
 
 
 % depth slices
-dsl = 0;
+dsl = 1;
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
 
@@ -79,11 +79,18 @@ if exist(fullfile(pfad,'tsl_interp.mat'),'file')
         temp=load(fullfile(pfad,'depth.mat'));
         dsl=1;
         maxElev=temp.maxElevation;
+        if isfield(temp,'followTopo')
+            followTopo=temp.followTopo;
+        else
+            beep
+            followTopo=input('Depthslices: Give followTopo=1 or 0: ');
+        end
     else
         maxElev=[];
         dsl=0;
+        followTopo=0;
     end
-    Tsl_slider_plot(xgrid_interp,ygrid_interp,tsl_interp,topo_interp,t_startende,pfad,dsl,maxElev,coordtrans);
+    Tsl_slider_plot(xgrid_interp,ygrid_interp,tsl_interp,topo_interp,t_startende,pfad,dsl,maxElev,followTopo,coordtrans);
 elseif exist(fullfile(pfad,'tsl.mat'),'file')
     load(fullfile(pfad,'tsl.mat'));
     load(fullfile(pfad,'topo.mat'));
@@ -93,11 +100,17 @@ elseif exist(fullfile(pfad,'tsl.mat'),'file')
         temp=load(fullfile(pfad,'depth.mat'));
         dsl=1;
         maxElev=temp.maxElevation;
+        if isfield(temp,'followTopo')
+            followTopo=temp.followTopo;
+        else
+            followTopo=input('Depthslices: Give followTopo=1 or 0: ');
+        end
     else
         maxElev=[];
         dsl=0;
+        followTopo=0;
     end
-    Tsl_slider_plot(xgrid,ygrid,tsl,topo,t_startende,pfad,dsl,maxElev,coordtrans);
+    Tsl_slider_plot(xgrid,ygrid,tsl,topo,t_startende,pfad,dsl,maxElev,followTopo,coordtrans);
 end
 
 waitfor(gcf);

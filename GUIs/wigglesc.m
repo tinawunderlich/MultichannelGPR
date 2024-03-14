@@ -16,21 +16,30 @@ if length(t(:,1))>length(t(1,:))
     t=t';
 end
 
-hold on
+data=data-mean(data,1,'omitnan'); % subtract mean amplitude for each trace
+data(1,:)=0;
+data(end,:)=0;
+n=length(data(:,1)); % number of samples
+
 for i=1:length(data(1,:)) % for every trace
-    data(:,i)=data(:,i)-mean(data(:,i),'omitnan'); % subtract mean amplitude
-    V=[data(:,i)/max(data(:,i))*dx*scal t'];
-    V(isnan(V(:,1)),:)=[]; % delete rows with nan
+    % Vertices:
+    V=[data(:,i)/max(data(:,i))*dx*scal t']; % scaled amplitude and time for this trace
+    V=V(~isnan(V(:,1)),:); % delete rows with nan 
+    if size(V,1)<n
+        V=[V; 0 max(t)]; % add last point if it is missing
+    end
     ind=zci(V); % indices of zero crossings
-    V(ind,1)=0; % set zero crossings to zero
-    F1=1:length(V(:,1)); % white polygon = negative amplitudes
-    F1(V(:,1)>0)=[];
-    F2=1:length(V(:,1)); % black polygon = positive amplitudes
-    F2(V(:,1)<0)=[];
-    F=NaN(max([length(F1),length(F2)]),2);
-    F(1:length(F1),1)=F1;
-    F(1:length(F2),2)=F2;
-    V(:,1)=V(:,1)+x(i);
-    patch('Faces',F(:,1)','Vertices',V,'FaceColor','none');
-    patch('Faces',F(:,2)','Vertices',V,'FaceColor','k');
+    ind=ind(ind<=n); % ind has to be <= number of samples
+    V(ind,1)=0; % set zero crossing to 0
+    V(end,1)=0; % set last point to zero
+    % Faces:
+    F1=1:length(V(:,1));
+    F1=F1(V(:,1)<=0);  % white polygon = negative amplitudes (indices of points with negative amplitudes)
+    F1=[1 F1 n]; % add first and last sample
+    F2=1:length(V(:,1)); 
+    F2=F2(V(:,1)>=0); % black polygon = positive amplitudes
+    F2=[1 F2 n]; % add first and last sample
+    V(:,1)=V(:,1)+x(i); % add x-value of trace to amplitudes
+    patch('Faces',F1,'Vertices',V,'FaceColor','none');
+    patch('Faces',F2,'Vertices',V,'FaceColor','k');
 end

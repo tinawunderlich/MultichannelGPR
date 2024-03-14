@@ -1,6 +1,6 @@
-function [] = Tsl_slider_plot(xgrid,ygrid,tsl,topo,t,pfad,dsl,maxElevation,coordtrans)
+function [] = Tsl_slider_plot(xgrid,ygrid,tsl,topo,t,pfad,dsl,maxElevation,followTopo,coordtrans)
 
-% function [] = Tsl_slider_plot(xgrid,ygrid,tsl,t,pfad,coordtrans)
+% function [] = Tsl_slider_plot(xgrid,ygrid,tsl,t,pfad,dsl,maxElevation,followTopo,coordtrans)
 %
 % Plot timeslices according to slider location and with other options
 %
@@ -15,12 +15,13 @@ function [] = Tsl_slider_plot(xgrid,ygrid,tsl,topo,t,pfad,dsl,maxElevation,coord
 % (without '/' at the end!)
 % dsl: =1 if depthslices instead of timeslices (dsl=0)
 % maxElevation: if dsl=1: Elevation (a.s.l) at depth=0m (maxElevation=[] for dsl=0)
+% followTopo: if =1 Tsl following topography, if =0 horizontal slices
 % coordtrans: if area has been rotated, here are the coordinate pairs for
 % helmert transformation
 %
 % requires folder Subfunctions
 
-if nargin==8
+if nargin==9
     ct=0;   % no coordinate transformation
 
     S.xlocal=xgrid;
@@ -29,6 +30,7 @@ if nargin==8
     S.yglobal=ygrid;
     S.dsl=dsl;
     S.maxElevation=maxElevation;
+    S.followTopo=followTopo;
 else
     ct=1;   % apply coordinate transformation
     
@@ -41,7 +43,7 @@ else
     S.ylocal=ygrid;
     S.dsl=dsl;
     S.maxElevation=maxElevation;
-    
+    S.followTopo=followTopo;
     S.coordtrans=coordtrans;
 end
 
@@ -235,9 +237,7 @@ S.fh.Visible='on';
         % UI control - pushbutton for figure saving
         S.pb=uicontrol('Style','pushbutton','String','Save current timeslice as georeferenced PNG','Position',[400 35 280 25],'Callback',@save_tsl);
         S.pb_all=uicontrol('Style','pushbutton','String','Save all timeslice as georeferenced PNG','Position',[400 10 280 25],'Callback',@save_alltsl);
-        S.text2 = uicontrol('style','text',...
-            'unit','pix',...
-            'position',[750 20 800 20],'String','');
+        S.text2 = uicontrol('style','text','unit','pix','position',[750 20 800 20],'String','');
         
         
         % UI control - checkbox for local/UTM coordinates
@@ -246,7 +246,7 @@ S.fh.Visible='on';
             S.cb.Enable='off';
         end
         
-        
+       
         % UI control - checkbox for topography
         S.cb_topo=uicontrol('Style','checkbox','String','Display topography','Position',[700 60 300 30],'Callback',@topo_call);
         
@@ -271,6 +271,7 @@ guidata(S.fh,S);
     end
 
     function [] = sl_callback(varargin)
+        % Slider: choose other tsl
         S=guidata(gcbf);  % get guidata
         numtsl = round(S.sl.Value); % number of tsl
         set(S.Plot,'zdata',S.tsl{numtsl}); % Update timeslices plot
@@ -808,8 +809,12 @@ guidata(S.fh,S);
     end
     
     function titleStr = make_title(S,numtsl)
-        if S.dsl
-            dslStr = [' (',num2str(S.maxElevation - S.t(numtsl,2),'%5.2f'), ' - ',num2str(S.maxElevation - S.t(numtsl,1),'%5.2f'),' m asl.)'];
+        if S.dsl % depthslice
+            if S.followTopo==0
+                dslStr = [' (',num2str(S.maxElevation - S.t(numtsl,2),'%5.2f'), ' - ',num2str(S.maxElevation - S.t(numtsl,1),'%5.2f'),' m asl.)'];
+            else % followTopo=1
+                dslStr = [' (following topography)'];
+            end
             dslStr2='Depth ';
         else
             dslStr = [];
