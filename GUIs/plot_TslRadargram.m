@@ -375,7 +375,7 @@ guidata(S.fh,S);
         % slider values:
         val2 = get(S.sliderTH,'Value');
         val3 = get(S.sliderTV,'Value');
-        set(S.panelTa,'Position',[-val2 -val3 2 2]*S.factor,'Units','normalized');
+        set(S.panelTa,'Position',[-val2*S.factor -val3*S.factor 2 2]*S.factor,'Units','normalized');
         guidata(gcbf,S); % Update
     end
 
@@ -639,19 +639,19 @@ guidata(S.fh,S);
         S=guidata(gcbf);
         n=S.tslnum;
         if S.timedepth==1
-            S.tsltext.String=['Tsl: ',num2str(S.t_tsl(n,1)),' - ',num2str(S.t_tsl(n,2)),' ns'];
+            S.tsltext.String=['Tsl: ',num2str(S.t_tsl(n,1),'%.2f'),' - ',num2str(S.t_tsl(n,2),'%.2f'),' ns'];
         else
             if S.followTopo==0
-                S.tsltext.String=['Dsl: ',num2str(S.t_tsl(n,1)),' - ',num2str(S.t_tsl(n,2)),' m'];
+                S.tsltext.String=['Dsl: ',num2str(S.t_tsl(n,1),'%.2f'),' - ',num2str(S.t_tsl(n,2),'%.2f'),' m'];
             else
                 if S.dswitch.Value==1
                     start=abs(S.t_tsl(n,2)-S.maxElevation);
                     ende=abs(S.t_tsl(n,1)-S.maxElevation);
-                    S.tsltext.String=['Dsl: ',num2str(start),' - ',num2str(ende),' m b.s.'];
+                    S.tsltext.String=['Dsl: ',num2str(start,'%.2f'),' - ',num2str(ende,'%.2f'),' m b.s.'];
                 else
                     start=S.t_tsl(n,1);
                     ende=S.t_tsl(n,2);
-                    S.tsltext.String=['Dsl: ',num2str(start),' - ',num2str(ende),' m b.s.'];
+                    S.tsltext.String=['Dsl: ',num2str(start,'%.2f'),' - ',num2str(ende,'%.2f'),' m b.s.'];
                 end
             end
         end
@@ -757,7 +757,7 @@ guidata(S.fh,S);
         % update panel Ta:
         val2 = get(S.sliderTH,'Value');
         val3 = get(S.sliderTV,'Value');
-        set(S.panelTa,'Position',[-val2 -val3 2 2]*S.factor,'Units','normalized');
+        set(S.panelTa,'Position',[-val2*S.factor -val3*S.factor 2 2]*S.factor,'Units','normalized');
         guidata(gcbf,S); % Update
     end
 
