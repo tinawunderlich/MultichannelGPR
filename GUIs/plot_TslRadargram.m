@@ -116,9 +116,9 @@ for i=1:length(S.tsl)
         S.cmin3(i)=0;
         S.cmax3(i)=1;
     else
-        S.cmin1(i)=coldata(round(length(coldata)/100*1));
+        S.cmin1(i)=coldata(max([1,round(length(coldata)/100*1)]));
         S.cmax1(i)=coldata(end-round(length(coldata)/100*1));
-        S.cmin3(i)=coldata(round(length(coldata)/100*3));
+        S.cmin3(i)=coldata(max([1,round(length(coldata)/100*3)]));
         S.cmax3(i)=coldata(end-round(length(coldata)/100*3));
     end
 end
@@ -397,7 +397,7 @@ guidata(S.fh,S);
 
             % find tsl-number:
             if S.followTopo==0
-                n=find(C(1,2)>S.t_tsl(:,1) & C(1,2)<=S.t_tsl(:,2));
+                n=find(C(1,2)>S.t_tsl(:,1) & C(1,2)<=S.t_tsl(:,2),1,'first');
             else
                 % for followtopo: depending on x-coordinate and profile
                 % find best local coord:
