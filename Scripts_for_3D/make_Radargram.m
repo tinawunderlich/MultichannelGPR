@@ -16,23 +16,23 @@ rect_start=1;
 rect_end=1;
 
 % which timeslice for profile selection?
-tsl_start=58;   % start time in ns (or m if dsl=1)
-tsl_end=59;     % ending time in ns (or m if dsl=1)
-dsl=1; % =1 if vertical axis is depth, =0 if vertical axis is time
+tsl_start=20;   % start time in ns (or m if dsl=1)
+tsl_end=22;     % ending time in ns (or m if dsl=1)
+dsl=0; % =1 if vertical axis is depth, =0 if vertical axis is time
 % Tipp: If you have depth migrated data, tsl_start and tsl_end are in m
 % according to the depths in vector t. If you get an error message, please
 % check these numbers. tsl_start<tsl_end!
 
 % list of profile coordinates in rSlicer-folder?
 % (columns are: xstart ystart xend yend)
-%list='Radargramme_rausziehen.txt'; % if no list, leave empty [] -> interactive picking in plot
+%list='Radargrams.txt'; % if no list, leave empty [] -> interactive picking in plot
 list =[];
-coordglobal=0; % if Profiles are given in global coordinates and R* are in local coordinates: do coordinate transformation if ==1
+coordglobal=1; % if the 3Dbins-R* are in local coordinates: do coordinate transformation if ==1
 
 % trace spacing of 3D block:
-dx=0.2;    % dx in m
+dx=0.1;    % dx in m
 
-dxrad=0.04; % trace spacing of radargram in m
+dxrad=0.02; % trace spacing of radargram in m
 
 % use processed blocks in 3D_Grid_R*/processed? (yes==1)
 proc=0;
@@ -123,12 +123,6 @@ for i=rect_start:rect_end % for each rectangle...
     xr{i}=temp.x;
     yr{i}=temp2.y;
     zr{i}=temp3.z;
-    if coordglobal==1
-        % do coordinate transformation first
-        temp=helmert([xr{i}(:) yr{i}(:)],coordtrans(:,1:2),coordtrans(:,3:4));
-        xr{i}=reshape(temp(:,1),size(xr{i}));
-        yr{i}=reshape(temp(:,2),size(yr{i}));
-    end
 
     xmin(i)=min(xr{i}(1,:));
     xmax(i)=max(xr{i}(1,:));
@@ -212,6 +206,7 @@ if isempty(list)
     anz=1;
     while ok==0
         disp('Please pick the starting and ending point of the profile.');
+        % coordinates will be in same system as timeslices
         [xpoints,ypoints]=ginput(2);
         xstart(anz,1)=xpoints(1);
         xend(anz,1)=xpoints(2);
@@ -235,6 +230,16 @@ else
     ystart=coords(:,2);
     xend=coords(:,3);
     yend=coords(:,4);
+    if coordglobal==1
+        % transform into local system fitting to timeslices
+        for i=1:length(xstart)
+            new=helmert([xstart(i) ystart(i); xend(i) yend(i)],coordtrans(:,3:4),coordtrans(:,1:2));
+            xstart(i)=new(1,1);
+            ystart(i)=new(1,2);
+            xend(i)=new(2,1);
+            yend(i)=new(2,2);
+        end
+    end
 
     hold on
     for i=1:length(xstart)
@@ -296,6 +301,10 @@ end
 clear x;
 for i=1:length(xx)
     global_coords{i}=[xx{i}' yy{i}' zeros(size(xx{i}'))];
+    if coordglobal==1
+        % transform into global system again for radargrams
+        global_coords{i}(:,1:2)=helmert(global_coords{i}(:,1:2),coordtrans(:,1:2),coordtrans(:,3:4));
+    end
     x{i}=xrad{i};
 end
 

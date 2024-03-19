@@ -47,7 +47,7 @@ method=1;   % 1: sum absolute amplitudes,
             % 4: no summing, just absolute amplitudes at certain times
 
 % masking options
-nn_radius=1;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
+nn_radius=2;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
 
 % Interpolation
 griding=1;  % 1: Griddata (linear interpolation)

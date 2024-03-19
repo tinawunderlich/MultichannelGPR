@@ -124,9 +124,9 @@ ns2=length(t2.t);
 if timedepth==1
     if dt1==dt2 && ns1==ns2 % same time vector
         if timedepth==1
-            disp('Datasets have the time vector. Merging datasets.')
+            disp('Datasets have the same time vector. Merging datasets.')
         else
-            disp('Datasets have the depth vector. Merging datasets.')
+            disp('Datasets have the same depth vector. Merging datasets.')
         end
         radargrams=r1.radargrams;
         global_coords=gc1.global_coords;
