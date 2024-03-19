@@ -11,7 +11,7 @@ clc
 
 
 % depth slices
-dsl = 1;
+dsl = 1; % if =1: depthscices, if =0: timeslices
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
 

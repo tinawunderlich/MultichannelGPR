@@ -19,7 +19,7 @@ convert2utm=0; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
 zone=32; % if convert2utm==1 -> give UTM-zone
 
 offsetGPS_X=0; % [m] Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
-offsetGPS_Y=0.12; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
+offsetGPS_Y=0; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
 h_GPS=2; % [m] height of GPS/prism above ground
 
 % Options for calculating inline coordinates for each trace:
@@ -292,118 +292,12 @@ for i=1:length(list)
             % calculation for the last few traces
             anz2=anz2-1;
             for ii=length(trh.x)-anz1+1:length(trh.x)-1
-                dist=sqrt((trh.x(ii)-trh.x(ii+anz2))^2+(trh.y(ii)-trh.y(ii+anz2))^2); % distance between two points anz2-traces away
-                dist_xy=[trh.x(ii+anz2)-trh.x(ii) trh.y(ii+anz2)-trh.y(ii)]; % differences in x and y direction
-                % correct for GPS height and associated xy-shift if
-                % topography is present
-                if any(trh.z~=0)
-                    alpha=atand(abs(trh.z(ii+anz2)-trh.z(ii))/dist); % slope angle in degree
-                    hnew=h_GPS/cosd(alpha); % new height of GPS above ground at measured point
-                    b=hnew*sind(alpha); % shift along surface to correct point
-                    d_x=b*cosd(alpha); % horizontal shift of point in profile direction
-                    d_z=b*sind(alpha); % vertical shift of point in profile direction
 
-                    % angle of profile direction towards north
-                    if trh.x(ii)==trh.x(ii+anz2) % north/south
-                        beta=0;
-                    elseif trh.y(ii)==trh.y(ii+anz2) % west/east
-                        beta=90;
-                    else
-                        beta=atand(abs(trh.x(ii+anz2)-trh.x(ii))/abs(trh.y(ii+anz2)-trh.y(ii)));
-                    end
-                    % split horizontal shift into x and y component:
-                    d=[d_x*cosd(beta) d_x*sind(beta)];
-                    % differentiate between different cases
-                    updownflag=trh.z(ii)<trh.z(ii+anz2); % up=1, down=0
-                    if all(dist_xy>0) && abs(dist_xy(1))<abs(dist_xy(2)) && updownflag==1 % up, towards NNE
-                        d_xx=min(d);
-                        d_xy=max(d);
-                    elseif all(dist_xy>0) && abs(dist_xy(1))<abs(dist_xy(2)) && updownflag==0 % down, towards NNE
-                        d_xx=-min(d);
-                        d_xy=-max(d);
-                    elseif all(dist_xy>0) && abs(dist_xy(1))>=abs(dist_xy(2)) && updownflag==1 % up, towards NEE
-                        d_xx=max(d);
-                        d_xy=min(d);
-                    elseif all(dist_xy>0) && abs(dist_xy(1))>=abs(dist_xy(2)) && updownflag==0 % down, towards NEE
-                        d_xx=-max(d);
-                        d_xy=-min(d);
-                    elseif dist_xy(1)>0 && dist_xy(2)<0 && abs(dist_xy(1))>abs(dist_xy(2)) && updownflag==1 % up, towards SEE
-                        d_xx=max(d);
-                        d_xy=-min(d);
-                    elseif dist_xy(1)>0 && dist_xy(2)<0 && abs(dist_xy(1))>abs(dist_xy(2)) && updownflag==0 % down, towards SEE
-                        d_xx=-max(d);
-                        d_xy=min(d);
-                    elseif dist_xy(1)>0 && dist_xy(2)<0 && abs(dist_xy(1))<=abs(dist_xy(2)) && updownflag==1 % up, towards SSE
-                        d_xx=min(d);
-                        d_xy=-max(d);
-                    elseif dist_xy(1)>0 && dist_xy(2)<0 && abs(dist_xy(1))<=abs(dist_xy(2)) && updownflag==0 % down, towards SSE
-                        d_xx=-min(d);
-                        d_xy=max(d);
-                    elseif dist_xy(1)<0 && dist_xy(2)<0 && abs(dist_xy(1))<abs(dist_xy(2)) && updownflag==1 % up, towards SSW
-                        d_xx=-min(d);
-                        d_xy=-max(d);
-                    elseif dist_xy(1)<0 && dist_xy(2)<0 && abs(dist_xy(1))<abs(dist_xy(2)) && updownflag==0 % down, towards SSW
-                        d_xx=min(d);
-                        d_xy=max(d);
-                    elseif dist_xy(1)<0 && dist_xy(2)<0 && abs(dist_xy(1))>=abs(dist_xy(2)) && updownflag==1 % up, towards SWW
-                        d_xx=-max(d);
-                        d_xy=-min(d);
-                    elseif dist_xy(1)<0 && dist_xy(2)<0 && abs(dist_xy(1))>=abs(dist_xy(2)) && updownflag==0 % down, towards SWW
-                        d_xx=max(d);
-                        d_xy=min(d);
-                    elseif dist_xy(1)<0 && dist_xy(2)>0 && abs(dist_xy(1))>abs(dist_xy(2)) && updownflag==1 % up, towards NWW
-                        d_xx=-max(d);
-                        d_xy=min(d);
-                    elseif dist_xy(1)<0 && dist_xy(2)>0 && abs(dist_xy(1))>abs(dist_xy(2)) && updownflag==0 % down, towards NWW
-                        d_xx=max(d);
-                        d_xy=-min(d);
-                    elseif dist_xy(1)<0 && dist_xy(2)>0 && abs(dist_xy(1))<=abs(dist_xy(2)) && updownflag==1 % up, towards NNW
-                        d_xx=-min(d);
-                        d_xy=max(d);
-                    elseif dist_xy(1)<0 && dist_xy(2)>0 && abs(dist_xy(1))<=abs(dist_xy(2)) && updownflag==0 % down, towards NNW
-                        d_xx=min(d);
-                        d_xy=-max(d);
-                    elseif dist_xy(1)==0 && dist_xy(2)>0 && updownflag==1 % up, towards N
-                        d_xx=0;
-                        d_xy=max(d);
-                    elseif dist_xy(1)==0 && dist_xy(2)>0 && updownflag==0 % down, towards N
-                        d_xx=0;
-                        d_xy=-max(d);
-                    elseif dist_xy(1)==0 && dist_xy(2)<0 && updownflag==1 % up, towards S
-                        d_xx=0;
-                        d_xy=-max(d);
-                    elseif dist_xy(1)==0 && dist_xy(2)<0 && updownflag==0 % down, towards S
-                        d_xx=0;
-                        d_xy=max(d);
-                    elseif dist_xy(2)==0 && dist_xy(1)>0 && updownflag==1 % up, towards E
-                        d_xx=max(d);
-                        d_xy=0;
-                    elseif dist_xy(2)==0 && dist_xy(1)>0 && updownflag==0 % down, towards E
-                        d_xx=-max(d);
-                        d_xy=0;
-                    elseif dist_xy(2)==0 && dist_xy(1)<0 && updownflag==1 % up, towards W
-                        d_xx=-max(d);
-                        d_xy=0;
-                    elseif dist_xy(2)==0 && dist_xy(1)<0 && updownflag==0 % down, towards W
-                        d_xx=max(d);
-                        d_xy=0;
-                    else
-                        d_xx=NaN;
-                        d_xy=NaN;
-                    end
-
-                    % coordinate transformation
-                    temp=helmert([offsetGPS_X offsetGPS_Y],[0 0; 0 dist],[trh.x(ii)+d_xx trh.y(ii)+d_xy; trh.x(ii+anz2)+d_xx trh.y(ii+anz2)+d_xy]);
-
-                    trh.x(ii)=temp(1);
-                    trh.y(ii)=temp(2);
-                    trh.z(ii)=trh.z(ii)-hnew+d_z; % correct height
-                else % no topography present
-                    temp=helmert([offsetGPS_X offsetGPS_Y],[0 0; 0 dist],[trh.x(ii) trh.y(ii); trh.x(ii+anz2) trh.y(ii+anz2)]);
-                    trh.x(ii)=temp(1);
-                    trh.y(ii)=temp(2);
-                end
-
+                
+                dist=sqrt((trh.x(ii)-trh.x(ii+anz2))^2+(trh.y(ii)-trh.y(ii+anz2))^2);
+                temp=helmert([offsetGPS_X offsetGPS_Y],[0 0; 0 dist],[trh.x(ii) trh.y(ii); trh.x(ii+anz2) trh.y(ii+anz2)]);
+                trh.x(ii)=temp(1);
+                trh.y(ii)=temp(2);
                 anz2=anz2-1;
             end
             % extrapolate for last trace
