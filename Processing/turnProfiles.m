@@ -21,5 +21,5 @@ if global_coords(1,1)>global_coords(end,1)
     global_coords=flipud(global_coords);
     traces=fliplr(traces);
     dist=fliplr(diff(x));
-    x=[0 cumsum(dist)];
+    x=[0 reshape(cumsum(dist),[1 length(dist)])];
 end

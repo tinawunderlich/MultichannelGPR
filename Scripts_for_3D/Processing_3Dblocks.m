@@ -27,7 +27,7 @@ clc
 rectangles=1; % e.g. 1:3
 
 % is it topography corrected/migrated data?
-dsl_topo=1; % =1: with topography correction/migration, =0: time or depth without topography (all sample slices have the same sample points)
+dsl_topo=0; % =1: with topography correction/migration, =0: time or depth without topography (all sample slices have the same sample points)
 
 % Name of settings.txt, which contains the possible processing steps
 % if settings.txt does not exist, a default file will be written

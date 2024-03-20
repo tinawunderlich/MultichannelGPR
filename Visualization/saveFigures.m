@@ -33,14 +33,14 @@ linewidth=1; % linewidth
 markersize=5; % markersize of points
 
 % save as georeferenced png?
-save_georef=0; % yes=1, no=0
+save_georef=1; % yes=1, no=0
 
 % save profile coordinates as shape file?
 save_shape=1; % yes=1, no=0
 shapename='GPR_Profiles.shp'; % give name for shape file
 
 % Plotting options for map:
-plot_map=0; % plot map? yes=1, no=0
+plot_map=1; % plot map? yes=1, no=0
 map_xlim=[]; % give x-limits of map [start end] (leave empty for automatic determination)
 map_ylim=[]; % give y-limits of map [start end] (leave empty for automatic determination)
 xtick=[]; % spacing between x-ticks for map in m (leave empty for automatic determination)
