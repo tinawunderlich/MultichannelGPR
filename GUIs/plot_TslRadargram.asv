@@ -312,7 +312,7 @@ S.fh.Visible='on';
         end
 
         % UI control for info text
-        S.infotext=uicontrol('Style','text','String','For scrolling: move mouse inside plot and use arrow keys','Position',[800 10 200 30]);
+        S.infotext=uicontrol('Style','text','String','For scrolling: move mouse inside plot and use arrow keys','Position',)
     end
 
 
