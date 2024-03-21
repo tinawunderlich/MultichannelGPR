@@ -94,7 +94,7 @@ uimenu(figureToolBar,'Label','Pan','Callback','pan on');
         S.fh= figure('menubar','none','Position',S.siz,...
             'name','Velocity picking',...
             'numbertitle','off',...
-            'resize','on','Visible','off','SizeChangedFcn',@resizeui,'Renderer','painters');
+            'resize','on','Visible','off','SizeChangedFcn',@resizeui,'Renderer','painters','KeyPressFcn',@keypress);
         
         % scrollbar for plot:
         S.panel1=uipanel('Parent',S.fh);
@@ -171,6 +171,8 @@ uimenu(figureToolBar,'Label','Pan','Callback','pan on');
         S.tmax=uicontrol(S.fh,'Style','edit','unit','pix','position',[20 140 50 20],'callback',@tmax_call,'Value',max(S.t),'String',num2str(max(S.t)));
         S.text8=uicontrol(S.fh,'style','text','unit','pix','position',[20 160 80 20],'String','tmax [ns]','HorizontalAlignment','Left');
         
+        % UI control for info text
+        S.infotext=uicontrol('Style','text','String','For scrolling: move mouse inside plot and use arrow keys','Position',[10 550 120 50]);
         
 
         % read pickfile:
@@ -229,6 +231,24 @@ guidata(S.fh,S);
         % slider update
         val1 = get(S.slider1,'Value');
         set(S.panel1a,'Position',[-val1 0 2 1],'Units','normalized');
+    end
+
+    function keypress(hObject,event)
+        pos=event.Source.CurrentPoint; % current point in figure
+        pos_ax_panel=S.panel1.Position; % position of radargram-panel
+
+        % find out if mouse is inside plot
+        if pos(1)>=pos_ax_panel(1) && pos(1)<=pos_ax_panel(1)+pos_ax_panel(3) && pos(2)>=pos_ax_panel(2) && pos(2)<=pos_ax_panel(2)+pos_ax_panel(4)
+            % Mouse in radargram-panel
+            val = get(S.slider1,'Value');
+            if strcmp(event.Key,'rightarrow')
+                set(S.panel1a,'Position',[-(val+0.05) 0 2 1],'Units','normalized')
+                S.slider1.Value=val+0.05;
+            elseif strcmp(event.Key,'leftarrow')
+                set(S.panel1a,'Position',[-(val-0.05) 0 2 1],'Units','normalized')
+                S.slider1.Value=val-0.05;
+            end
+        end
     end
 
     function slider_callback1(varargin) % for scrollbar

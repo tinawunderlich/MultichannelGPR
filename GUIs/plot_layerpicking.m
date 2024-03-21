@@ -52,7 +52,7 @@ S.fh.Visible='on';
             'menubar','none',...
             'name','Layer picking',...
             'numbertitle','off',...
-            'resize','on','Visible','off','SizeChangedFcn',@resizeui,'Renderer','painters');
+            'resize','on','Visible','off','SizeChangedFcn',@resizeui,'Renderer','painters','KeyPressFcn',@keypress);
         
         % --
         % upper plot for comparison
@@ -183,6 +183,8 @@ S.fh.Visible='on';
         % UI control - pushbutton for new layer
         S.new_layer=uicontrol(S.fh,'Style','pushbutton','String','Start picking','Position',[200 20 250 25],'Callback',@newlayer_call);
         
+        % UI control for info text
+        S.infotext=uicontrol('Style','text','String','For scrolling: move mouse inside plot and use arrow keys','Position',[10 550 180 50]);
     end
 
 % save handles
@@ -191,6 +193,51 @@ guidata(S.fh,S);
 
 
 %%% Callback functions:
+
+    function keypress(hObject,event)
+        pos=event.Source.CurrentPoint; % current point in figure
+        pos_ax1_panel=S.panel1.Position; % position of upper radargram-panel
+        pos_ax2_panel=S.panel2.Position; % position of lower radargram-panel
+       
+        % find out if mouse is inside a plot
+        if pos(1)>=pos_ax1_panel(1) && pos(1)<=pos_ax1_panel(1)+pos_ax1_panel(3) && pos(2)>=pos_ax1_panel(2) && pos(2)<=pos_ax1_panel(2)+pos_ax1_panel(4)
+            % Mouse in upper radargram-panel
+            val = get(S.slider1,'Value');
+            if strcmp(event.Key,'rightarrow')
+                set(S.panel1a,'Position',[-(val+0.05) 0 2 1],'Units','normalized')
+                S.slider1.Value=val+0.05;
+                if S.connect.Value==1
+                    set(S.panel2a,'Position',[-(val+0.05) 0 2 1],'Units','normalized')
+                    set(S.slider2,'Value',val+0.05);
+                end
+            elseif strcmp(event.Key,'leftarrow')
+                set(S.panel1a,'Position',[-(val-0.05) 0 2 1],'Units','normalized')
+                S.slider1.Value=val-0.05;
+                if S.connect.Value==1
+                    set(S.panel2a,'Position',[-(val-0.05) 0 2 1],'Units','normalized')
+                    set(S.slider2,'Value',val-0.05);
+                end
+            end
+        elseif pos(1)>=pos_ax2_panel(1) && pos(1)<=pos_ax2_panel(1)+pos_ax2_panel(3) && pos(2)>=pos_ax2_panel(2) && pos(2)<=pos_ax2_panel(2)+pos_ax2_panel(4)
+            % Mouse in lower radargram-panel
+            val = get(S.slider2,'Value');
+            if strcmp(event.Key,'rightarrow')
+                set(S.panel2a,'Position',[-(val+0.05) 0 2 1],'Units','normalized')
+                S.slider2.Value=val+0.05;
+                if S.connect.Value==1
+                    set(S.panel1a,'Position',[-(val+0.05) 0 2 1],'Units','normalized')
+                    set(S.slider1,'Value',val+0.05);
+                end
+            elseif strcmp(event.Key,'leftarrow')
+                set(S.panel2a,'Position',[-(val-0.05) 0 2 1],'Units','normalized')
+                S.slider2.Value=val-0.05;
+                if S.connect.Value==1
+                    set(S.panel1a,'Position',[-(val-0.05) 0 2 1],'Units','normalized')
+                    set(S.slider1,'Value',val-0.05);
+                end
+            end
+        end
+    end
 
     function slider_callback1(varargin)
         S=guidata(gcbf);
