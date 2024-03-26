@@ -72,10 +72,10 @@ S.fh.Visible='on';
         S.yloc=S.y(round(length(S.y(:,1,1))/2),1,1); % y-location of slice
         S.tloc=max(S.t(:)); % t-location of slice
         % Plot slices:
-        surf(permute(S.x(:,S.x(1,:,1)==S.xloc,:),[1 3 2]),permute(S.y(:,S.x(1,:,1)==S.xloc,:),[1 3 2]),permute(S.t(:,S.x(1,:,1)==S.xloc,:),[1 3 2]),permute(S.datagain(:,S.x(1,:,1)==S.xloc,:),[1 3 2]))
+        surf(permute(S.x(:,S.x(1,:,1)==S.xloc,:),[1 3 2]),permute(S.y(:,S.x(1,:,1)==S.xloc,:),[1 3 2]),permute(S.t(:,S.x(1,:,1)==S.xloc,:),[1 3 2]),permute(S.data(:,S.x(1,:,1)==S.xloc,:),[1 3 2]))
         hold on
-        surf(permute(S.x(S.y(:,1,1)==S.yloc,:,:),[2 3 1]),permute(S.y(S.y(:,1,1)==S.yloc,:,:),[2 3 1]),permute(S.t(S.y(:,1,1)==S.yloc,:,:),[2 3 1]),permute(S.datagain(S.y(:,1,1)==S.yloc,:,:),[2 3 1]))
-        surf(S.x(:,:,S.t(1,1,:)==S.tloc),S.y(:,:,S.t(1,1,:)==S.tloc),S.t(:,:,S.t(1,1,:)==S.tloc),S.datagain(:,:,S.t(1,1,:)==S.tloc))
+        surf(permute(S.x(S.y(:,1,1)==S.yloc,:,:),[2 3 1]),permute(S.y(S.y(:,1,1)==S.yloc,:,:),[2 3 1]),permute(S.t(S.y(:,1,1)==S.yloc,:,:),[2 3 1]),permute(S.data(S.y(:,1,1)==S.yloc,:,:),[2 3 1]))
+        surf(S.x(:,:,S.t(1,1,:)==S.tloc),S.y(:,:,S.t(1,1,:)==S.tloc),S.t(:,:,S.t(1,1,:)==S.tloc),S.data(:,:,S.t(1,1,:)==S.tloc))
         shading interp
         plot3([S.xloc S.xloc],[S.yloc S.yloc],[0 S.tloc],'k') % vertical crossing line of slices
         plot3([S.xloc S.xloc],[min(S.y(:,1,1)) max(S.y(:,1,1))],[S.tloc S.tloc],'k') % horizontal line 1
@@ -140,7 +140,7 @@ S.fh.Visible='on';
         
         
         % UI control: gain
-        S.gain_cb=uicontrol(S.fh,'Style','checkbox','unit','pix','Position',[30 500 100 15],'String','Apply gain [dB]','Value',1,'Callback',@gain_call);
+        S.gain_cb=uicontrol(S.fh,'Style','checkbox','unit','pix','Position',[30 500 100 15],'String','Apply gain [dB]','Value',0,'Callback',@gain_call);
         S.gain1 = uicontrol(S.fh,'Style','edit','unit','pix','Position',[30 480 60 15],'String','-20','Callback',@gain_call);
         S.gain2 = uicontrol(S.fh,'Style','edit','unit','pix','Position',[30 460 60 15],'String','0','Callback',@gain_call);
         S.gain3 = uicontrol(S.fh,'Style','edit','unit','pix','Position',[30 440 60 15],'String','15','Callback',@gain_call);
