@@ -17,7 +17,7 @@ mode=3; % 1: plot profiles with markers and get marker numbers, export table
         % 2: set/delete markers (you can skip this step if not necessary)
         % 3: read table and set coordinates
 
-mode2_options=[4 1]; % for mode==2: list of profilenum and marker (+ means add marker, - means delete marker)
+mode2_options=[2 1]; % for mode==2: list of profilenum and marker (+ means add marker, - means delete marker)
 
 dx=0.02;    % make constant trace spacing in m (if not, then =0)
 
@@ -26,6 +26,8 @@ export2mat=1;
 
 %--------------------------------------------------------------------------
 %%% DO NOT CHANGE FORM HERE ON!
+
+warning off
 
 test = exist('OCTAVE_VERSION', 'builtin'); % check if running with matlab or octave
 if test==0

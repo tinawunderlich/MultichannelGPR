@@ -17,7 +17,7 @@ rectangles=[1:2]; % number of rectangles
 
 radius=0.3; % radius in m for valid interpolation
 
-use_slices=1;   % if =0: make new slices and save them,
+use_slices=0;   % if =0: make new slices and save them,
 % if =1: use already created slices in folder
 % PondViewSlices (but nevertheless select folder containing
 % the 3D_Grid... and PondViewSlices folders)

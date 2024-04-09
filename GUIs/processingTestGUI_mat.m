@@ -229,11 +229,19 @@ S.fh.Visible='on';
         
         % 6th column:
         off6=-70;
-        % median filter on traces
+        % median filter along traces
         S.medfilt=uicontrol(S.fh,'Style','checkbox','String','Trace-wise median filter','FontWeight','bold','Position',[1100-off1-off6 300 200 15],'Value',0,'Callback',@medfilt_call);
         S.numsamp=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[1120-off1-off6 270 35 20]);
         S.numsamptext=uicontrol(S.fh,'Style','text','String','number of samples','Position',[1160-off1-off6 270 140 20],'HorizontalAlignment','left');
         
+        % median filter along x
+        S.medfilt_x=uicontrol(S.fh,'Style','checkbox','String','X-wise median filter','FontWeight','bold','Position',[1100-off1-off6 240 200 15],'Value',0,'Callback',@medfilt_x_call);
+        S.numsamp_x=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[1120-off1-off6 210 35 20]);
+        S.tstart_x=uicontrol(S.fh,'Style','edit','String','0','Enable','off','Position',[1120-off1-off6 180 35 20]);
+        S.numsamptext_x=uicontrol(S.fh,'Style','text','String','number of samples','Position',[1160-off1-off6 210 140 20],'HorizontalAlignment','left');
+        S.tstarttext_x=uicontrol(S.fh,'Style','text','String','tstart [ns]','Position',[1160-off1-off6 180 140 20],'HorizontalAlignment','left');
+        
+
         % spectralWhitening
 %         S.sw=uicontrol(S.fh,'Style','checkbox','String','Spectral Whitening','FontWeight','bold','Position',[1300-off1-off6 300 200 15],'Value',0,'Callback',@sw_call);
 %         S.fmin_sw=uicontrol(S.fh,'Style','edit','String','100','Enable','off','Position',[1320-off1-off6 270 35 20]);
@@ -377,6 +385,12 @@ guidata(S.fh,S);
             fprintf(fid,['do_medfilt 0\nnumsamp 3\n\n']);
         end
 
+        if any(ismember(steps,'X-wise median filter'))
+            fprintf(fid,['do_medfilt_x ',int2str(order(ismember(steps,'X-wise median filter'))),'\nnumsamp_x ',S.numsamp_x.String,'\ntstart_x ',S.tstart_x.String,'\n\n']);
+        else
+            fprintf(fid,['do_medfilt_x 0\nnumsamp_x 3\ntstart_x 0\n\n']);
+        end
+
         if any(ismember(steps,'Coordinate transformation'))
             fprintf(fid,['do_helmertTransformation ',int2str(order(ismember(steps,'Coordinate transformation'))),'\ncoordsfile coords.txt\n\n']);
         else
@@ -488,6 +502,22 @@ guidata(S.fh,S);
         else
             S.proclist.String(ismember(S.proclist.String,'Trace-wise median filter'))=[];
             S.numsamp.Enable='off';
+        end
+        guidata(gcbf,S); % Update
+    end
+
+    function [] = medfilt_x_call(varargin) % x median filter
+        S=guidata(gcbf);
+        if S.medfilt_x.Value==1
+            S.proclist.String=[S.proclist.String; {'X-wise median filter'}];
+            S.apply.Enable='on';
+            S.delete.Enable='on';
+            S.numsamp_x.Enable='on';
+            S.tstart_x.Enable='on';
+        else
+            S.proclist.String(ismember(S.proclist.String,'X-wise median filter'))=[];
+            S.numsamp_x.Enable='off';
+            S.tstart_x.Enable='off';
         end
         guidata(gcbf,S); % Update
     end
@@ -653,6 +683,7 @@ guidata(S.fh,S);
         end
         guidata(gcbf,S); % Update
     end
+
     function [] = t0_call(varargin)
         S=guidata(gcbf);
         if S.t0corr.Value==1 % t0 shift
@@ -874,7 +905,7 @@ guidata(S.fh,S);
             end
         end
         % colorscale
-        if isfield(S,'rad') % only for radargram, not for amplitude spectrum
+        if isfield(S,'rad') && ~strcmp(S.ax.Children(1).Type,'line') % only for radargram, not for amplitude spectrum
             temp=S.ax.Children.CData;
             coldata=sort(unique(temp(~isnan(temp))));
             S.cmin1=coldata(round(length(coldata)/100*1));
@@ -920,6 +951,7 @@ guidata(S.fh,S);
         % Parameter
         params=struct('numsamp',str2num(S.numsamp.String),'tmax',str2num(S.tmax.String),'numtraces_mean',str2num(S.numtrace.String),...
             'numtraces_median',str2num(S.numtrace2.String),'gap',str2num(S.gap.String),...
+            'tstart_x',str2num(S.tstart_x.String),'numsamp_x',str2num(S.numsamp_x.String),...
             'g1',str2num(S.g1.String),...
             'g2',str2num(S.g2.String),'g3',str2num(S.g3.String),'g4',str2num(S.g4.String),...
             'g5',str2num(S.g5.String),'threshold',str2num(S.thresh.String),...
@@ -957,6 +989,7 @@ guidata(S.fh,S);
         S.d2.Enable='off';
         % turn checkboxes off
         S.medfilt.Value=0;
+        S.medfilt_x.Value=0;
         S.DCrem.Value=0;
         S.traceinterp.Value=0;
         S.spherDiv.Value=0;
@@ -979,6 +1012,8 @@ guidata(S.fh,S);
         S.helmert.Value=0;
         % enable parameters off
         S.numsamp.Enable='off';
+        S.numsamp_x.Enable='off';
+        S.tstart_x.Enable='off';
         S.fmin_sw.Enable='off';
         S.fmax_sw.Enable='off';
         S.alpha.Enable='off';
@@ -1043,6 +1078,10 @@ for k=1:length(order(order>0))  % for all processing steps in right order
 
     if strcmp(steps{order==k},'Trace-wise median filter')
         [datatraces]=medfilt(datatraces,params.numsamp);
+    end
+
+    if strcmp(steps{order==k},'X-wise median filter')
+        [datatraces]=medfilt_x(datatraces,t,params.numsamp_x,params.tstart_x);
     end
     
     if strcmp(steps{order==k},'Turn profiles')

@@ -13,7 +13,7 @@ clc
 
 % which rectangles?
 rect_start=1;
-rect_end=1;
+rect_end=2;
 
 % which timeslice for profile selection?
 tsl_start=20;   % start time in ns (or m if dsl=1)

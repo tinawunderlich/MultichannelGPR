@@ -38,7 +38,7 @@ removeOutliers=0; % if =1: remove outliers in topo data (is done before smoothin
 num=101; % odd(!) number of points for median calculation if removeOutliers==1
 thresh=0.1; % threshold in m for difference between median and raw topography if removeOutliers==1
 
-plottopo=1; % if =1: topo is plotted (raw and smoothed), if =0: no figures
+plottopo=0; % if =1: topo is plotted (raw and smoothed), if =0: no figures
 
 %% -------------------------------------------------------------------------
 % Do not change the following part!

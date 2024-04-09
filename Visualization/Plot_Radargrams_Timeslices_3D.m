@@ -12,7 +12,7 @@ clc
 
 % time or depth? (Take care that both radargrams and timeslices are in the
 % same domain!)
-timedepth=2; % =1: time, =2: depth
+timedepth=1; % =1: time, =2: depth
 
 % Radargrams:
 rad_num=[1]; % give number of radagrams to plot (if =[] all radargrams are used, be careful with large datasets!)

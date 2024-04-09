@@ -11,16 +11,16 @@ clear all
 close all
 clc
 
-app='Tablet';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet
+app='SIR3000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet
 
-dataplot=0; % plot radargram for controlling? 1=yes, 0=no
+dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
 convert2utm=0; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
 zone=32; % if convert2utm==1 -> give UTM-zone
 
 offsetGPS_X=0; % [m] Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
-offsetGPS_Y=0.12; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
-h_GPS=2; % [m] height of GPS/prism above ground
+offsetGPS_Y=0; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
+h_GPS=0; % [m] height of GPS/prism above ground
 
 % Options for calculating inline coordinates for each trace:
 coords_opt=1;   % =1: trace coordinate is difference to beginning of profile (only use this for straight profiles!)
