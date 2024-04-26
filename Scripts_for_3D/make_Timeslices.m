@@ -11,10 +11,10 @@ clc
 % requires binned data in rectangles 3D_Grid_R* or processed data in
 % 3D_Grid_R*/processed/
 % Number of rectangles with binned data
-rectangles=1:2; % e.g. 1:3
+rectangles=1:15; % e.g. 1:3
 
 % depth slices instead of time slices (input is in m)
-dsl = 1; % =1: depth, =0: time
+dsl = 0; % =1: depth, =0: time
 
 % if depth slice, cut horizontally (=0) or follow topography (=1)?
 followTopo=0;
@@ -23,16 +23,16 @@ followTopo=0;
 t_start=0;  % in ns (or m if depth slice starting from top of data (=0m))
 
 % thickness of timeslices
-thick=0.5; % in ns (or m if dsl=1)
+thick=2; % in ns (or m if dsl=1)
 
 % overlap of timeslices
 overlap = 0; % in ns (or m if dsl=1)
 
 % ending time of timeslices
-t_end=5; % in ns (or m if dsl=1, meters below top of data, positive!)
+t_end=40; % in ns (or m if dsl=1, meters below top of data, positive!)
 
 % dx of timeslices (<=dx of bins)
-dx_tsl=0.05;    % in m
+dx_tsl=0.04;    % in m
 
 % use 3D processed data (if =1, then use data in /processed folder in 3Dbins)
 proc=0;
@@ -47,7 +47,7 @@ method=1;   % 1: sum absolute amplitudes,
             % 4: no summing, just absolute amplitudes at certain times
 
 % masking options
-nn_radius=2;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
+nn_radius=3;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
 
 % Interpolation
 griding=1;  % 1: Griddata (linear interpolation)
@@ -329,7 +329,7 @@ if dsl==0 % TIMEslice -> just one mask for all slices
     temp=ones(size(tsl{1}));
     temp(mask==1)=0;
     eucmap=chamfer_DT(temp);  % approximated euclidian distance map (Distance to next neighbor in bins)
-    eucmap_interp=griddata(xgrid(:),ygrid(:),eucmap(:),xgrid_interp,ygrid_interp);
+    eucmap_interp=griddata(double(xgrid(:)),double(ygrid(:)),eucmap(:),double(xgrid_interp),double(ygrid_interp));
     eucmap_interp(isnan(eucmap_interp))=2*nn_radius;
     mask_interp=ones(size(eucmap_interp)); % initialize new grid
     mask_interp(eucmap_interp>nn_radius)=0;   % set 0 for pixels with distance to nearest neighbor > radius
@@ -339,7 +339,7 @@ else % DEPTHslices -> one mask for each slice
         temp=ones(size(tsl{i}));
         temp(mask{i}==1)=0;
         eucmap=chamfer_DT(temp);  % approximated euclidian distance map (Distance to next neighbor in bins)
-        eucmap_interp=griddata(xgrid(:),ygrid(:),eucmap(:),xgrid_interp,ygrid_interp);
+        eucmap_interp=griddata(double(xgrid(:)),double(ygrid(:)),eucmap(:),double(xgrid_interp),double(ygrid_interp));
         eucmap_interp(isnan(eucmap_interp))=2*nn_radius;
         mask_interp{i}=ones(size(eucmap_interp)); % initialize new grid
         mask_interp{i}(eucmap_interp>nn_radius)=0;   % set 0 for pixels with distance to nearest neighbor > radius
@@ -348,7 +348,7 @@ else % DEPTHslices -> one mask for each slice
     temp=ones(size(tsl{1}));
     temp(mask_topo==1)=0;
     eucmap=chamfer_DT(temp);  % approximated euclidian distance map (Distance to next neighbor in bins)
-    eucmap_interp=griddata(xgrid(:),ygrid(:),eucmap(:),xgrid_interp,ygrid_interp);
+    eucmap_interp=griddata(double(xgrid(:)),double(ygrid(:)),eucmap(:),double(xgrid_interp),double(ygrid_interp));
     eucmap_interp(isnan(eucmap_interp))=2*nn_radius;
     mask_topointerp=ones(size(eucmap_interp)); % initialize new grid
     mask_topointerp(eucmap_interp>nn_radius)=0;   % set 0 for pixels with distance to nearest neighbor > radius
@@ -368,14 +368,14 @@ if griding==1
         
         if i==1; c1=clock; end
         if length(tsl{i}(~isnan(tsl{i}(:))))>= 3 % at least 3 values are necessary for triangulation   
-            tsl_interp{i}=griddata(xgrid(~isnan(tsl{i}(:))),ygrid(~isnan(tsl{i}(:))),tsl{i}(~isnan(tsl{i}(:))),xgrid_interp,ygrid_interp);
+            tsl_interp{i}=griddata(double(xgrid(~isnan(tsl{i}(:)))),double(ygrid(~isnan(tsl{i}(:)))),tsl{i}(~isnan(tsl{i}(:))),double(xgrid_interp),double(ygrid_interp));
             if isempty(tsl_interp{i}) % problem if only some points and are in line (e.g. on one x value)
-                tsl_interp{i}=NaN(size(xgrid_interp));
+                tsl_interp{i}=NaN(size(xgrid_interp),'single');
             else
                 tsl_interp{i}(~maske)=NaN;   % apply mask_interp
             end
         else
-            tsl_interp{i}=NaN(size(xgrid_interp));
+            tsl_interp{i}=NaN(size(xgrid_interp),'single');
         end
         if i==1
             c2=clock;
@@ -383,7 +383,7 @@ if griding==1
         end
         waitbar(i/length(tsl),h,['Approx. ',int2str(diff*length(tsl)-diff*i),' minutes remaining']);
     end
-    topo_interp=griddata(xgrid(~isnan(topo(:))),ygrid(~isnan(topo(:))),topo(~isnan(topo(:))),xgrid_interp,ygrid_interp);
+    topo_interp=griddata(double(xgrid(~isnan(topo(:)))),double(ygrid(~isnan(topo(:)))),topo(~isnan(topo(:))),double(xgrid_interp),double(ygrid_interp));
     topo_interp(~mask_topointerp)=NaN;   % apply mask_interp
     close(h);
 elseif griding==2

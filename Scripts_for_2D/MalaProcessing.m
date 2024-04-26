@@ -3,7 +3,7 @@
 % If you measured with PPS/GPS-mouse for triggering, run convert_PPS2pos.m
 % first!
 %
-% Dr. Tina Wunderlich, CAU Kiel 2020, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2024, tina.wunderlich@ifg.uni-kiel.de
 %
 % requires following files:
 % *.rd3: Radar data
@@ -22,7 +22,7 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Select number of profiles:
-profile_min=17;  % minimum profile number
+profile_min=0;  % minimum profile number
 profile_max=95;  % maximum profile number
 % number of channels for this dataset
 channels=16; % number of channels
@@ -46,8 +46,6 @@ userawdata=1;  % if =1: use aready read in raw data and apply new processing ste
 rad=0; % if =0, processed data will be saved in folder proc, but not all radargrams in one file radargrams.mat
 % if =1, processed data will be saved in radargrams.mat...
 
-% Save to sgy for Kingdom
-save_sgy=0; % yes=1, no=0
 
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
@@ -138,6 +136,7 @@ if ~exist(fullfile(foldername,settings),'file') % if no settings-file is found: 
     fprintf(fid,'do_applygain 0\ng1 -20\ng2 0\ng3 10\ng4 20\ng5 30\n\n');
     fprintf(fid,'do_normalization 0\nqclip 0.98\n\n');
     fprintf(fid,'do_removeMeanMedianTrace 7\nmeanmedian 1\nnumtraces 0\n\n');
+    fprintf(fid,'do_t0shift 0\nt0s[ns] 5.0\n\n');
     fprintf(fid,'do_t0CorrectionThreshold 0\nthreshold -1\n\n');
     fprintf(fid,'do_t0CorrectionReferencetrace 0\nprofilenumber 0\nchannelnumber 1\ntracenumber 1\nt0[ns] 0.1\n\n');
     fprintf(fid,'do_crossprofileshift 4\nmaxshift_cps 30\n\n');
@@ -151,7 +150,7 @@ else
     temp=textscan(fid,'%s%s');
     fclose(fid);
     % get order of processing steps:
-    steps=[{'do_amplitudeOffset'} {'do_crossprofileshift'} {'do_medianFilter'} {'do_constTraceDist'} {'do_cutTWT'} {'do_khighpass'} {'do_spectralWhitening'} {'do_migration2d_vz'} {'do_topomig2d'} {'do_traceInterpolation'} {'do_applygain'} {'do_removeMeanMedianTrace'} {'do_t0CorrectionThreshold'} {'do_t0CorrectionReferencetrace'} {'do_channelshift'} {'do_sphericalDivergence'} {'do_attenuationCorrection'} {'do_signalShaping'} {'do_bandpass'} {'do_normalization'}];
+    steps=[{'do_amplitudeOffset'} {'do_t0shift'} {'do_crossprofileshift'} {'do_medianFilter'} {'do_constTraceDist'} {'do_cutTWT'} {'do_khighpass'} {'do_spectralWhitening'} {'do_migration2d_vz'} {'do_topomig2d'} {'do_traceInterpolation'} {'do_applygain'} {'do_removeMeanMedianTrace'} {'do_t0CorrectionThreshold'} {'do_t0CorrectionReferencetrace'} {'do_channelshift'} {'do_sphericalDivergence'} {'do_attenuationCorrection'} {'do_signalShaping'} {'do_bandpass'} {'do_normalization'}];
     order=zeros(1,length(steps));
     for i=1:length(steps)
         for j=1:length(temp{1})
@@ -176,6 +175,9 @@ else
         elseif strcmp(temp{1}(i),'dist[m]')
             temp3=temp{2}(i);
             params.dist=str2double(temp3{1});
+        elseif strcmp(temp{1}(i),'t0s[ns]')
+            temp3=temp{2}(i);
+            params.t0s=str2double(temp3{1});
         elseif strcmp(temp{1}(i),'gap')
             temp3=temp{2}(i);
             params.gap=str2double(temp3{1});
@@ -342,6 +344,8 @@ else
             disp(['  v = ',num2str(params.v),' m/ns'])
             disp(['  flag = ',num2str(params.flagtopo)])
             disp(['  aperture = ',num2str(params.aperture_t)])
+        elseif strcmp('do_t0shift',steps{order==i})
+            disp(['  t0s = ',num2str(params.t0s),' ns'])
         elseif strcmp('do_crossprofileshift',steps{order==i})
             disp(['  maxshift_cps = ',num2str(params.maxshift_cps)])
         elseif strcmp('do_channelshift',steps{order==i})
@@ -387,6 +391,7 @@ if userawdata==0  % first run of program -> read all profiles
     for i=1:lnum
         % load data and coordinates
         [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset);
+        traces=single(traces); % convert to single for saving memory
         % delete traces with NaN-coordinates
         del=find(isnan(tempx{i}));
         traces(:,del)=[];
@@ -566,7 +571,8 @@ for i=1:length(numbers)
 
         params.dt=info(7,1);
         t=0:params.dt:params.dt*(info(8,1)-1);
-        profileinfotemp{i}=[numbers(i) params.dt info(8,1) max(info(3,:)) max(info(2,:))]; % profilnumber, dt, ns, channels, numtraces-per-channel
+        profileinfotemp{i}=[numbers(i) abs(t(2)-t(1)) info(8,1) max(info(3,:)) max(info(2,:))]; % profilnumber, dt, ns, channels, numtraces-per-channel
+
 
         % Plot figure in invisible mode
         b=1:profileinfotemp{i}(5):profileinfotemp{i}(5)*profileinfotemp{i}(4); % first trace of every channel
@@ -580,6 +586,10 @@ for i=1:length(numbers)
 
         % processing:
         [traces,ns,t,zmig,info]=processing(steps,order,traces,info,t,params,fhProc,b);
+
+        % new profileinfo update
+        profileinfotemp{i}=[numbers(i) abs(t(2)-t(1)) info(8,1) max(info(3,:)) max(info(2,:))]; % profilnumber, dt, ns, channels, numtraces-per-channel
+
 
         if rad==1
             % write all profiles in one variable
@@ -603,7 +613,8 @@ for i=1:length(numbers)
         disp('     ...saved')
         clear traces;
         clear info;
-        toc
+        timeiteration=toc;
+        disp(['Elapsed time is ',num2str(timeiteration,5),' s.'])
     end
 end
 if rad==1
@@ -650,12 +661,10 @@ if exist(fullfile(foldername,'profiles2mat','proc','profileinfo.mat'),'file')
             temp1=[temp1; profileinfo(ii,:)];
         end
     end
-    profileinfo=temp1;
+    profileinfo=sortrows(temp1,1);
 end
 save(fullfile(foldername,'profiles2mat','proc','profileinfo.mat'),'profileinfo','-v7.3');
 disp('--------------------------------------')
-
-
 
 
 % set original path
@@ -697,7 +706,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         end
 
         % replace datatraces and info with shorter profiles:
-        datatraces=datatraces_temp;
+        datatraces=single(datatraces_temp);
         info=info_temp;
         clear datatraces_temp;
         clear info_temp;
@@ -727,6 +736,19 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         end
     end
 
+    if strcmp(steps{order==k},'do_t0shift')
+        disp('  ...t0shift')
+        datatraces=t0shift(datatraces,params.t0s,abs(t(2)-t(1)));
+        if exist('fh','var')
+            subplot(4,3,k+1)
+            hold on
+            plot(t,datatraces(:,b))
+            grid on
+            xlabel('t [ns]')
+            title('t0 shift')
+        end
+    end
+
     if strcmp(steps{order==k},'do_spectralWhitening')
         disp('  ...spectralWhitening')
         for ch=1:max(info(3,:)) % for each channel
@@ -747,7 +769,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         for ch=1:max(info(3,:)) % for each channel
             [datatemp(:,info(3,:)==ch),zmig]=topomig2d_varV(datatraces(:,info(3,:)==ch),[0:params.dx:params.dx*(length(datatraces(1,info(3,:)==ch))-1)],t,info(6,info(3,:)==ch),params.v,params.aperture_t,params.flagtopo,0,params.minz,params.maxz);
         end
-        datatraces=datatemp;
+        datatraces=single(datatemp);
         ns=length(datatraces(:,1));
         clear datatemp;
         if exist('fh','var')
@@ -786,7 +808,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
             disp(['      channel #',int2str(ch)])
             [datatemp(:,info(3,:)==ch),zmig]=isochrone_mig_2d_varV(datatraces(:,info(3,:)==ch),[0:params.dx:params.dx*(length(datatraces(1,info(3,:)==ch))-1)],tp,vgrid,params.aperture_m,0);
         end
-        datatraces=datatemp;
+        datatraces=single(datatemp);
         ns=length(datatraces(:,1));
         clear datatemp;
         if exist('fh','var')
@@ -916,7 +938,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         disp('  ...CrossProfileShift')
         tempch2{1}=datatraces;
         tempch=channelshift(tempch2,params.maxshift_cps,params.shiftsamples_cps(params.shiftsamples_cps(:,1)==info(1,1),2));
-        datatraces=tempch2{1};
+        datatraces=single(tempch2{1});
         if exist('fh','var')
             subplot(4,3,k+1)
             hold on
@@ -1006,6 +1028,9 @@ for k=1:length(order(order>0))  % for all processing steps in right order
             title('Normalization')
         end
     end
+end
+if strcmp(class(datatraces),'double')
+    datatraces=single(datatraces);
 end
 end
 

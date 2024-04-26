@@ -17,7 +17,7 @@ clc
 numbers=[]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Processing options:
-settings='settings.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
+settings='settings_mig.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
 plotflag=1; % =1 plot and show all radargrams during processing, =0 do not plot
 
 % Plotting options

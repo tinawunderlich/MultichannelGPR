@@ -1,9 +1,9 @@
-function [neu]=envelope(data)
+function [data]=envelope(data)
 
 
 %%% Envelope of each trace in 3D-block
 %
-% [neu]=envelope(data)
+% [data]=envelope(data)
 %
 % Dr. Tina Wunderlich, CAU Kiel 2023, tina.wunderlich@ifg.uni-kiel.de
 %
@@ -11,10 +11,8 @@ function [neu]=envelope(data)
 % data: 3D-block
 %
 % Output:
-% neu: envelope of each trace, same size as data
+% data: envelope of each trace, same size as data
 
-
-neu=NaN(size(data)); % initialize interpolated matrix (set given values)
 
 for i=1:length(data(:,1,1))
     for j=1:length(data(1,:,1))
@@ -25,7 +23,7 @@ for i=1:length(data(:,1,1))
             ind=find(~isnan(trace));
             h=hilbert(trace(ind));
 
-            neu(i,j,ind)=sqrt(trace(ind).^2+permute(imag(h)',[2 3 1]).^2);
+            data(i,j,ind)=sqrt(trace(ind).^2+permute(imag(h)',[2 3 1]).^2);
         end
     end
 end

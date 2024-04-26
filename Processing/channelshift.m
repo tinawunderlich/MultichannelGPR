@@ -53,7 +53,7 @@ if nargin==2  % find best shifts for each channel
         end
 
         % search for best correation
-        bestj(i)=find(max(C(i,:))==C(i,:));
+        bestj(i)=find(max(C(i,:))==C(i,:),1,'first');
         v=-maxshift:maxshift; % Verschiebung
         shiftsamples(i)=v(bestj(i)); % Anzahl sample von bester verschiebung
     end

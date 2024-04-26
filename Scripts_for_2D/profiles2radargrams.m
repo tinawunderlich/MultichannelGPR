@@ -16,9 +16,9 @@ platform=2; % Linux=1, Mac=2, Windows=3
 
 % Filename (without folder!) (folder is selected later)
 name='Schwissel'; % Name of datafiles without '_...'
-profiles=1:3;  % profile numbers
+profiles=0:95;  % profile numbers
 
-channels=[1:2:16]; % choose channels (one or several)
+channels=[4]; % choose channels (one or several)
 
 % Choose rSlicer folder!
 
@@ -161,16 +161,33 @@ else
 
     disp('Start saving of data...')
     % save all profiles in one variable
-    save(fullfile(foldername,'profiles2mat','proc','radargrams.mat'),'radargrams','-v7.3');
-    save(fullfile(foldername,'profiles2mat','proc','t.mat'),'t','-v7.3');
-    save(fullfile(foldername,'profiles2mat','proc','x.mat'),'x','-v7.3');
-    save(fullfile(foldername,'profiles2mat','proc','global_coords.mat'),'global_coords','-v7.3');
-    
-    fid=fopen(fullfile(foldername,'profiles2mat','proc','radargrams.txt'),'wt');
-    fprintf(fid,'Radargrams.mat contains channels\n');
-    fprintf(fid,' %d\t',channels);
-    fprintf(fid,'\nof profiles\n');
-    fprintf(fid,' %d\n',unique(pc(:,1)));
-    fclose(fid);
+    if length(channels)==1
+        if ~exist(fullfile(foldername,'profiles2mat','proc',['Channel',int2str(channels)]),'dir')
+            mkdir(fullfile(foldername,'profiles2mat','proc',['Channel',int2str(channels)]));
+        end
+        save(fullfile(foldername,'profiles2mat','proc',['Channel',int2str(channels)],'radargrams.mat'),'radargrams','-v7.3');
+        save(fullfile(foldername,'profiles2mat','proc',['Channel',int2str(channels)],'t.mat'),'t','-v7.3');
+        save(fullfile(foldername,'profiles2mat','proc',['Channel',int2str(channels)],'x.mat'),'x','-v7.3');
+        save(fullfile(foldername,'profiles2mat','proc',['Channel',int2str(channels)],'global_coords.mat'),'global_coords','-v7.3');
+
+        fid=fopen(fullfile(foldername,'profiles2mat','proc',['Channel',int2str(channels)],'radargrams.txt'),'wt');
+        fprintf(fid,'Radargrams.mat contains channels\n');
+        fprintf(fid,' %d\t',channels);
+        fprintf(fid,'\nof profiles\n');
+        fprintf(fid,' %d\n',unique(pc(:,1)));
+        fclose(fid);
+    else
+        save(fullfile(foldername,'profiles2mat','proc','radargrams.mat'),'radargrams','-v7.3');
+        save(fullfile(foldername,'profiles2mat','proc','t.mat'),'t','-v7.3');
+        save(fullfile(foldername,'profiles2mat','proc','x.mat'),'x','-v7.3');
+        save(fullfile(foldername,'profiles2mat','proc','global_coords.mat'),'global_coords','-v7.3');
+
+        fid=fopen(fullfile(foldername,'profiles2mat','proc','radargrams.txt'),'wt');
+        fprintf(fid,'Radargrams.mat contains channels\n');
+        fprintf(fid,' %d\t',channels);
+        fprintf(fid,'\nof profiles\n');
+        fprintf(fid,' %d\n',unique(pc(:,1)));
+        fclose(fid);
+    end
 end
 disp('Done!')

@@ -13,7 +13,7 @@ clc
 
 % which rectangles?
 rect_start=1;
-rect_end=2;
+rect_end=15;
 
 % which timeslice for profile selection?
 tsl_start=20;   % start time in ns (or m if dsl=1)
@@ -25,17 +25,22 @@ dsl=0; % =1 if vertical axis is depth, =0 if vertical axis is time
 
 % list of profile coordinates in rSlicer-folder?
 % (columns are: xstart ystart xend yend)
-%list='Radargrams.txt'; % if no list, leave empty [] -> interactive picking in plot
-list =[];
+list='Radargrams.txt'; % if no list, leave empty [] -> interactive picking in plot
+%list =[];
 coordglobal=1; % if the 3Dbins-R* are in local coordinates: do coordinate transformation if ==1
 
 % trace spacing of 3D block:
-dx=0.1;    % dx in m
+dx=0.04;    % dx in m
 
-dxrad=0.02; % trace spacing of radargram in m
+dxrad=0.02; % trace spacing of new radargram in m
 
 % use processed blocks in 3D_Grid_R*/processed? (yes==1)
 proc=0;
+
+% if you want to extract more profiles later, you can save the
+% interpolation object and reload it later:
+saveInterpolation=1;
+reload=0; % set to 1 if you want to reload the interpolation handle in a second run of the program
 
 
 %--------------------------------------------------------------------------
@@ -169,6 +174,9 @@ for i=rect_start:rect_end
             startind(i,1)=startind(i,1)-anzrows;
         end
     end
+    if length(startind(i,1):endind(i,1))>length(tsl{i}(:,1))   % if number of rows different
+        endind(i,1)=startind(i,1)+length(tsl{i}(:,1))-1;
+    end
     if length(startind(i,2):endind(i,2))<=length(tsl{i}(1,:))     % if number of columns different
         anzcol=length(tsl{i}(1,:))-length(startind(i,2):endind(i,2));
         if endind(i,2)+anzcol<=length(tsl{i}(1,:))
@@ -287,14 +295,22 @@ for i=1:length(t) % for every time step
     end
 
     % take data from this time step for every profile
-    F=scatteredInterpolant(xgrid(~isnan(dat_t)),ygrid(~isnan(dat_t)),dat_t(~isnan(dat_t)));
+    if i==1 && reload==1
+        load(fullfile(pathname,'Interpolant.mat'));
+    end
+    if reload~=1
+        F{i}=scatteredInterpolant(double(xgrid(~isnan(dat_t))),double(ygrid(~isnan(dat_t))),dat_t(~isnan(dat_t)));
+    end
     for k=1:length(xstart)  % for every profile
-        test=smooth(F(xx{k},yy{k}),15);
+        test=smooth(F{i}(xx{k},yy{k}),15);
         if ~isempty(test)
             radargrams{k}(i,:)=test;
         end
     end
 
+end
+if saveInterpolation==1
+    save(fullfile(pathname,'Interpolant.mat'),'F','-v7.3');
 end
 
 % combine coordinates:
