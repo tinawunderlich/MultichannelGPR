@@ -17,7 +17,7 @@ clc
 dsl = 0; % =1: depth, =0: time
 
 % masking options
-nn_radius=3;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
+nn_radius=6;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
 
 % Interpolation
 griding=1;  % 1: Griddata (linear interpolation)
