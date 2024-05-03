@@ -18,7 +18,7 @@ platform=2; % Linux=1, Mac=2, Windows=3
 name='Schwissel'; % Name of datafiles without '_...'
 profiles=0:95;  % profile numbers
 
-channels=[4]; % choose channels (one or several)
+channels=[2]; % choose channels (one or several)
 
 % Choose rSlicer folder!
 

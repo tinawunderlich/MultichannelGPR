@@ -21,7 +21,9 @@ function [zout,xgrid,ygrid] = bindata3(z,x,y,xrg,yrg)
     dx=xrg(2)-xrg(1);
     dy=yrg(2)-yrg(1);
 
-    [xgrid,ygrid]=meshgrid([xrg(1)+dx/2:dx:xrg(end)-dx/2],[yrg(1)+dy/2:dy:yrg(end)-dy/2]);
+    a=xrg+dx/2;
+    b=yrg+dy/2;
+    [xgrid,ygrid]=meshgrid(a(1:end-1),b(1:end-1));
     [r,c]=size(xgrid);
 
     % delete all values outside xrg/yrg

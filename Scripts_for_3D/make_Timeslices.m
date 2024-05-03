@@ -11,7 +11,7 @@ clc
 % requires binned data in rectangles 3D_Grid_R* or processed data in
 % 3D_Grid_R*/processed/
 % Number of rectangles with binned data
-rectangles=1:15; % e.g. 1:3
+rectangles=1; % e.g. 1:3
 
 % depth slices instead of time slices (input is in m)
 dsl = 0; % =1: depth, =0: time
@@ -23,7 +23,7 @@ followTopo=0;
 t_start=0;  % in ns (or m if depth slice starting from top of data (=0m))
 
 % thickness of timeslices
-thick=2; % in ns (or m if dsl=1)
+thick=3; % in ns (or m if dsl=1)
 
 % overlap of timeslices
 overlap = 0; % in ns (or m if dsl=1)

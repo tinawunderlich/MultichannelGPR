@@ -14,13 +14,13 @@ clc
 
 
 % Number of rectangles with binned data
-rectangles=1:2; % e.g. 1:3
+rectangles=1; % e.g. 1:3
 
 % depth or time domain?
 dsl=0;  % =1: depth, =0: time
 
 % use processed data (if =1, then use data in "3D_Grid_R*/processed" folder)
-proc=1;
+proc=0;
 
 % -------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!

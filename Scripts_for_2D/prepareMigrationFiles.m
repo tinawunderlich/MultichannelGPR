@@ -14,7 +14,7 @@ clc
 % Choose options for velocity model:
 vopt=1;
 % vopt=1: Constant velocity for all profiles in radargrams.mat
-vconst=0.1; % v in m/ns
+vconst=0.13; % v in m/ns
 % vopt=2: Constant velocity (but different) for each profile in radargrams.mat
 vall=[0.1 0.08]; % v for each profile in m/ns
 % vopt=3: 1D velocity model for all profiles
@@ -22,7 +22,7 @@ v1d=[0.16 0.1]; % v at different times in m/ns
 t1d=[0 18]; % corresponding times in ns
 
 % Choose options for topography:
-topoopt=2;
+topoopt=1;
 % topoopt=0: no topography file required
 % topoopt=1: topography is already set in global_coords(:,3)
 % topoopt=2: topography has to be set with file containing profile number (1. column),
@@ -32,13 +32,13 @@ topoopt=2;
 % area, but not directly on the profiles. The topofile contains 3 columns:
 % Easting, Northing and height
 topofile='Topo200MHz.txt'; % file for topoopt==2 or topoopt==3
-smooth_topo=55; % n>0: smooth topography over n samples, if no smoothing=0
+smooth_topo=155; % n>0: smooth topography over n samples, if no smoothing=0
 
 removeOutliers=0; % if =1: remove outliers in topo data (is done before smoothing)
 num=101; % odd(!) number of points for median calculation if removeOutliers==1
 thresh=0.1; % threshold in m for difference between median and raw topography if removeOutliers==1
 
-plottopo=1; % if =1: topo is plotted (raw and smoothed), if =0: no figures
+plottopo=0; % if =1: topo is plotted (raw and smoothed), if =0: no figures
 
 %% -------------------------------------------------------------------------
 % Do not change the following part!

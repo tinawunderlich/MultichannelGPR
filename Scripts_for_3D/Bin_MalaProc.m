@@ -338,8 +338,8 @@ for i=1:num_xrect
                         
                         % write datatraces and coordinates in matrix
                         data_temp{n}=zeros(ns,length(in_prof(in_prof>0)),'single');
-                        x_temp{n}=zeros(1,length(in_prof(in_prof>0)),'single');
-                        y_temp{n}=zeros(1,length(in_prof(in_prof>0)),'single');
+                        x_temp{n}=zeros(1,length(in_prof(in_prof>0)));
+                        y_temp{n}=zeros(1,length(in_prof(in_prof>0)));
                         data_temp{n}(:,1:chunks(1,3))=d.traces(:,chunks(1,1):chunks(1,2));
                         x_temp{n}(1:chunks(1,3))=m.info(4,chunks(1,1):chunks(1,2));
                         y_temp{n}(1:chunks(1,3))=m.info(5,chunks(1,1):chunks(1,2));
@@ -372,8 +372,8 @@ for i=1:num_xrect
                         
                         % write datatraces and coordinates in matrix
                         data_temp{n}=zeros(ns,length(in_prof(in_prof>0)),'single');
-                        x_temp{n}=zeros(1,length(in_prof(in_prof>0)),'single');
-                        y_temp{n}=zeros(1,length(in_prof(in_prof>0)),'single');
+                        x_temp{n}=zeros(1,length(in_prof(in_prof>0)));
+                        y_temp{n}=zeros(1,length(in_prof(in_prof>0)));
                         data_temp{n}(:,1:chunks(1,3))=d.traces(:,chunks(1,1):chunks(1,2));
                         x_temp{n}(1:chunks(1,3))=m.info(4,chunks(1,1):chunks(1,2));
                         y_temp{n}(1:chunks(1,3))=m.info(5,chunks(1,1):chunks(1,2));
@@ -395,8 +395,8 @@ for i=1:num_xrect
 
                 % put together all data
                 datatraces=zeros(ns,length(ind_in(ind_in==1)),'single');
-                xx=zeros(1,length(ind_in(ind_in==1)),'single');
-                yy=zeros(1,length(ind_in(ind_in==1)),'single');
+                xx=zeros(1,length(ind_in(ind_in==1)));
+                yy=zeros(1,length(ind_in(ind_in==1)));
                 ii=1;
                 for n=1:length(nn)
                     datatraces(:,ii:ii+length(data_temp{n}(1,:))-1)=data_temp{n};  % -> all traces
@@ -437,8 +437,6 @@ for i=1:num_xrect
                 %%% Saving data
                 disp('Saving data of current rectangle...')
                 
-                x=single(x);
-                y=single(y);
                 save(fullfile(foldername,['3D_Grid_R',int2str(anz)],'data.mat'),'data','-v7.3');
                 save(fullfile(foldername,['3D_Grid_R',int2str(anz)],'x.mat'),'x','-v7.3');
                 save(fullfile(foldername,['3D_Grid_R',int2str(anz)],'y.mat'),'y','-v7.3');
