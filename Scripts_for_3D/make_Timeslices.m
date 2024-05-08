@@ -11,25 +11,25 @@ clc
 % requires binned data in rectangles 3D_Grid_R* or processed data in
 % 3D_Grid_R*/processed/
 % Number of rectangles with binned data
-rectangles=1; % e.g. 1:3
+rectangles=1:22; % e.g. 1:3
 
 % depth slices instead of time slices (input is in m)
-dsl = 0; % =1: depth, =0: time
+dsl = 1; % =1: depth, =0: time
 
 % if depth slice, cut horizontally (=0) or follow topography (=1)?
-followTopo=0;
+followTopo=1;
 
 % starting time of first timeslice
 t_start=0;  % in ns (or m if depth slice starting from top of data (=0m))
 
 % thickness of timeslices
-thick=3; % in ns (or m if dsl=1)
+thick=0.2; % in ns (or m if dsl=1)
 
 % overlap of timeslices
 overlap = 0; % in ns (or m if dsl=1)
 
 % ending time of timeslices
-t_end=40; % in ns (or m if dsl=1, meters below top of data, positive!)
+t_end=3; % in ns (or m if dsl=1, meters below top of data, positive!)
 
 % dx of timeslices (<=dx of bins)
 dx_tsl=0.04;    % in m
@@ -165,6 +165,17 @@ for i=1:length(rectangles)
     z{i}=temp.z;
     temp=load(fullfile(pfad,p,'mask.mat'));
     mask{i}=temp.mask;
+    if isempty(mask{i})
+        if proc==0
+            p=['3D_Grid_R',int2str(rectangles(i)),'/data.mat'];
+        else
+            p=['3D_Grid_R',int2str(rectangles(i)),'/processed/data.mat'];
+        end
+        matFileObj=matfile(fullfile(pfad,p));
+        temp=matFileObj.data;
+        mask{i}=zeros(size(x{i}));
+        mask{i}(any(~isnan(temp),3))=1;
+    end
     
     if i==1
         dx=x{i}(1,2)-x{i}(1,1);   % dx of 3D-block
@@ -228,9 +239,9 @@ end
 tsl=cell(length(t_ind),1);  % initialize cells for timeslices
 
 disp('Reading data for timeslices... Please wait.');
-h=waitbar(0,'Reading data for timeslices');
 
 for j=1:length(rectangles)  % in each rectangle...
+    disp(['   Rectangle ',int2str(j),'/',int2str(length(rectangles))])
     % open matfile
     if proc==0
         p=['3D_Grid_R',int2str(rectangles(j)),'/data.mat'];
@@ -244,6 +255,7 @@ for j=1:length(rectangles)  % in each rectangle...
     col_ind=find(abs(xgrid(1,:)-xmin(j))==min(abs(xmin(j)-xgrid(1,:))));
     
     for i=1:length(t_ind)   % number of Tsl
+        disp(['      - Tsl ',int2str(i),'/',int2str(length(t_ind))])
         if isempty(tsl{i})
             tsl{i}=NaN(size(xgrid));    % initialize tsl in first run
         end
@@ -251,24 +263,42 @@ for j=1:length(rectangles)  % in each rectangle...
         if followTopo==0 % horizontal slices
             datatemp=matFileObj.data(:,:,t_ind{i});
         else % make Tsl following topography (for topocorr/mig data)
-            w=find(mask{j}==1); % linear indices of data points in rectangle
-            datatemp=NaN(length(z{j}(:,1)),length(z{j}(1,:)),length(t_ind{i}));
-            len_ind=zeros(size(z{j}))+length(t_ind{i});
-            for k=1:length(w) % go through all data points
-                [k1,k2]=ind2sub(size(z{j}),w(k));
-                z_absolut=maxElevation-t;
-                topoind=find(min(abs(z_absolut-z{j}(k1,k2)))==abs(z_absolut-z{j}(k1,k2)),1,'first'); % index of topography at this point
-                ind=t_ind{i}+topoind;
-                ind(ind>length(t))=[]; % delete indices that are not available (=too deep)
-                if ~isempty(ind) % if not too deep...
-                    tedata=matFileObj.data(k1,k2,ind);
-                    if length(tedata)<length(t_ind{i})
-                        tedata(length(tedata)+1:length(t_ind{i}))=NaN;
-                    end
-                    datatemp(k1,k2,:)=tedata;
-                    len_ind(k1,k2)=length(ind); % number of used samples at this point
+            z_absolut=maxElevation-t; % absolute z vector starting from 0 at top of radargram images
+            datatemp=NaN(length(z{j}(:,1)),length(z{j}(1,:)),length(t_ind{i})); % initialize datatemp
+            data=matFileObj.data; % load 3D cube
+            % get data-cube-slice along columns
+            for k=1:size(x{i},1)
+                temp=permute(data(k,:,:),[3 2 1]); % vertical data-slice
+                ztemp=repmat(z{j}(k,:),[length(t),1]); % topography along this slice (as matrix for each t sample)
+                b=zeros(size(ztemp));
+                for s=1:length(t_ind{i}) % go through depthsamples for this slice
+                     b=b+double(min(abs(ztemp-(t_ind{i}(s)-1)*dt-z_absolut))==abs(ztemp-(t_ind{i}(s)-1)*dt-z_absolut)); % matrix where all samples in this slice are 1 and rest is 0
                 end
+                g=reshape(temp(logical(b)),length(t_ind{i}),[]); % all samples in this slices in one matrix (without nan-traces in between)
+                % sometimes there are some nan-values on top -> extrapolate
+                w=find(any(isnan(g))); % columns with nan
+                if ~isempty(w) && i==1 % first slice
+                    for l=1:length(w)
+                        firstval=g(find(~isnan(g(:,w(l))),1,'first'),w(l)); % first not-nan value of this trace
+                        g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear',firstval);
+                    end
+                elseif ~isempty(w) && i==length(t_ind) % last slice
+                    for l=1:length(w)
+                        lastval=g(find(~isnan(g(:,w(l))),1,'last'),w(l)); % last non-nan value of this trace
+                        g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear',lastval);
+                    end
+                elseif ~isempty(w)
+                    for l=1:length(w)
+                        g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear','extrap');
+                    end
+                end
+                % prepare new slice
+                new=NaN(length(t_ind{i}),size(temp,2)); 
+                new(:,~isnan(ztemp(1,:)))=g; % new dataslice in this slice (with missing traces in between)
+                % set this into datatemp matrix:
+                datatemp(k,:,:)=permute(new,[3 2 1]);
             end
+            len_ind=length(t_ind{i});
         end
         if method==1  % sum absolute amplitudes
             tsl_temp=sum(abs(datatemp),3);
@@ -291,13 +321,11 @@ for j=1:length(rectangles)  % in each rectangle...
         % put tsl_temp together in big tsl
         tsl{i}(row_ind:row_ind+length(tsl_temp(:,1))-1,col_ind:col_ind+length(tsl_temp(1,:))-1)=tsl_temp;
         tsl{i}=tsl{i}(1:length(xgrid(:,1)),1:length(xgrid(1,:)));   % resize if necessary
-        
-        waitbar(((j-1)*length(t_ind)+i)/(length(t_ind)*length(rectangles)));
     end
     
     clear tsl_temp;
 end
-close(h);
+
 
 % Make mask
 if dsl==0 % TIMEslice -> just one mask for all slices
@@ -358,7 +386,6 @@ end
 % Interpolation
 disp('Interpolation... Please wait.');
 if griding==1
-    h=waitbar(0,'Linear interpolation is running...');
     for i=1:length(tsl) % for each timeslice
         if dsl==0
             maske=mask_interp;
@@ -381,11 +408,11 @@ if griding==1
             c2=clock;
             diff=minutes(datetime(c2)-datetime(c1));    % time for one run in minutes
         end
-        waitbar(i/length(tsl),h,['Approx. ',int2str(diff*length(tsl)-diff*i),' minutes remaining']);
+        disp(['    Approx. ',int2str(diff*length(tsl)-diff*i),' minutes remaining'])
     end
     topo_interp=griddata(double(xgrid(~isnan(topo(:)))),double(ygrid(~isnan(topo(:)))),topo(~isnan(topo(:))),double(xgrid_interp),double(ygrid_interp));
     topo_interp(~mask_topointerp)=NaN;   % apply mask_interp
-    close(h);
+
 elseif griding==2
     if dx~=dx_tsl
         % enlarge grid before idw

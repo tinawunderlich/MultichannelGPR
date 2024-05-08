@@ -13,7 +13,7 @@ clc
 numbers=1:16;   % Numbers of datasets for joining
 % (not the 3D_Grid_R*-number, but number of calls for choosing a folder!)
 
-rectangles=1:12; % Number of rectangles (3D_Grid_R*) (has to be the same in all datasets)
+rectangles=[1:19 21:23]; % Number of rectangles (3D_Grid_R*) (has to be the same in all datasets)
 
 
 %--------------------------------------------------------------------------
@@ -67,6 +67,7 @@ for i=1:length(numbers) % for every folder to be chosen...
     end
     pn{i}=pathname;
 end
+
 
 for r=1:length(rectangles)
     disp(['RECTANGLE ',int2str(rectangles(r)),':'])
@@ -147,12 +148,14 @@ for r=1:length(rectangles)
 
     %% binning
     disp('Start binning...')
+    
     % delete all values outside xrg/yrg
     weg=(xbin>max(xrg) | xbin<min(xrg) | ybin>max(yrg) | ybin<min(yrg));
     if any(weg)
-        x(weg)=[];
-        y(weg)=[];
-        z(weg)=[];
+        xbin(weg)=[];
+        ybin(weg)=[];
+        zbin(weg)=[];
+        dbin(weg,:)=[];
     end
 
     % finding the x and y bins for each coordinate
@@ -174,6 +177,7 @@ for r=1:length(rectangles)
     z = reshape(zm,length(xrg)-1,length(yrg)-1)';  % output matrix -> topo
     % amplitudes:
     disp('    - Amplitudes')
+    dm=zeros(length(z(:,1)),length(z(1,:)),length(dbin(1,:)));
     for i=1:length(dbin(1,:)) % for each sample
         if ~mod(i,100)
             disp(['       Sample ',int2str(i),' / ',int2str(length(t))])
@@ -190,6 +194,8 @@ for r=1:length(rectangles)
     % renaming variables
     data=dm;
     mask=mask_all;
+
+    clear dm;
 
     disp('-----------------------')
     disp(['Saving data in new folder: ',pn{1},['/3D_Grid_R',int2str(rectangles(r))],'/AllBins'])
