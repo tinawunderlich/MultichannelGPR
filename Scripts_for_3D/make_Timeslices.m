@@ -11,28 +11,28 @@ clc
 % requires binned data in rectangles 3D_Grid_R* or processed data in
 % 3D_Grid_R*/processed/
 % Number of rectangles with binned data
-rectangles=1:22; % e.g. 1:3
+rectangles=1; % e.g. 1:3
 
 % depth slices instead of time slices (input is in m)
-dsl = 1; % =1: depth, =0: time
+dsl = 0; % =1: depth, =0: time
 
 % if depth slice, cut horizontally (=0) or follow topography (=1)?
-followTopo=1;
+followTopo=0;
 
 % starting time of first timeslice
 t_start=0;  % in ns (or m if depth slice starting from top of data (=0m))
 
 % thickness of timeslices
-thick=0.2; % in ns (or m if dsl=1)
+thick=5; % in ns (or m if dsl=1)
 
 % overlap of timeslices
 overlap = 0; % in ns (or m if dsl=1)
 
 % ending time of timeslices
-t_end=3; % in ns (or m if dsl=1, meters below top of data, positive!)
+t_end=80; % in ns (or m if dsl=1, meters below top of data, positive!)
 
 % dx of timeslices (<=dx of bins)
-dx_tsl=0.04;    % in m
+dx_tsl=0.05;    % in m
 
 % use 3D processed data (if =1, then use data in /processed folder in 3Dbins)
 proc=0;
@@ -267,7 +267,7 @@ for j=1:length(rectangles)  % in each rectangle...
             datatemp=NaN(length(z{j}(:,1)),length(z{j}(1,:)),length(t_ind{i})); % initialize datatemp
             data=matFileObj.data; % load 3D cube
             % get data-cube-slice along columns
-            for k=1:size(x{i},1)
+            for k=1:size(x{j},1)
                 temp=permute(data(k,:,:),[3 2 1]); % vertical data-slice
                 ztemp=repmat(z{j}(k,:),[length(t),1]); % topography along this slice (as matrix for each t sample)
                 b=zeros(size(ztemp));
@@ -408,7 +408,12 @@ if griding==1
             c2=clock;
             diff=minutes(datetime(c2)-datetime(c1));    % time for one run in minutes
         end
-        disp(['    Approx. ',int2str(diff*length(tsl)-diff*i),' minutes remaining'])
+        timerest=diff*length(tsl)-diff*i;
+        if timerest>2
+            disp(['    Approx. ',int2str(timerest),' minutes remaining'])
+        else
+            disp(['    Approx. ',int2str(timerest*60),' seconds remaining'])
+        end
     end
     topo_interp=griddata(double(xgrid(~isnan(topo(:)))),double(ygrid(~isnan(topo(:)))),topo(~isnan(topo(:))),double(xgrid_interp),double(ygrid_interp));
     topo_interp(~mask_topointerp)=NaN;   % apply mask_interp

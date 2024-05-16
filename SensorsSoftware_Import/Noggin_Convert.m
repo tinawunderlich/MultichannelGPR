@@ -1,6 +1,6 @@
 %------------------------ EKKO_Convert -------------------------------------
 %
-% Converts HD- & DT1-files of Sensors&Software EKKO equipments to segy and mat (compatible with Multichannel-GPR)
+% Converts Noggin HD- & DT1-files of Sensors&Software EKKO equipments to segy and mat (compatible with Multichannel-GPR)
 %
 % Dr. Tina Wunderlich, November 2023, tina.wunderlich@ifg.uni-kiel.de
 %

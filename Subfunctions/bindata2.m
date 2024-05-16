@@ -30,6 +30,10 @@ function [zm,xgrid,ygrid] = bindata2(z,x,y,xrg,yrg)
     dx=xrg(2)-xrg(1);
     dy=yrg(2)-yrg(1);
 
+    a=xrg+dx/2;
+    b=yrg+dy/2;
+    [xgrid,ygrid]=meshgrid(a(1:end-1),b(1:end-1));
+
     % delete all values outside xrg/yrg
     weg=(x>max(xrg) | x<min(xrg) | y>max(yrg) | y<min(yrg));
     x(weg)=[];
@@ -52,7 +56,7 @@ function [zm,xgrid,ygrid] = bindata2(z,x,y,xrg,yrg)
     zm = full(ysum)./(full(ns));    % vector with mean values (sum/number) for each bin in vector bins (if no hit, then NaN)
     
     zm = reshape(zm,length(xrg)-1,length(yrg)-1)';  % output matrix
-    [xgrid,ygrid]=meshgrid([xrg(1)+dx/2:dx:xrg(end)-dx/2],[yrg(1)+dy/2:dy:yrg(end)-dy/2]);
+   
 end
 
 
