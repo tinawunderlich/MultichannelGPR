@@ -82,7 +82,8 @@ end
 
 % get name
 temp=dir(fullfile(foldername,'profiles2mat','*.mat'));
-name=extractBefore(temp(end).name,'_'); % Name of data files without ending
+name=strsplit(temp(end).name,'_'); 
+name=name(1:2); % Name of data files (e.g. {1} NIC and {2} Line)
 
 
 % set path temporarily:
@@ -134,8 +135,8 @@ disp('Reading coordinates for determining area size...')
 xylist=zeros(sum(profileinfo(:,4).*profileinfo(:,5)),6);
 anz=0;
 for i=1:length(numbers)
-    if exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info_proc.mat']),'file')
-        m=matfile(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info_proc.mat']));
+    if exist(fullfile(foldername,'profiles2mat',[name{1},'_',name{2},'_',int2str(numbers(i)),'_info_proc.mat']),'file')
+        m=matfile(fullfile(foldername,'profiles2mat',[name{1},'_',name{2},'_',int2str(numbers(i)),'_info_proc.mat']));
         if i==1
             xylist(1:profileinfo(i,4)*profileinfo(i,5),:)=[zeros(length(m.info(4,:)),1)+numbers(i) m.info(4,:)' m.info(5,:)' m.info(6,:)' m.info(3,:)' [1:profileinfo(i,4)*profileinfo(i,5)]']; % Number, x, y, z, channel of profile, tracenumber in profile
             anz=anz+profileinfo(i,4)*profileinfo(i,5);
@@ -323,8 +324,8 @@ for i=1:num_xrect
                 if pfw==0
                     for n=1:length(nn) %  loop over profiles in rectangle
                         % load processed data of current profile
-                        m=matfile(fullfile(foldername,'profiles2mat',[name,'_',int2str(nn(n)),'_info_proc.mat']));
-                        d=matfile(fullfile(foldername,'profiles2mat','proc',[name,'_',int2str(nn(n)),'.mat']));
+                        m=matfile(fullfile(foldername,'profiles2mat',[name{1},'_',name{2},'_',int2str(nn(n)),'_info_proc.mat']));
+                        d=matfile(fullfile(foldername,'profiles2mat','proc',[name{1},'_',name{2},'_',int2str(nn(n)),'.mat']));
                         
                         % find trace numbers in current profile in rectangle
                         in_rect=xylist(:,6).*ind_in;
@@ -357,8 +358,8 @@ for i=1:num_xrect
                     WaitMessage = parfor_wait(length(nn), 'Waitbar', false,'ReportInterval',1);
                     parfor n=1:length(nn) % parallel loop over profiles in rectangle
                         % load processed data of current profile
-                        m=matfile(fullfile(foldername,'profiles2mat',[name,'_',int2str(nn(n)),'_info_proc.mat']));
-                        d=matfile(fullfile(foldername,'profiles2mat','proc',[name,'_',int2str(nn(n)),'.mat']));
+                        m=matfile(fullfile(foldername,'profiles2mat',[name{1},'_',name{2},'_',int2str(nn(n)),'_info_proc.mat']));
+                        d=matfile(fullfile(foldername,'profiles2mat','proc',[name{1},'_',name{2},'_',int2str(nn(n)),'.mat']));
                         
                         % find trace numbers in current profile in rectangle
                         in_rect=xylist(:,6).*ind_in;

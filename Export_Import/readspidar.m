@@ -7,7 +7,7 @@ function [traces,dt,ns,x,y,z,numchannels]=readspidar(foldername,name,profile_num
 %
 % Input:
 % foldername: complete foldername and path
-% name: Name of datafile
+% name: cell array with {1} name of datafile and {2} e.g. 'Line'
 % profile_num: Number of profile
 % antennaIDs: IDs of antennas/channels (same as in the file names) (vector of length(numchannels)
 % offsetGPS_x/offset_GPS_y: GPS offsets in x and y direction for each channel (vectors)
@@ -30,16 +30,16 @@ function [traces,dt,ns,x,y,z,numchannels]=readspidar(foldername,name,profile_num
 %%
 % read gps-file
 if gps_channel<10
-    gpsname_part1=[name,'0',int2str(gps_channel)];
+    gpsname_part1=[name{1},'0',int2str(gps_channel)];
 else
-    gpsname_part1=[name,int2str(gps_channel)];
+    gpsname_part1=[name{1},int2str(gps_channel)];
 end
 if profile_num<10
-    gpsname_part2=['_line00',int2str(profile_num),'.GPS'];
+    gpsname_part2=['_',name{2},'00',int2str(profile_num),'.GPS'];
 elseif profile_num<100
-    gpsname_part2=['_line0',int2str(profile_num),'.GPS'];
+    gpsname_part2=['_',name{2},'0',int2str(profile_num),'.GPS'];
 else
-    gpsname_part2=['_line',int2str(profile_num),'.GPS'];
+    gpsname_part2=['_',name{2},int2str(profile_num),'.GPS'];
 end
 temp=readlines(fullfile(foldername,[gpsname_part1,gpsname_part2]));
 g=cellfun(@(x) startsWith(x,'$GPGGA'),temp); % find GGA rows
@@ -82,16 +82,16 @@ end
 for i=1:length(antennaIDs) % for each channel:
     % Read header file
     if antennaIDs(i)<10
-        HDname_part1=[name,'0',int2str(antennaIDs(i))];
+        HDname_part1=[name{1},'0',int2str(antennaIDs(i))];
     else
-        HDname_part1=[name,int2str(antennaIDs(i))];
+        HDname_part1=[name{1},int2str(antennaIDs(i))];
     end
     if profile_num<10
-        HDname_part2=['_line00',int2str(profile_num),'.HD'];
+        HDname_part2=['_',name{2},'00',int2str(profile_num),'.HD'];
     elseif profile_num<100
-        HDname_part2=['_line0',int2str(profile_num),'.HD'];
+        HDname_part2=['_',name{2},'0',int2str(profile_num),'.HD'];
     else
-        HDname_part2=['_line',int2str(profile_num),'.HD'];
+        HDname_part2=['_',name{2},int2str(profile_num),'.HD'];
     end
     temp=readlines(fullfile(foldername,[HDname_part1,HDname_part2]));
     for line = temp'
@@ -122,16 +122,16 @@ z=[];
 for i=1:length(antennaIDs) % for each channel:
     % Read data file:
     if antennaIDs(i)<10
-        spidarname_part1=[name,'0',int2str(antennaIDs(i))];
+        spidarname_part1=[name{1},'0',int2str(antennaIDs(i))];
     else
-        spidarname_part1=[name,int2str(antennaIDs(i))];
+        spidarname_part1=[name{1},int2str(antennaIDs(i))];
     end
     if profile_num<10
-        spidarname_part2=['_Line00',int2str(profile_num),'.DT1'];
+        spidarname_part2=['_',name{2},'00',int2str(profile_num),'.DT1'];
     elseif profile_num<100
-        spidarname_part2=['_Line0',int2str(profile_num),'.DT1'];
+        spidarname_part2=['_',name{2},'0',int2str(profile_num),'.DT1'];
     else
-        spidarname_part2=['_Line',int2str(profile_num),'.DT1'];
+        spidarname_part2=['_',name{2},int2str(profile_num),'.DT1'];
     end
     fid=fopen(fullfile(foldername,[spidarname_part1,spidarname_part2]),'r');
     for j=1:min(h.ntr) % read every trace

@@ -1,8 +1,8 @@
 % Script for creating radargrams.mat for larger data sets from processed
-% profiles (if Mala3D has been run with rad=0)
+% profiles (Mala MIRA or Spidar data)
 % -> choose only some profiles and some channels
 %
-% Dr. Tina Wunderlich, CAU Kiel 2020, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2020-2024, tina.wunderlich@ifg.uni-kiel.de
 %
 % requires files in profiles2mat and profiles2mat/proc
 
@@ -15,12 +15,12 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Filename (without folder!) (folder is selected later)
-name='Schwissel'; % Name of datafiles without '_...'
-profiles=0:95;  % profile numbers
+name='NIC_Line'; % Name of datafiles without '_number.mat'
+profiles=1:16;  % profile numbers
 
-channels=[11]; % choose channels (one or several)
+channels=[1:5]; % choose channels (one or several)
 
-% Choose rSlicer folder!
+% Choose rSlicer folder (MIRA data) or folder with DT1/HD files (Spidar data)!
 
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
@@ -33,9 +33,9 @@ if ispc
         fn=textscan(fid,'%s');
         fclose(fid);
         if ~isempty(fn{1})
-            foldername=uigetdir(fn{1}{1},'Select rSlicer-folder');
+            foldername=uigetdir(fn{1}{1},'Select rSlicer-folder or Spidar-data-folder');
         else
-            foldername=uigetdir([],'Select rSlicer-folder');
+            foldername=uigetdir([],'Select rSlicer-folder or Spidar-data-folder');
         end
         fileattrib('temp.temp','-h');
         fid=fopen('temp.temp','wt');
@@ -43,7 +43,7 @@ if ispc
         fclose(fid);
         fileattrib('temp.temp','+h');
     else
-        foldername=uigetdir([],'Select rSlicer-folder'); % path to radargram-folder
+        foldername=uigetdir([],'Select rSlicer-folder or Spidar-data-folder'); % path to radargram-folder
 
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',foldername);
@@ -56,12 +56,12 @@ else
         fn=textscan(fid,'%s');
         fclose(fid);
         if ~isempty(fn{1})
-            foldername=uigetdir(fn{1}{1},'Select rSlicer-folder');
+            foldername=uigetdir(fn{1}{1},'Select rSlicer-folder or Spidar-data-folder');
         else
-            foldername=uigetdir([],'Select rSlicer-folder');
+            foldername=uigetdir([],'Select rSlicer-folder or Spidar-data-folder');
         end
     else
-        foldername=uigetdir([],'Select rSlicer-folder'); % path to radargram-folder
+        foldername=uigetdir([],'Select rSlicer-folder or Spidar-data-folder'); % path to radargram-folder
     end
 
     fid=fopen('.temp.temp','wt');
@@ -84,6 +84,14 @@ elseif platform==3 % Windows (noch nicht getestet!)
     [user,sys]=memory;
     memsize=str2double(sys.PhysicalMemory.Available);
 end
+
+% decide if mala or spidar data
+% test=dir(foldername);
+% for i=1:length(test)
+%     ending=extractAfter(test(i).name,'.');
+%     if strcmp(ending,'rad')
+%         
+
 
 % file name parts
 [pathstr,fname,ext]=fileparts(name);    % divide name into parts

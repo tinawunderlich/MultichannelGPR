@@ -1,28 +1,56 @@
-function []=processingTestGUI(folder,name,profilelist)
+function []=processingTestGUI(folder,name,profilelist,ch_list)
 
 % GUI for plotting of profiles and interactive testing of processing steps
+% Mala MIRA and Spidar data
 %
-% Dr. Tina Wunderlich, CAU Kiel 2020, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2020-2024, tina.wunderlich@ifg.uni-kiel.de
 %
 % Input:
 % folder: path and name of rSlicer-folder
 % name: name of data
 % profilelist: number of profiles
 
+if isempty(ch_list)
+    S.equipmentflag=1; % Mala Mira
+else
+    S.equipmentflag=2; % Spidar
+    S.ch_list=ch_list;
+
+    % get gps-channel:
+    temp=dir(fullfile(folder,'/*.GPS'));
+    for i=1:length(temp)
+        if ~startsWith(temp(i).name,'.')
+            temp1=strsplit(temp(i).name,'_'); % split in two parts (e.g. NIC01 and Line001.GPS)
+            S.gps_channel=str2double(temp1{1}(end-1:end)); % channelNumber for gps data
+            break;
+        end
+    end
+end
 
 S.folder=folder;
 S.name=name;
 S.profilelist=profilelist;
 
 % load first profile
-[S.traces,S.dt,S.ns,S.x,S.y,S.z]=readmala(S.folder,S.name,S.profilelist(1));
+if S.equipmentflag==1
+    [S.traces,S.dt,S.ns,S.x,S.y,S.z]=readmala(S.folder,S.name,S.profilelist(1));
+    S.ch_list=1:length(S.traces);
+else
+    [temptraces,S.dt,S.ns,tempx,tempy,tempz]=readspidar(S.folder,S.name,S.profilelist(1),ch_list,zeros(length(ch_list),1),zeros(length(ch_list),1),S.gps_channel,32,0);
+    trPerChan=length(temptraces(1,:))/length(ch_list);
+    for i=1:length(ch_list)
+        S.traces{i}=temptraces(:,(i-1)*trPerChan+1:i*trPerChan);
+        S.x{i}=tempx(:,(i-1)*trPerChan+1:i*trPerChan)';
+        S.y{i}=tempy(:,(i-1)*trPerChan+1:i*trPerChan)';
+        S.z{i}=tempz(:,(i-1)*trPerChan+1:i*trPerChan)';
+    end
+end
 
 S.channellist=[{'All'}];
 S.raw=[];
 S.info=[]; % channel number corresponding to traces in raw/data
 S.zz=[];
 for i=1:length(S.traces)
-    S.channellist=[S.channellist; {int2str(i)}];
     S.xprof{i}=[0; cumsum(sqrt(diff(S.x{i}).^2+diff(S.y{i}).^2))]; % local coords for this channel in m
     weg=find(isnan(S.xprof{i})); % find traces with NaN coordinates (e.g. if standing at the end of the profile)
     S.traces{i}(:,weg)=[];
@@ -32,8 +60,15 @@ for i=1:length(S.traces)
     S.zz=[S.zz; S.z{i}];
     S.xprof{i}(weg)=[];
     S.raw=[S.raw S.traces{i}];
-    S.info=[S.info zeros(1,length(S.xprof{i}))+i];
+    if S.equipmentflag==1
+        S.channellist=[S.channellist; {int2str(i)}];
+        S.info=[S.info zeros(1,length(S.xprof{i}))+i]; % channelnumber
+    else % spidar
+        S.channellist=[S.channellist; {int2str(ch_list(i))}];
+        S.info=[S.info zeros(1,length(S.xprof{i}))+ch_list(i)]; % channelnumber
+    end
 end
+S.info_proc=S.info; % channelnumber of processed data
 
 dx=mean(diff(S.xprof{1})); % mean trace spacing
 S.xloc=0:dx:(length(S.info)-1)*dx; % local coords for all channels behind each other
@@ -291,7 +326,7 @@ guidata(S.fh,S);
     function [] = readv_call(varargin)
         % Callback for path and name of v-file (migration mig)
         S=guidata(gcbf);
-        [S.vfile,S.vpath]=uigetfile('*.mat','Select v-vector file',S.folder);
+        [S.vfile,S.vpath]=uigetfile('*.mat','Select v-vector file (1D)',S.folder);
         S.v.String=fullfile(S.vpath,S.vfile);
         guidata(gcbf,S); % Update
     end
@@ -299,7 +334,7 @@ guidata(S.fh,S);
     function [] = readtv_call(varargin)
         % Callback for path and name of tv-file (migration mig)
         S=guidata(gcbf);
-        [S.tvfile,S.tvpath]=uigetfile('*.mat','Select corresponding t-vector file',S.folder);
+        [S.tvfile,S.tvpath]=uigetfile('*.mat','Select corresponding t-vector file (1D)',S.folder);
         S.tv.String=fullfile(S.tvpath,S.tvfile);
         guidata(gcbf,S); % Update
     end
@@ -367,7 +402,7 @@ guidata(S.fh,S);
             if isempty(num) % all channels
                 set(S.rad,'CData',S.proc);
             else
-                set(S.rad,'CData',S.proc(:,S.info==num));
+                set(S.rad,'CData',S.proc(:,S.info_proc==num));
             end
             S.flag_data=2;
             S.d1.Value=0;
@@ -469,6 +504,7 @@ guidata(S.fh,S);
         end
         if any(ismember(steps,'t0 correction'))
             if S.t0list.Value==3
+                fprintf(fid,'do_t0shift 0\nt0s[ns] 5.0\n\n');
                 fprintf(fid,['do_t0CorrectionThreshold ',int2str(order(ismember(steps,'t0 correction'))),'\nthreshold ',S.thresh.String,'\n\n']);
                 fprintf(fid,['do_t0CorrectionReferencetrace 0\nprofilenumber 0\nchannelnumber 1\ntracenumber 1\nt0[ns] 0.1\n\n']);
                 if S.cps.Value==1
@@ -478,6 +514,7 @@ guidata(S.fh,S);
                 end
                 fprintf(fid,['do_channelshift 0\nOneOrAll 1\nmaxshift 30\nrefprofile 0\nshiftsamples\n']);
             elseif S.t0list.Value==4
+                fprintf(fid,'do_t0shift 0\nt0s[ns] 5.0\n\n');
                 fprintf(fid,['do_t0CorrectionThreshold 0\nthreshold -1000\n\n']);
                 fprintf(fid,['do_t0CorrectionReferencetrace ',int2str(order(ismember(steps,'t0 correction'))),'\nprofilenumber ',S.refprof.String,'\nchannelnumber ',S.refchan.String,'\ntracenumber ',S.reftrace.String,'\nt0[ns] ',S.t0.String,'\n\n']);
                 if S.cps.Value==1
@@ -487,6 +524,7 @@ guidata(S.fh,S);
                 end
                 fprintf(fid,['do_channelshift 0\nOneOrAll 1\nmaxshift 30\nrefprofile 0\nshiftsamples\n']);
             elseif S.t0list.Value==1
+                fprintf(fid,'do_t0shift 0\nt0s[ns] 5.0\n\n');
                 fprintf(fid,['do_t0CorrectionThreshold 0\nthreshold -1000\n\n']);
                 fprintf(fid,['do_t0CorrectionReferencetrace 0\nprofilenumber 0\nchannelnumber 1\ntracenumber 1\nt0[ns] 0.1\n\n']);
                 if S.cps.Value==1
@@ -496,6 +534,7 @@ guidata(S.fh,S);
                 end
                 fprintf(fid,['do_channelshift ',int2str(order(ismember(steps,'t0 correction'))),'\nOneOrAll ',int2str(1),'\nmaxshift ',S.maxshift.String,'\nrefprofile ',S.refprof.String,'\nshiftsamples ',S.shiftsamples.String,'\n']);
             elseif S.t0list.Value==2
+                fprintf(fid,'do_t0shift 0\nt0s[ns] 5.0\n\n');
                 fprintf(fid,['do_t0CorrectionThreshold 0\nthreshold -1000\n\n']);
                 fprintf(fid,['do_t0CorrectionReferencetrace 0\nprofilenumber 0\nchannelnumber 1\ntracenumber 1\nt0[ns] 0.1\n\n']);
                 if S.cps.Value==1
@@ -506,6 +545,7 @@ guidata(S.fh,S);
                 fprintf(fid,['do_channelshift ',int2str(order(ismember(steps,'t0 correction'))),'\nOneOrAll ',int2str(2),'\nmaxshift ',S.maxshift.String,'\nrefprofile ',S.refprof.String,'\nshiftsamples ',S.shiftsamples.String,'\n']);
             end
         else
+            fprintf(fid,'do_t0shift 0\nt0s[ns] 5.0\n\n');
             fprintf(fid,['do_t0CorrectionThreshold 0\nthreshold -1000\n\n']);
             fprintf(fid,['do_t0CorrectionReferencetrace 0\nprofilenumber 0\nchannelnumber 1\ntracenumber 1\nt0[ns] 0.1\n\n']);
             if S.cps.Value==1
@@ -854,16 +894,32 @@ guidata(S.fh,S);
         S.profnum=S.profilelist(S.prof.Value);
         
         % load new data
-        [S.traces,S.dt,S.ns,S.x,S.y,S.z]=readmala(S.folder,S.name,S.profnum);
+        if S.equipmentflag==1
+            [S.traces,S.dt,S.ns,S.x,S.y,S.z]=readmala(S.folder,S.name,S.profnum);
+        else
+            [temptraces,S.dt,S.ns,tempx,tempy,tempz]=readspidar(S.folder,S.name,S.profnum,S.ch_list,zeros(length(S.ch_list),1),zeros(length(S.ch_list),1),S.gps_channel,32,0);
+            trPerChan=length(temptraces(1,:))/length(S.ch_list);
+            for i=1:length(S.ch_list)
+                S.traces{i}=temptraces(:,(i-1)*trPerChan+1:i*trPerChan);
+                S.x{i}=tempx(:,(i-1)*trPerChan+1:i*trPerChan)';
+                S.y{i}=tempy(:,(i-1)*trPerChan+1:i*trPerChan)';
+                S.z{i}=tempz(:,(i-1)*trPerChan+1:i*trPerChan)';
+            end
+        end
         S.raw=[];
         S.info=[];
         S.zz=[];
         for i=1:length(S.traces)
             S.raw=[S.raw S.traces{i}];
             S.xprof{i}=[0; cumsum(sqrt(diff(S.x{i}).^2+diff(S.y{i}).^2))];
-            S.info=[S.info zeros(1,length(S.xprof{i}))+i];
+            if S.equipmentflag==1
+                S.info=[S.info zeros(1,length(S.xprof{i}))+i];
+            else
+                S.info=[S.info zeros(1,length(S.xprof{i}))+S.ch_list(i)];
+            end
             S.zz=[S.zz; S.z{i}];
         end
+        S.info_proc=S.info;
         S.xloc=[S.xprof{1}];
         for i=2:length(S.traces)
             S.xloc=[S.xloc; S.xprof{i}+max(S.xloc)];
@@ -913,25 +969,25 @@ guidata(S.fh,S);
                 if isempty(S.zmig)
                     set(S.rad,'CData',S.proc,'XData',S.xproc,'YData',S.tproc);
                     for i=1:length(S.xprof)-1
-                        plot(S.ax,[max(S.xproc(S.info==i)) max(S.xproc(S.info==i))],[0 max(S.tproc)],'r')
+                        plot(S.ax,[max(S.xproc(S.info_proc==S.ch_list(i))) max(S.xproc(S.info_proc==S.ch_list(i)))],[0 max(S.tproc)],'r')
                     end
                     ylabel(S.ax,'t [ns]')
                     set(S.ax,'YDir','reverse')
                 else
                     set(S.rad,'CData',S.proc,'XData',S.xproc,'YData',S.zmig);
                     for i=1:length(S.xprof)-1
-                        plot(S.ax,[max(S.xproc(S.info==i)) max(S.xproc(S.info==i))],[min(S.zmig) max(S.zmig)],'r')
+                        plot(S.ax,[max(S.xproc(S.info_proc==S.ch_list(i))) max(S.xproc(S.info_proc==S.ch_list(i)))],[min(S.zmig) max(S.zmig)],'r')
                     end
                     ylabel(S.ax,'z [m]')
                     set(S.ax,'YDir','normal')
                 end
             else
                 if isempty(S.zmig)
-                    set(S.rad,'CData',S.proc(:,S.info==num),'XData',S.xproc(S.info==num)-min(S.xproc(S.info==num)),'YData',S.tproc);
+                    set(S.rad,'CData',S.proc(:,S.info_proc==num),'XData',S.xproc(S.info_proc==num)-min(S.xproc(S.info_proc==num)),'YData',S.tproc);
                     ylabel(S.ax,'t [ns]')
                     set(S.ax,'YDir','reverse')
                 else
-                    set(S.rad,'CData',S.proc(:,S.info==num),'XData',S.xproc(S.info==num)-min(S.xproc(S.info==num)),'YData',S.zmig);
+                    set(S.rad,'CData',S.proc(:,S.info_proc==num),'XData',S.xproc(S.info_proc==num)-min(S.xproc(S.info_proc==num)),'YData',S.zmig);
                     ylabel(S.ax,'z [m]')
                     set(S.ax,'YDir','normal')
                 end
@@ -997,13 +1053,25 @@ guidata(S.fh,S);
         if S.t0corr.Value==1 && S.t0list.Value~=2 && S.t0list.Value~=3 %only for t0 with reference trace (4) und channelshift all profiles (1)
             % prepare reference trace/profile
             % load reference trace
-            [temptraces,~,~,~,~,ztemp]=readmala(S.folder,S.name,str2num(S.refprof.String));
+            if S.equipmentflag==1
+                [temptraces,~,~,~,~,ztemp]=readmala(S.folder,S.name,str2num(S.refprof.String));
+            else
+                [temtraces,S.dt,S.ns,tempx,tempy,tempz]=readspidar(S.folder,S.name,str2num(S.refprof.String),S.ch_list,zeros(length(S.ch_list),1),zeros(length(S.ch_list),1),S.gps_channel,32,0);
+                trPerChan=length(temtraces(1,:))/length(S.ch_list);
+                if exist('temptraces','var')
+                    clear temptraces;
+                end
+                for i=1:length(S.ch_list)
+                    temptraces{i}=temtraces(:,(i-1)*trPerChan+1:i*trPerChan);
+                    ztemp{i}=tempz(:,(i-1)*trPerChan+1:i*trPerChan)';
+                end
+            end
             temp=[];
             infotemp=[];
             zztemp=[];
             for i=1:length(temptraces)
                 temp=[temp temptraces{i}];
-                infotemp=[infotemp zeros(1,length(temptraces{i}(1,:)))+i];
+                infotemp=[infotemp zeros(1,length(temptraces{i}(1,:)))+S.ch_list(i)];
                 zztemp=[ztemp ztemp{i}];
             end
             % process reference profile until t0-correction
@@ -1015,14 +1083,14 @@ guidata(S.fh,S);
             if params.method==1 && isempty(params.shiftsamples)
                 % make channelshift for reference profile to determine shiftsamples
                 for i=1:length(temptraces)
-                    temp2{i}=temp(:,i==infotemp);
+                    temp2{i}=temp(:,S.ch_list(i)==infotemp);
                 end
                 [~,shiftsamples]=channelshift(temp2,params.maxshift);
                 params.shiftsamples=shiftsamples;
             end
         end
         % do processing:
-        [S.proc,S.ns,S.tproc,S.zmig,S.xproc]=processing(steps,order,S.raw,S.info,S.xloc,S.zz,S.t,params,S);
+        [S.proc,S.ns,S.tproc,S.zmig,S.xproc,S.info_proc]=processing(steps,order,S.raw,S.info,S.xloc,S.zz,S.t,params,S);
         % set to processed data
         S.d1.Value=0;
         S.d2.Value=1;
@@ -1113,7 +1181,7 @@ end
 
 
 %% subfunction:
-function [datatraces,ns,tproc,zmig,xproc]=processing(steps,order,datatraces,info,x,z,t,params,S)
+function [datatraces,ns,tproc,zmig,xproc,info]=processing(steps,order,datatraces,info,x,z,t,params,S)
 % (info=channel number for each trace)
 
 % initialize values
@@ -1137,35 +1205,64 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     end
 
     if strcmp(steps{order==k},'Constant trace distance')
-        channels=max(info);
-        temp=cell(channels,1);
-        xx=cell(channels,1);
-        for ch=1:channels
-            % create local global coords
-            xyz=zeros(length(x(info==ch)),3);
-            xyz(:,1)=x(info==ch);
-            % make const trace dist for each channel
-            minx(ch)=min(x(info==ch)); % for reducing x for each channel
-            [temp{ch},xx{ch},~]=constTraceDist(datatraces(:,info==ch),params.dist,x(info==ch)-minx(ch),xyz);
-        end
-        numtrch=min(cellfun(@(x) length(x),xx)); % minimum number of traces per channel
+        if S.equipmentflag==1
+            channels=max(info); % number of channels
 
-        % replace new data (has different size than before!)
-        info=zeros(1,channels*numtrch);
-        datatraces=zeros(length(t),channels*numtrch);
-        xproc=zeros(1,channels*numtrch);
-        for ii=1:channels
-            info((ii-1)*numtrch+ii-(ii-1):ii*numtrch)=ii;
-            xproc((ii-1)*numtrch+ii-(ii-1):ii*numtrch)=xx{ch}(1:numtrch)+minx(ii); % add offset again for having coordinates along all channels
-            datatraces(:,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=temp{ii}(:,1:numtrch);
+            temp=cell(channels,1);
+            xx=cell(channels,1);
+            for ch=1:channels
+                % create local global coords
+                xyz=zeros(length(x(info==ch)),3);
+                xyz(:,1)=x(info==ch);
+                % make const trace dist for each channel
+                minx(ch)=min(x(info==ch)); % for reducing x for each channel
+                [temp{ch},xx{ch},~]=constTraceDist(datatraces(:,info==ch),params.dist,x(info==ch)-minx(ch),xyz);
+            end
+            numtrch=min(cellfun(@(x) length(x),xx)); % minimum number of traces per channel
+
+            % replace new data (has different size than before!)
+            info=zeros(1,channels*numtrch);
+            datatraces=zeros(length(t),channels*numtrch);
+            xproc=zeros(1,channels*numtrch);
+            for ii=1:channels
+                info((ii-1)*numtrch+ii-(ii-1):ii*numtrch)=ii;
+                xproc((ii-1)*numtrch+ii-(ii-1):ii*numtrch)=xx{ii}(1:numtrch)+minx(ii); % add offset again for having coordinates along all channels
+                datatraces(:,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=temp{ii}(:,1:numtrch);
+            end
+            clear temp;
+            clear xx;
+        else % Spidar
+            channels=length(unique(info)); % number of channels
+
+            temp=cell(channels,1);
+            xx=cell(channels,1);
+            for ch=1:channels
+                % create local global coords
+                xyz=zeros(length(x(info==S.ch_list(ch))),3);
+                xyz(:,1)=x(info==S.ch_list(ch));
+                % make const trace dist for each channel
+                minx(S.ch_list(ch))=min(x(info==S.ch_list(ch))); % for reducing x for each channel
+                [temp{ch},xx{ch},~]=constTraceDist(datatraces(:,info==S.ch_list(ch)),params.dist,x(info==S.ch_list(ch))-minx(S.ch_list(ch)),xyz);
+            end
+            numtrch=min(cellfun(@(x) length(x),xx)); % minimum number of traces per channel
+
+            % replace new data (has different size than before!)
+            info=zeros(1,channels*numtrch);
+            datatraces=zeros(length(t),channels*numtrch);
+            xproc=zeros(1,channels*numtrch);
+            for ii=1:channels
+                info((ii-1)*numtrch+ii-(ii-1):ii*numtrch)=S.ch_list(ii);
+                xproc((ii-1)*numtrch+ii-(ii-1):ii*numtrch)=xx{ii}(1:numtrch)+minx(S.ch_list(ii)); % add offset again for having coordinates along all channels
+                datatraces(:,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=temp{ii}(:,1:numtrch);
+            end
+            clear temp;
+            clear xx;
         end
-        clear temp;
-        clear xx;
     end
 
     if strcmp(steps{order==k},'Trace interpolation')
-        for ch=1:max(info)
-            datatraces(:,info==ch)=interpolation(datatraces(:,info==ch),params.gap);
+        for ch=1:length(unique(info))
+            datatraces(:,info==S.ch_list(ch))=interpolation(datatraces(:,info==S.ch_list(ch)),params.gap);
         end
     end
 
@@ -1174,15 +1271,15 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     end
 
     if strcmp(steps{order==k},'Spectral Whitening')
-        for i=1:max(info) % for each channel
-            datatemp(:,info==i)=spectralWhitening(datatraces(:,info==i),params.dt,params.fmin_sw,params.fmax_sw,params.alpha);
+        for i=1:length(unique(info)) % for each channel
+            datatemp(:,info==S.ch_list(i))=spectralWhitening(datatraces(:,info==S.ch_list(i)),params.dt,params.fmin_sw,params.fmax_sw,params.alpha);
         end
         datatraces=datatemp;
     end
     
     if strcmp(steps{order==k},'Topomigration/correction')
-        for i=1:max(info) % for each channel
-            [datatemp(:,info==i),zmig]=topomig2d_varV(datatraces(:,info==i),x(info==i),tproc,z(info==i),params.v2,params.aperture2,params.flagtopo,0,[],[]);
+        for i=1:length(unique(info)) % for each channel
+            [datatemp(:,info==S.ch_list(i)),zmig]=topomig2d_varV(datatraces(:,info==S.ch_list(i)),x(info==S.ch_list(i)),tproc,z(info==S.ch_list(i)),params.v2,params.aperture2,params.flagtopo,0,[],[]);
         end
         datatraces=datatemp;
         ns=length(datatraces(:,1));
@@ -1196,7 +1293,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         temp=load(params.tv);
         temp2=fieldnames(temp);
         tv=getfield(temp,temp2{1});
-        for i=1:max(info) % for each channel
+        for i=1:length(unique(info)) % for each channel
             % make column vectors
             if length(v(:,1))<length(v(1,:))
                 v=v';
@@ -1209,9 +1306,9 @@ for k=1:length(order(order>0))  % for all processing steps in right order
                 tp=tp';
             end
             % interpolate vgrid
-            vgrid=repmat(interp1(tv,v,tp),[1 length(datatraces(1,info==i))]);
+            vgrid=repmat(interp1(tv,v,tp),[1 length(datatraces(1,info==S.ch_list(i)))]);
             % migration:
-            [datatemp(:,info==i),zmig]=isochrone_mig_2d_varV(datatraces(:,info==i),x(info==i),tp,vgrid,params.aperture,0);
+            [datatemp(:,info==S.ch_list(i)),zmig]=isochrone_mig_2d_varV(datatraces(:,info==S.ch_list(i)),x(info==S.ch_list(i)),tp,vgrid,params.aperture,0);
         end
         datatraces=datatemp;
         ns=length(datatraces(:,1));
@@ -1227,8 +1324,8 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     
     if strcmp(steps{order==k},'Remove mean trace')
         mm='mean';
-        for ch=1:max(info)
-            datatraces(:,info==ch)=removeHorizontalLines(datatraces(:,info==ch),mm,params.numtraces_mean);
+        for ch=1:length(unique(info))
+            datatraces(:,info==S.ch_list(ch))=removeHorizontalLines(datatraces(:,info==S.ch_list(ch)),mm,params.numtraces_mean);
         end
     end
     
@@ -1249,17 +1346,23 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     
     if strcmp(steps{order==k},'t0 correction')
         if params.method==3
-            %% threshold
+            % threshold
             datatraces=t0corr_thresh(datatraces,params.threshold);
         elseif params.method==4
-            %% t0 reference trace
+            % t0 reference trace
             datatraces=t0correction(datatraces,params.reftrace,params.t0,params.dt);
         elseif params.method<3
-            %% Channelshift same for all
+            % Channelshift same for all
             % sort traces into channels
-            tempch=cell(max(info),1);
-            for ch=1:length(tempch)
-                tempch{ch}=datatraces(:,info==ch);
+            tempch=cell(length(unique(info)),1);
+            if S.equipmentflag==1
+                for ch=1:length(tempch)
+                    tempch{ch}=datatraces(:,info==ch);
+                end
+            else
+                for ch=1:length(tempch)
+                    tempch{ch}=datatraces(:,info==S.ch_list(ch));
+                end
             end
             if params.method==1 % apply shiftsamples from reference profile or use given shiftsamples
                 tempch=channelshift(tempch,params.maxshift,params.shiftsamples);
@@ -1267,8 +1370,14 @@ for k=1:length(order(order>0))  % for all processing steps in right order
                 tempch=channelshift(tempch,params.maxshift);
             end
             % sort traces back
-            for ch=1:length(tempch)
-                datatraces(:,info==ch)=tempch{ch};
+            if S.equipmentflag==1
+                for ch=1:length(tempch)
+                    datatraces(:,info==ch)=tempch{ch};
+                end
+            else
+                for ch=1:length(tempch)
+                    datatraces(:,info==S.ch_list(ch))=tempch{ch};
+                end
             end
         end
     end

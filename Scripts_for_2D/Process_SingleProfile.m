@@ -3,18 +3,18 @@ close all
 clc
 
 
-% Read single profile of Mala Mira data (prepared for rSlicer) or
+% Read single profile of Mala Mira data (prepared for rSlicer), Spidar raw data or
 % radargrams.mat (=import into MultichannelGPR from various systems) and do processing individually
 % Only for testing of processing options, no saving of data, just saving of settings-file!
 %
-% Dr. Tina Wunderlich, CAU Kiel 2020-2023, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2020-2024, tina.wunderlich@ifg.uni-kiel.de
 %
 % requires folders Export_Import, Processing, Subfunctions, Migration,
 % Plotting
 
 
 % -------------------------------------------------------------------------
-% Do not change the following part! (Add processing in the main part of this script!)
+% Do not change the following part! 
 
 % get folder name
 if ispc
@@ -83,7 +83,31 @@ if (~isempty(temp)) % if Mala mira data available
         name=[name,'_',tempname{i}];
     end
 
-    processingTestGUI(folder,name,profilelist);
+    processingTestGUI(folder,name,profilelist,[]);
+end
+
+%% SPIDAR
+temp=dir(fullfile(folder,'/*.DT1')); % get list of all spidar files
+if (~isempty(temp)) % if spidar data available
+    disp('Spidar data found. Please wait!')
+    chnum=[];
+    pnum=[];
+    for i=1:length(temp)
+        if ~startsWith(temp(i).name,'.')
+            temp1=strsplit(temp(i).name,'_'); % split in two parts (e.g. NIC01 and Line001.DT1)
+            chnum=[chnum; str2double(temp1{1}(end-1:end))]; % channelNumber
+            temp2=strsplit(temp1{2},'.'); % split in tow parts: e.g. Line001 and DT1
+            pnum=[pnum; str2double(temp2{1}(end-2:end))]; % profile number
+            if ~exist('name','var')
+                name{1}=temp1{1}(1:end-2); % project name (e.g. NIC)
+                name{2}=temp2{1}(1:end-3); % e.g. Line
+            end
+        end
+    end
+    profilelist=unique(pnum);
+    channellist=unique(chnum);
+
+    processingTestGUI(folder,name,profilelist,channellist);
 end
 
 

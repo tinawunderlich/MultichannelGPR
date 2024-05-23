@@ -1,3 +1,7 @@
+clear all
+close all
+clc
+
 %------------------------ EKKO_Convert -------------------------------------
 %
 % Converts Spidar HD- & DT1- & GPS-files of Sensors&Software equipment to segy and mat (compatible with Multichannel-GPR)
@@ -6,16 +10,6 @@
 %
 %--------------------------------------------------------------------------
 
-
-clear all
-close all
-clc
-
-name='NIC'; % name of data files
-
-% number of channels
-antenna_IDs=[1:4 6]; 
-gps_channel=1; % which channel is synchronized with the GPS? (-> same filename-number)
 
 offsetGPS_X=[-0.5,-0.25,0,0.25,0.5]; % Offset between GPS and antenna midpoint crossline (for each antenna midpoint, same order as antenna_IDs) (in profile direction GPS left of antenna -> positive)
 offsetGPS_Y=[0,0,0,0,0]; % Offset between GPS and antenna midpoint in profile direction (for each antenna midpoint, same order as antenna_IDs) (if GPS behind antenna midpoint -> positive)
@@ -51,20 +45,20 @@ if ispc
         fn=textscan(fid,'%s');
         fclose(fid);
         if ~isempty(fn{1})
-            pfad=uigetdir(fn{1}{1},'Choose folder with spidar-file(s)');
+            folder=uigetdir(fn{1}{1},'Choose folder with spidar-file(s)');
         else
-            pfad=uigetdir([],'Choose folder with spidar-file(s)');
+            folder=uigetdir([],'Choose folder with spidar-file(s)');
         end
         fileattrib('spidar.temp','-h');
         fid=fopen('spidar.temp','wt');
-        fprintf(fid,'%s',pfad);
+        fprintf(fid,'%s',folder);
         fclose(fid);
         fileattrib('spidar.temp','+h');
     else
-        pfad=uigetdir([],'Choose folder with spidar-file(s)'); % path to radargram-folder
+        folder=uigetdir([],'Choose folder with spidar-file(s)'); % path to radargram-folder
 
         fid=fopen('spidar.temp','wt');
-        fprintf(fid,'%s',pfad);
+        fprintf(fid,'%s',folder);
         fclose(fid);
         fileattrib('spidar.temp','+h');
     end
@@ -74,122 +68,94 @@ else
         fn=textscan(fid,'%s');
         fclose(fid);
         if ~isempty(fn{1})
-            pfad=uigetdir(fn{1}{1},'Choose folder with spidar-file(s)');
+            folder=uigetdir(fn{1}{1},'Choose folder with spidar-file(s)');
         else
-            pfad=uigetdir([],'Choose folder with spidar-file(s)');
+            folder=uigetdir([],'Choose folder with spidar-file(s)');
         end
     else
-        pfad=uigetdir([],'Choose folder with spidar-file(s)'); % path to radargram-folder
+        folder=uigetdir([],'Choose folder with spidar-file(s)'); % path to radargram-folder
     end
 
     fid=fopen('.spidar.temp','wt');
-    fprintf(fid,'%s',pfad);
+    fprintf(fid,'%s',folder);
     fclose(fid);
 end
 
-% get list of HD-files in this folder
-list_HD=dir(fullfile(pfad,'*.HD')); % header format
-% check for names starting with .
-ii=1;
-while ii<length(list_HD)
-    if strcmp(list_HD(ii).name(1),'.')
-        list_HD(ii,:)=[];
-    else
-        ii=ii+1;
+
+temp=dir(fullfile(folder,'/*.DT1')); % get list of all spidar files
+if (~isempty(temp)) % if spidar data available
+    disp('Spidar data found. Please wait!')
+    chnum=[];
+    pnum=[];
+    for i=1:length(temp)
+        if ~startsWith(temp(i).name,'.')
+            temp1=strsplit(temp(i).name,'_'); % split in two parts (e.g. NIC01 and Line001.DT1)
+            chnum=[chnum; str2double(temp1{1}(end-1:end))]; % channelNumber
+            temp2=strsplit(temp1{2},'.'); % split in tow parts: e.g. Line001 and DT1
+            pnum=[pnum; str2double(temp2{1}(end-2:end))]; % profile number
+            if ~exist('name','var')
+                name{1}=temp1{1}(1:end-2); % project name (e.g. NIC)
+                name{2}=temp2{1}(1:end-3); % e.g. Line
+            end
+        end
     end
-end
-% get profile number
-for i=1:length(list_HD)
-    temp=extractAfter(list_HD(i).name,name);
-    list_HD(i).channum=str2num(temp(1:2)); % antenna id/channel number
-    temp1=extractBetween(temp,'Line','.HD');
-    list_HD(i).pnumber=str2num(temp1{1}); % Profile number
-end
-HD=struct2table(list_HD);
+    profilelist=unique(pnum);
+    channellist=unique(chnum);
 
-% get list of DT1-files in this folder
-list_DT=dir(fullfile(pfad,'*.DT1')); % data format
-% check for names starting with .
-ii=1;
-while ii<length(list_DT)
-    if strcmp(list_DT(ii).name(1),'.')
-        list_DT(ii,:)=[];
-    else
-        ii=ii+1;
+    % get gps-channel:
+    temp=dir(fullfile(folder,'/*.GPS'));
+    for i=1:length(temp)
+        if ~startsWith(temp(i).name,'.')
+            temp1=strsplit(temp(i).name,'_'); % split in two parts (e.g. NIC01 and Line001.GPS)
+            gps_channel=str2double(temp1{1}(end-1:end)); % channelNumber for gps data
+            break;
+        end
     end
+else
+    disp('No Spidar data found.');
+    return;
 end
-% get profile number
-for i=1:length(list_DT)
-    temp=extractAfter(list_DT(i).name,name);
-    list_DT(i).channum=str2num(temp(1:2)); % antenna id/channel number
-    temp1=extractBetween(temp,'Line','.DT1');
-    list_DT(i).pnumber=str2num(temp1{1}); % Profile number
-end
-DT=struct2table(list_DT);
 
-
-% get GPS coordinates:
-list_gps=dir(fullfile(pfad,'*.GPS')); % data format
-% check for names starting with .
-ii=1;
-while ii<length(list_gps)
-    if strcmp(list_gps(ii).name(1),'.')
-        list_gps(ii,:)=[];
-    else
-        ii=ii+1;
-    end
-end
-% get profile number
-for i=1:length(list_gps)
-    temp1=extractBetween(list_gps(i).name,'Line','.GPS');
-    list_gps(i).pnumber=str2num(temp1{1}); % Profile number
-end
-gps=struct2table(list_gps);
-
-%% check for profile numbers/channel numbers/files
-cp_HD=table2array(HD(:,7:8)); % channel & profile number
-cp_DT=table2array(DT(:,7:8));
-p_gps=table2array(gps(:,7));
-numbers=unique([cp_HD(:,2); cp_DT(:,2); p_gps]); % profile numbers
-disp(['Found ',int2str(length(numbers)),' profiles.'])
+disp(['Found ',int2str(length(profilelist)),' profiles.'])
 
 %% Reading settings from file
 disp('--------------------------------------')
 disp('Reading processing settings:')
-if ~exist(fullfile(pfad,settings),'file') % if no settings-file is found: create default file
+if ~exist(fullfile(folder,settings),'file') % if no settings-file is found: create default file
     disp(['No file ',settings,' found. Creating default file ',settings,'.']);
 
-    fid=fopen(fullfile(pfad,settings),'wt');
+    fid=fopen(fullfile(folder,settings),'wt');
     fprintf(fid,'do_amplitudeOffset 1\ntstart[ns] 0\ntend[ns] 100\n\n');
-    fprintf(fid,'do_traceInterpolation 0\nminfactor 3\nmaxfactor 3\n\n');
+    fprintf(fid,'do_badTraceRemoval 0\nminfactor 3\nmaxfactor 3\n\n');
+    fprintf(fid,'do_constTraceDist 2\ndx[m] 0.02\n\n');
+    fprintf(fid,'do_traceInterpolation 3\ngap 10\n\n');
+    fprintf(fid,'do_medfilt 0\nnumsamp 3\n\n');
     fprintf(fid,'do_sphericalDivergence 0\n\n');
     fprintf(fid,'do_attenuationCorrection 0\nsigma[S/m] 0.002\neps 15\n\n');
     fprintf(fid,'do_spectralWhitening 0\nfmin_sw[MHz] 100\nfmax_sw[MHz] 600\nalpha 0.01\n\n');
-    fprintf(fid,'do_bandpass 5\nfstart[MHz] 100\nfend[MHz] 600\n\n');
-    fprintf(fid,'do_constTraceDist 2\ndist[m] 0.02\ngap 100\n\n');
-    fprintf(fid,'do_medianFilter 0\nm 3\n\n');
+    fprintf(fid,'do_bandpass 6\nfstart[MHz] 100\nfend[MHz] 800\n\n');
     fprintf(fid,'do_migration2d_vz 0\nv-file[m/ns] \ntv-file[ns] \naperture_m[degree] 30\n\n');
     fprintf(fid,'do_topomig2d 0\nv[m/ns] 0.1\nflag 1\naperture_t[degree] 30\n\n');
-    fprintf(fid,'do_cutTWT 6\ntmax[ns] 80\n\n');
+    fprintf(fid,'do_cutTWT 0\ntmax[ns] 80\n\n');
     fprintf(fid,'do_khighpass 0\nkcutoff[1/m] 0.1\n\n');
     fprintf(fid,'do_applygain 0\ng1 -20\ng2 0\ng3 10\ng4 20\ng5 30\n\n');
     fprintf(fid,'do_normalization 0\nqclip 0.98\n\n');
-    fprintf(fid,'do_removeMeanMedianTrace 7\nmeanmedian 1\nnumtraces 0\n\n');
+    fprintf(fid,'do_removeMeanMedianTrace 0\nmeanmedian 1\nnumtraces 0\n\n');
     fprintf(fid,'do_t0shift 0\nt0s[ns] 5.0\n\n');
-    fprintf(fid,'do_t0CorrectionThreshold 0\nthreshold -1\n\n');
+    fprintf(fid,'do_t0CorrectionThreshold 0\nthreshold -1000\n\n');
     fprintf(fid,'do_t0CorrectionReferencetrace 0\nprofilenumber 0\nchannelnumber 1\ntracenumber 1\nt0[ns] 0.1\n\n');
-    fprintf(fid,'do_crossprofileshift 4\nmaxshift_cps 30\n\n');
-    fprintf(fid,'do_channelshift 3\nOneOrAll 2\nmaxshift 30\nrefprofile 0\nshiftsamples\n');
+    fprintf(fid,'do_crossprofileshift 5\nmaxshift_cps 30\n\n');
+    fprintf(fid,'do_channelshift 4\nOneOrAll 2\nmaxshift 30\nrefprofile 0\nshiftsamples\n');
     fclose(fid);
 
     disp('Edit settings.txt and start script again.')
     return;
 else
-    fid=fopen(fullfile(pfad,settings),'r');
+    fid=fopen(fullfile(folder,settings),'r');
     temp=textscan(fid,'%s%s');
     fclose(fid);
     % get order of processing steps:
-    steps=[{'do_amplitudeOffset'} {'do_t0shift'} {'do_crossprofileshift'} {'do_medianFilter'} {'do_constTraceDist'} {'do_cutTWT'} {'do_khighpass'} {'do_spectralWhitening'} {'do_migration2d_vz'} {'do_topomig2d'} {'do_traceInterpolation'} {'do_applygain'} {'do_removeMeanMedianTrace'} {'do_t0CorrectionThreshold'} {'do_t0CorrectionReferencetrace'} {'do_channelshift'} {'do_sphericalDivergence'} {'do_attenuationCorrection'} {'do_signalShaping'} {'do_bandpass'} {'do_normalization'}];
+    steps=[{'do_amplitudeOffset'} {'do_t0shift'} {'do_crossprofileshift'} {'do_medfilt'} {'do_constTraceDist'} {'do_cutTWT'} {'do_khighpass'} {'do_spectralWhitening'} {'do_badTraceRemoval'} {'do_migration2d_vz'} {'do_topomig2d'} {'do_traceInterpolation'} {'do_applygain'} {'do_removeMeanMedianTrace'} {'do_t0CorrectionThreshold'} {'do_t0CorrectionReferencetrace'} {'do_channelshift'} {'do_sphericalDivergence'} {'do_attenuationCorrection'} {'do_bandpass'} {'do_normalization'}];
     order=zeros(1,length(steps));
     for i=1:length(steps)
         for j=1:length(temp{1})
@@ -211,7 +177,7 @@ else
         elseif strcmp(temp{1}(i),'tend[ns]')
             temp3=temp{2}(i);
             params.tend=str2double(temp3{1});
-        elseif strcmp(temp{1}(i),'dist[m]')
+        elseif strcmp(temp{1}(i),'dx[m]')
             temp3=temp{2}(i);
             params.dist=str2double(temp3{1});
         elseif strcmp(temp{1}(i),'t0s[ns]')
@@ -220,7 +186,7 @@ else
         elseif strcmp(temp{1}(i),'gap')
             temp3=temp{2}(i);
             params.gap=str2double(temp3{1});
-        elseif strcmp(temp{1}(i),'m')
+        elseif strcmp(temp{1}(i),'numsamp')
             temp3=temp{2}(i);
             params.m=str2double(temp3{1});
         elseif strcmp(temp{1}(i),'maxshift_cps')
@@ -346,15 +312,16 @@ else
             disp(['  tstart = ',num2str(params.tstart),' ns'])
             disp(['  tend = ',num2str(params.tend),' ns'])
         elseif strcmp('do_traceInterpolation',steps{order==i})
+            disp(['  gap = ',num2str(params.gap)])
+        elseif strcmp('do_badTraceRemoval',steps{order==i})
             disp(['  minfactor = ',num2str(params.minfactor)])
             disp(['  maxfactor = ',num2str(params.maxfactor)])
         elseif strcmp('do_t0CorrectionThreshold',steps{order==i})
             disp(['  threshhold = ',num2str(params.threshold)])
         elseif strcmp('do_medianFilter',steps{order==i})
-            disp(['  m = ',num2str(params.m)])
+            disp(['  numsamp = ',num2str(params.m)])
         elseif strcmp('do_constTraceDist',steps{order==i})
-            disp(['  dist = ',num2str(params.dist)])
-            disp(['  gap = ',num2str(params.gap)])
+            disp(['  dx = ',num2str(params.dist)])
         elseif strcmp('do_spectralWhitening',steps{order==i})
             disp(['  fmin_sw = ',num2str(params.fmin_sw)])
             disp(['  fmax_sw = ',num2str(params.fmax_sw)])
@@ -413,20 +380,19 @@ end
 if userawdata==0  % first run of program -> read all profiles
     disp('Read original profiles and save in folder profiles2mat -> raw data')
     % make folder to save raw data
-    if ~exist(fullfile(pfad,'profiles2mat'),'dir')
-        mkdir(fullfile(pfad,'profiles2mat'));
+    if ~exist(fullfile(folder,'profiles2mat'),'dir')
+        mkdir(fullfile(folder,'profiles2mat'));
     end
     % read profile data and coordinates
-    not=zeros(1,length(numbers));
-    lnum=length(numbers);
+    not=zeros(1,length(profilelist));
+    lnum=length(profilelist);
 
     tempx=cell(lnum,1);
     tempy=cell(lnum,1);
     tempz=cell(lnum,1);
     for i=1:lnum
         % load data and coordinates
-        [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readspidar(pfad,name,numbers(i),antenna_IDs,offsetGPS_X,offsetGPS_Y,gps_channel,zone,dataplot);
-        %[traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readspidar(pfad,name,numbers(i),changeDir,add_Yoffset);
+        [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readspidar(folder,name,profilelist(i),channellist,offsetGPS_X,offsetGPS_Y,gps_channel,zone,dataplot);
         traces=single(traces); % convert to single for saving memory
         % delete traces with NaN-coordinates
         del=find(isnan(tempx{i}));
@@ -439,7 +405,7 @@ if userawdata==0  % first run of program -> read all profiles
             numtr=length(tempx{i}); % number of all traces per profile
             numtrch=numtr/channels; % number of traces per channel
             info=zeros(9,numtr);   % profilenum, tracenum per channel, channelnum, x, y, z, dt, ns (per trace), tracenum per profile
-            info(1,:)=zeros(1,length(tempx{i}))+numbers(i); % profilenumber
+            info(1,:)=zeros(1,length(tempx{i}))+profilelist(i); % profilenumber
             info(4:6,:)=[tempx{i}; tempy{i}; tempz{i}]; % x,y,z
             info(9,:)=1:numtr; % tracenumber per profile
             for ii=1:channels
@@ -447,11 +413,11 @@ if userawdata==0  % first run of program -> read all profiles
                 info(7:8,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[zeros(1,numtrch)+dt; zeros(1,numtrch)+ns]; % dt, ns
             end
             % save profile (raw data)
-            infoname=fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']);
-            trname=fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']);
+            infoname=fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'_info.mat']);
+            trname=fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'.mat']);
             parsave(infoname,info);
             parsave(trname,traces);
-            disp(['   ',int2str(numbers(i))])
+            disp(['   ',int2str(profilelist(i))])
         end
     end
 
@@ -462,9 +428,9 @@ disp('--------------------------------------')
 if prepare_shift==1 && params.oneall==1
     if isempty(params.shiftsamples)
         disp('For Channelshift: Calculate shiftsamples from reference profile');
-        temp2=load(fullfile(pfad,'profiles2mat',[name,'_',int2str(params.refprofile),'_info.mat']));
+        temp2=load(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(params.refprofile),'_info.mat']));
         info=temp2.info;
-        temp=load(fullfile(pfad,'profiles2mat',[name,'_',int2str(params.refprofile),'.mat']));
+        temp=load(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(params.refprofile),'.mat']));
         traces=temp.traces;
         clear temp temp2;
         t=0:info(7,1):info(7,1)*(info(8,1)-1);
@@ -486,7 +452,7 @@ if prepare_shift==1 && params.oneall==1
         [~,params.shiftsamples]=channelshift(test,params.maxshift); % shiftsamples for reference profile
 
         % save shiftsamples in settings.txt
-        fid=fopen(fullfile(pfad,settings),'a');
+        fid=fopen(fullfile(folder,settings),'a');
         for ch=1:length(test)
             fprintf(fid,'%d\t',params.shiftsamples(ch));
         end
@@ -500,9 +466,9 @@ else
 end
 if prepare_t0==1
     disp('For t0correction: Read reference trace');
-    temp=load(fullfile(pfad,'profiles2mat',[name,'_',int2str(params.profilenum),'.mat']));
+    temp=load(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(params.profilenum),'.mat']));
     traces=temp.traces;
-    temp2=load(fullfile(pfad,'profiles2mat',[name,'_',int2str(params.profilenum),'_info.mat']));
+    temp2=load(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(params.profilenum),'_info.mat']));
     info=temp2.info;
     clear temp temp2;
     t=0:info(7,1):info(7,1)*(info(8,1)-1);
@@ -527,18 +493,18 @@ end
 %% Processing of data
 disp('Start processing of raw data')
 % make folder for processed data
-if ~exist(fullfile(pfad,'profiles2mat','proc'),'dir')
-    mkdir(fullfile(pfad,'profiles2mat','proc'));
+if ~exist(fullfile(folder,'profiles2mat','proc'),'dir')
+    mkdir(fullfile(folder,'profiles2mat','proc'));
 end
 
 % find maxz of complete data set
 params.maxz=0;
 params.dx=[];
 params.minz=[];
-for i=1:length(numbers) % (is not working as parfor!)
+for i=1:length(profilelist) % (is not working as parfor!)
     % load raw data
-    if exist(fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']),'file')
-        load(fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']));
+    if exist(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'.mat']),'file')
+        load(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'_info.mat']));
     end
     if max(info(6,:))>params.maxz
         params.maxz=max(info(6,:));
@@ -559,17 +525,17 @@ params.minz=params.maxz-info(7,1)*info(8,1)/2*params.v-0.5-(params.maxz-params.m
 
 % if do_crossprofileshift -> determine shiftsamples now!
 if any(strcmp(steps,'do_crossprofileshift')) && order(strcmp(steps,'do_crossprofileshift'))>0
-    if ~exist(fullfile(pfad,'shiftsamples_cps.txt'),'file')
+    if ~exist(fullfile(folder,'shiftsamples_cps.txt'),'file')
         disp('Determine shiftsamples for crossprofileshift...')
-        prof=NaN(length(numbers),1);
-        for i=1:length(numbers) % (is not working as parfor!)
+        prof=NaN(length(profilelist),1);
+        for i=1:length(profilelist) % (is not working as parfor!)
             % load raw data
-            if exist(fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']),'file')
-                mat=matfile(fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']));
-                load(fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']));
+            if exist(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'.mat']),'file')
+                mat=matfile(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'.mat']));
+                load(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'_info.mat']));
 
                 cps{i}=mat.traces(:,find(info(3,:)==1)); % get all first channel traces
-                prof(i,1)=numbers(i);
+                prof(i,1)=profilelist(i);
             end
         end
 
@@ -582,30 +548,30 @@ if any(strcmp(steps,'do_crossprofileshift')) && order(strcmp(steps,'do_crossprof
 
         params.shiftsamples_cps=[prof params.shiftsamples_cps]; % profilenumber shiftsamples
 
-        fid=fopen(fullfile(pfad,'shiftsamples_cps.txt'),'wt');
+        fid=fopen(fullfile(folder,'shiftsamples_cps.txt'),'wt');
         fprintf(fid,'%d\t%d\n',params.shiftsamples_cps');
         fclose(fid);
         clear cps;
         disp('   Done and saved in shiftsamples_cps.txt')
     else
         disp('   Reading shiftsamples_cps from shiftsamples_cps.txt')
-        params.shiftsamples_cps=load(fullfile(pfad,'shiftsamples_cps.txt'));
+        params.shiftsamples_cps=load(fullfile(folder,'shiftsamples_cps.txt'));
     end
 end
 
 
 anz=1;
-for i=1:length(numbers)
+for i=1:length(profilelist)
     % load raw data
-    if exist(fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']),'file')
+    if exist(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'.mat']),'file')
         tic
-        disp(['Profile #',int2str(numbers(i))]);
-        load(fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']));
-        load(fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']));
+        disp(['Profile #',int2str(profilelist(i))]);
+        load(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'.mat']));
+        load(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'_info.mat']));
 
         params.dt=info(7,1);
         t=0:params.dt:params.dt*(info(8,1)-1);
-        profileinfotemp{i}=[numbers(i) abs(t(2)-t(1)) info(8,1) max(info(3,:)) max(info(2,:))]; % profilnumber, dt, ns, channels, numtraces-per-channel
+        profileinfotemp{i}=[profilelist(i) abs(t(2)-t(1)) info(8,1) max(info(3,:)) max(info(2,:))]; % profilnumber, dt, ns, channels, numtraces-per-channel
 
 
         % Plot figure in invisible mode
@@ -622,7 +588,7 @@ for i=1:length(numbers)
         [traces,ns,t,zmig,info]=processing(steps,order,traces,info,t,params,fhProc,b);
 
         % new profileinfo update
-        profileinfotemp{i}=[numbers(i) abs(t(2)-t(1)) info(8,1) max(info(3,:)) max(info(2,:))]; % profilnumber, dt, ns, channels, numtraces-per-channel
+        profileinfotemp{i}=[profilelist(i) abs(t(2)-t(1)) info(8,1) max(info(3,:)) max(info(2,:))]; % profilnumber, dt, ns, channels, numtraces-per-channel
 
 
         if export2mat==1
@@ -636,13 +602,13 @@ for i=1:length(numbers)
         end
 
         % save processed data, t and zmig
-        parsave(fullfile(pfad,'profiles2mat','proc',[name,'_',int2str(numbers(i)),'.mat']),traces);
-        parsave(fullfile(pfad,'profiles2mat','proc','t.mat'),t);
-        parsave(fullfile(pfad,'profiles2mat','proc','zmig.mat'),zmig);
-        parsave(fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(i)),'_info_proc.mat']),info);
+        parsave(fullfile(folder,'profiles2mat','proc',[name{1},'_',name{2},'_',int2str(profilelist(i)),'.mat']),traces);
+        parsave(fullfile(folder,'profiles2mat','proc','t.mat'),t);
+        parsave(fullfile(folder,'profiles2mat','proc','zmig.mat'),zmig);
+        parsave(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(i)),'_info_proc.mat']),info);
 
         % save figure
-        parprintfigure(fullfile(pfad,'profiles2mat','proc',['Processing_',int2str(numbers(i)),'.jpg']),fhProc);
+        parprintfigure(fullfile(folder,'profiles2mat','proc',['Processing_',int2str(profilelist(i)),'.jpg']),fhProc);
         close(fhProc);
         disp('     ...saved')
         clear traces;
@@ -652,29 +618,30 @@ for i=1:length(numbers)
     end
 end
 if export2mat==1
+    disp('Saving data in radargrams.mat-format.')
     % save all profiles in one variable
-    save(fullfile(pfad,'profiles2mat','proc','radargrams.mat'),'radargrams','-v7.3');
-    save(fullfile(pfad,'profiles2mat','proc','t.mat'),'t','-v7.3');
-    save(fullfile(pfad,'profiles2mat','proc','x.mat'),'x','-v7.3');
-    save(fullfile(pfad,'profiles2mat','proc','global_coords.mat'),'global_coords','-v7.3');
+    save(fullfile(folder,'profiles2mat','proc','radargrams.mat'),'radargrams','-v7.3');
+    save(fullfile(folder,'profiles2mat','proc','t.mat'),'t','-v7.3');
+    save(fullfile(folder,'profiles2mat','proc','x.mat'),'x','-v7.3');
+    save(fullfile(folder,'profiles2mat','proc','global_coords.mat'),'global_coords','-v7.3');
     if ~isempty(zmig)
-        save(fullfile(pfad,'profiles2mat','proc','zmig.mat'),'zmig','-v7.3');
+        save(fullfile(folder,'profiles2mat','proc','zmig.mat'),'zmig','-v7.3');
     end
 
-    load(fullfile(pfad,'profiles2mat',[name,'_',int2str(numbers(1)),'_info_proc.mat']));
-    fid=fopen(fullfile(pfad,'profiles2mat','proc','radargrams.txt'),'wt');
+    load(fullfile(folder,'profiles2mat',[name{1},'_',name{2},'_',int2str(profilelist(1)),'_info_proc.mat']));
+    fid=fopen(fullfile(folder,'profiles2mat','proc','radargrams.txt'),'wt');
     fprintf(fid,'Radargrams.mat contains channels\n');
     fprintf(fid,' %d\t',unique(info(3,:)));
     fprintf(fid,'\nof profiles\n');
-    fprintf(fid,' %d\n',numbers);
+    fprintf(fid,' %d\n',profilelist);
     fclose(fid);
 end
 
 % save settings in proc-folder
-copyfile(fullfile(pfad,settings),fullfile(pfad,'profiles2mat','proc','ProcessingReadMe.txt'));
+copyfile(fullfile(folder,settings),fullfile(folder,'profiles2mat','proc','ProcessingReadMe.txt'));
 
 % update profile info
-for i=1:length(numbers)
+for i=1:length(profilelist)
     if ~isempty(profileinfotemp{i})
         profileinfo(i,:)=profileinfotemp{i};
     end
@@ -685,8 +652,8 @@ if ~isempty(zmig)
     profileinfo(:,2)=abs(zmig(1)-zmig(2)); % replace dt[ns] by dz[m]
 end
 % append new profileinfo to old profileinfo
-if exist(fullfile(pfad,'profiles2mat','proc','profileinfo.mat'),'file')
-    temp1=load(fullfile(pfad,'profiles2mat','proc','profileinfo.mat'));
+if exist(fullfile(folder,'profiles2mat','proc','profileinfo.mat'),'file')
+    temp1=load(fullfile(folder,'profiles2mat','proc','profileinfo.mat'));
     temp1=temp1.profileinfo; % old info
     for ii=1:length(profileinfo(:,1))
         % check if already in old profileinfo
@@ -698,7 +665,7 @@ if exist(fullfile(pfad,'profiles2mat','proc','profileinfo.mat'),'file')
     end
     profileinfo=sortrows(temp1,1);
 end
-save(fullfile(pfad,'profiles2mat','proc','profileinfo.mat'),'profileinfo','-v7.3');
+save(fullfile(folder,'profiles2mat','proc','profileinfo.mat'),'profileinfo','-v7.3');
 disp('--------------------------------------')
 
 
