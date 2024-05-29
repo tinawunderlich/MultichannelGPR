@@ -22,7 +22,7 @@ settings='settings.txt'; % name of file for processing settings.
 % normal text editor and run the script again.
 
 % Raw data is only read if userawdata=0! Otherwise mat-files of raw data in folder profiles2mat are used.
-userawdata=0;  % if =1: use aready read in raw data and apply new processing steps
+userawdata=1;  % if =1: use aready read in raw data and apply new processing steps
 
 % Export to other formats
 export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files) 

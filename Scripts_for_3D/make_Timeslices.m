@@ -266,37 +266,38 @@ for j=1:length(rectangles)  % in each rectangle...
             z_absolut=maxElevation-t; % absolute z vector starting from 0 at top of radargram images
             datatemp=NaN(length(z{j}(:,1)),length(z{j}(1,:)),length(t_ind{i})); % initialize datatemp
             data=matFileObj.data; % load 3D cube
-            % get data-cube-slice along columns
-            for k=1:size(x{j},1)
-                temp=permute(data(k,:,:),[3 2 1]); % vertical data-slice
-                ztemp=repmat(z{j}(k,:),[length(t),1]); % topography along this slice (as matrix for each t sample)
+            % find rows in area with any ~isnan-value:
+            kk=find(any(~isnan(z{j}),2)); % indices of rows with values
+            % get data-cube-slice along columns:
+            for k=1:length(kk)
+                temp=permute(data(kk(k),:,:),[3 2 1]); % vertical data-slice
+                ztemp=repmat(z{j}(kk(k),:),[length(t),1]); % topography along this slice (as matrix for each t sample)
                 b=zeros(size(ztemp));
                 for s=1:length(t_ind{i}) % go through depthsamples for this slice
                      b=b+double(min(abs(ztemp-(t_ind{i}(s)-1)*dt-z_absolut))==abs(ztemp-(t_ind{i}(s)-1)*dt-z_absolut)); % matrix where all samples in this slice are 1 and rest is 0
                 end
                 g=reshape(temp(logical(b)),length(t_ind{i}),[]); % all samples in this slices in one matrix (without nan-traces in between)
+                % sometimes there are still complete Nan-traces -> delete them
+                ind=find(~isnan(ztemp(1,:))); % trace-indices in data-cube slice that are not nan
+                ind(find(all(isnan(g),1)))=[]; % sometimes there are still complete Nan-traces -> delete them in indices 
+                g(:,all(isnan(g),1))=[]; % sometimes there are still complete Nan-traces -> delete them in trace matrix
                 % sometimes there are some nan-values on top -> extrapolate
-                w=find(any(isnan(g))); % columns with nan
-                if ~isempty(w) && i==1 % first slice
-                    for l=1:length(w)
-                        firstval=g(find(~isnan(g(:,w(l))),1,'first'),w(l)); % first not-nan value of this trace
-                        g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear',firstval);
-                    end
-                elseif ~isempty(w) && i==length(t_ind) % last slice
-                    for l=1:length(w)
-                        lastval=g(find(~isnan(g(:,w(l))),1,'last'),w(l)); % last non-nan value of this trace
-                        g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear',lastval);
-                    end
-                elseif ~isempty(w)
-                    for l=1:length(w)
-                        g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear','extrap');
-                    end
+                w=find(isnan(g(1,:))); % columns with nan as first value
+                for l=1:length(w)
+                    firstval=g(find(~isnan(g(:,w(l))),1,'first'),w(l)); % first not-nan value of this trace
+                    g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear',firstval);
+                end
+                % sometimes there are some nan-values at the bottom -> extrapolate
+                w=find(isnan(g(end,:))); % columns with nan as last value
+                for l=1:length(w)
+                    lastval=g(find(~isnan(g(:,w(l))),1,'last'),w(l)); % last non-nan value of this trace
+                    g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear',lastval);
                 end
                 % prepare new slice
                 new=NaN(length(t_ind{i}),size(temp,2)); 
-                new(:,~isnan(ztemp(1,:)))=g; % new dataslice in this slice (with missing traces in between)
+                new(:,ind)=g; % new dataslice in this slice (with missing traces in between)
                 % set this into datatemp matrix:
-                datatemp(k,:,:)=permute(new,[3 2 1]);
+                datatemp(kk(k),:,:)=permute(new,[3 2 1]);
             end
             len_ind=length(t_ind{i});
         end
