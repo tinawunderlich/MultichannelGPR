@@ -11,7 +11,7 @@ clear all
 close all
 clc
 
-app='SIR3000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet
+app='SIR4000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet
 
 dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 

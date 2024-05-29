@@ -410,8 +410,10 @@ data=zeros(rh_nsamp,rh_ntraces*rh_nchan); % Datenmatrix initialisieren
 
 % Daten auslesen
 datatemp=fread(fid,[rh_nsamp,rh_ntraces*rh_nchan],'int32','l');
-mark=find(datatemp(2,:)~=0);
-mark(1)=[]; % delete marker on first trace
+if strcmp(marktype,'NA')
+    mark=find(datatemp(2,:)~=0); % markers are non-zero numbers in second row
+    mark(1)=[]; % delete marker on first trace
+end
 % ersten zwei Zeilen Null setzen
 datatemp(1:2,:)=0;
 % /1000 und Mittelwert abziehen
