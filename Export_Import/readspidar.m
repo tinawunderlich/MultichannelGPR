@@ -47,18 +47,20 @@ tr=cellfun(@(x) startsWith(x,'Trace'),temp); % find trace rows
 temp=temp(g | tr);
 n=1;
 for i=1:2:length(temp)
-    trnum(n)=str2num(extractBetween(temp(i),'#',' ')); % trace number
-    xtr(n)=str2num(extractAfter(temp(i),'position ')); % x position of this trace
-    test=strsplit(temp(i+1),','); % GGA string
-    % extract the coordinate information
-    if strcmp(test{6},'E')
-        xx(n) = str2double(test{5});
-    else
-        xx(n) = -str2double(test{5}); % West of Greenwich -> negative
+    if ~isempty(extractBetween(temp(i),'#',' '))
+        trnum(n)=str2num(extractBetween(temp(i),'#',' ')); % trace number
+        xtr(n)=str2num(extractAfter(temp(i),'position ')); % x position of this trace
+        test=strsplit(temp(i+1),','); % GGA string
+        % extract the coordinate information
+        if strcmp(test{6},'E')
+            xx(n) = str2double(test{5});
+        else
+            xx(n) = -str2double(test{5}); % West of Greenwich -> negative
+        end
+        yy(n) = str2double(test{3});
+        zz(n) = str2double(test{10});
+        n=n+1;
     end
-    yy(n) = str2double(test{3});
-    zz(n) = str2double(test{10});
-    n=n+1;
 end
 % convert to utm
 for i=1:length(xx)
@@ -111,9 +113,9 @@ end
 
 % interpolate coordinates for every trace number (and make constant trace
 % number for all channels)
-xn=interp1(trnum,xneu,1:min(h.ntr));
-yn=interp1(trnum,yneu,1:min(h.ntr));
-zzn=interp1(trnum,zz,1:min(h.ntr));
+xn=interp1(trnum,xneu,1:min(h.ntr),'linear','extrap');
+yn=interp1(trnum,yneu,1:min(h.ntr),'linear','extrap');
+zzn=interp1(trnum,zz,1:min(h.ntr),'linear','extrap');
 
 traces=[];
 x=[];

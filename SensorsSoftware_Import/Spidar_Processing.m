@@ -15,14 +15,14 @@ offsetGPS_X=[-0.5,-0.25,0,0.25,0.5]; % Offset between GPS and antenna midpoint c
 offsetGPS_Y=[0,0,0,0,0]; % Offset between GPS and antenna midpoint in profile direction (for each antenna midpoint, same order as antenna_IDs) (if GPS behind antenna midpoint -> positive)
 zone=32; % UTM zone (for conversion to WGS84/UTM)
 
-dataplot=0; % plot radargram for controlling? 1=yes, 0=no (Use with caution as every profile and every channel is plotted individually!)
+dataplot=1; % plot radargram for controlling? 1=yes, 0=no (Use with caution as every profile and every channel is plotted individually!)
 
 settings='settings.txt'; % name of file for processing settings. 
 % If this file does not exist, it will be created. You can modify it with a
 % normal text editor and run the script again.
 
 % Raw data is only read if userawdata=0! Otherwise mat-files of raw data in folder profiles2mat are used.
-userawdata=1;  % if =1: use aready read in raw data and apply new processing steps
+userawdata=0;  % if =1: use aready read in raw data and apply new processing steps
 
 % Export to other formats
 export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files) 
