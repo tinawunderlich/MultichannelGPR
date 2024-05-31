@@ -106,8 +106,8 @@ S.fh.Visible='on';
             'position',[250 300 S.siz(3)-300 S.siz(4)-320]);
         S.rad=imagesc(S.xloc,S.t,S.raw);
         hold on
-        for i=1:length(S.xprof)-1
-            plot([max(S.xloc(S.info==i)) max(S.xloc(S.info==i))],[0 max(S.t)],'r')
+        for i=1:length(S.ch_list)-1
+            plot([max(S.xloc(S.info==S.ch_list(i))) max(S.xloc(S.info==S.ch_list(i)))],[0 max(S.t)],'r')
         end
         colormap(flipud(gray));
         xlabel('x [m]')
@@ -956,8 +956,8 @@ guidata(S.fh,S);
         if S.d1.Value==1 % raw data
             if isempty(num)  % all channels
                 set(S.rad,'CData',S.raw,'XData',S.xloc,'YData',S.t);
-                for i=1:length(S.xprof)-1
-                    plot(S.ax,[max(S.xloc(S.info==i)) max(S.xloc(S.info==i))],[0 max(S.t)],'r')
+                for i=1:length(S.ch_list)-1
+                    plot(S.ax,[max(S.xloc(S.info==S.ch_list(i))) max(S.xloc(S.info==S.ch_list(i)))],[0 max(S.t)],'r')
                 end
             else
                 set(S.rad,'CData',S.raw(:,S.info==num),'XData',S.xloc(S.info==num)-min(S.xloc(S.info==num)),'YData',S.t);
