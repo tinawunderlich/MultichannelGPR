@@ -85,12 +85,6 @@ elseif platform==3 % Windows (noch nicht getestet!)
     memsize=str2double(sys.PhysicalMemory.Available);
 end
 
-% decide if mala or spidar data
-% test=dir(foldername);
-% for i=1:length(test)
-%     ending=extractAfter(test(i).name,'.');
-%     if strcmp(ending,'rad')
-%         
 
 
 % file name parts

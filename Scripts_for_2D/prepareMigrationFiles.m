@@ -12,7 +12,7 @@ clc
 
 
 % Choose options for velocity model:
-vopt=1;
+vopt=4;
 % vopt=1: Constant velocity for all profiles in radargrams.mat
 vconst=0.13; % v in m/ns
 % vopt=2: Constant velocity (but different) for each profile in radargrams.mat
@@ -20,6 +20,9 @@ vall=[0.1 0.08]; % v for each profile in m/ns
 % vopt=3: 1D velocity model for all profiles
 v1d=[0.16 0.1]; % v at different times in m/ns
 t1d=[0 18]; % corresponding times in ns
+% vopt=4: 1D velocity model for all profiles from fitted function in
+    % vrms.mat and tv.mat (in same folder as your data) (from Make_1Dv.m)
+
 
 % Choose options for topography:
 topoopt=1;
@@ -38,7 +41,7 @@ removeOutliers=0; % if =1: remove outliers in topo data (is done before smoothin
 num=101; % odd(!) number of points for median calculation if removeOutliers==1
 thresh=0.1; % threshold in m for difference between median and raw topography if removeOutliers==1
 
-plottopo=0; % if =1: topo is plotted (raw and smoothed), if =0: no figures
+plottopo=1; % if =1: topo is plotted (raw and smoothed), if =0: no figures
 
 %% -------------------------------------------------------------------------
 % Do not change the following part!
@@ -109,6 +112,18 @@ elseif vopt==2
 elseif vopt==3
     for i=1:length(global_coords)
         v{i}=repmat(interp1(t1d,v1d,t,'linear',v1d(end)),[1 length(global_coords{i}(:,1))]);
+        % get depth for each profile
+        d(i)=max(t)/2*v{i}(end);
+    end
+    maxdepth=max(d); % maximum depth of radargram
+elseif vopt==4
+    load(fullfile(pfad_rad,'vrms.mat'));
+    if vrms>1 % if in cm/ns
+        vrms=vrms./100;
+    end
+    load(fullfile(pfad_rad,'tv.mat'));
+    for i=1:length(global_coords)
+        v{i}=repmat(interp1(tv,vrms,t,'linear','extrap'),[1 length(global_coords{i}(:,1))]);
         % get depth for each profile
         d(i)=max(t)/2*v{i}(end);
     end

@@ -595,7 +595,7 @@ for i=1:length(profilelist)
             % write all profiles in one variable
             for ii=1:max(info(3,:)) % for each channel
                 radargrams{anz}=traces(:,info(3,:)==ii);
-                global_coords{anz}=[info(4,info(3,:)==ii)' info(5,info(3,:)==ii)'];
+                global_coords{anz}=[info(4,info(3,:)==ii)' info(5,info(3,:)==ii)' info(6,info(3,:)==ii)'];
                 x{anz}=[0; cumsum(sqrt(diff(global_coords{anz}(:,1)).^2+diff(global_coords{anz}(:,2)).^2))];
                 anz=anz+1;
             end

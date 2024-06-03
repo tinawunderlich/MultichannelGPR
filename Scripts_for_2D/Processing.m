@@ -14,7 +14,7 @@ clc
 
 
 
-numbers=[1:500]; % give numbers of processed radargrams or leave empty =[] for all
+numbers=[]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Processing options:
 settings='settings_mig.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
