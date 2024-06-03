@@ -14,10 +14,10 @@ clc
 
 
 
-numbers=[]; % give numbers of processed radargrams or leave empty =[] for all
+numbers=[1:500]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Processing options:
-settings='settings.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
+settings='settings_mig.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
 plotflag=0; % =1 plot and show all radargrams during processing, =0 do not plot
 
 % Plotting options
@@ -283,6 +283,8 @@ anz=length(numbers);
 radargrams=cell(anz,1);
 nn=0;
 for kk=numbers % loop over radargrams
+    disp(['   -> Profile ',int2str(kk),' of ',int2str(anz)])
+
     if ~isempty(data{kk}) && any(~isnan(data{kk}(:)))
         
         nn=nn+1;

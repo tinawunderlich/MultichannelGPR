@@ -11,28 +11,28 @@ clc
 % requires binned data in rectangles 3D_Grid_R* or processed data in
 % 3D_Grid_R*/processed/
 % Number of rectangles with binned data
-rectangles=1; % e.g. 1:3
+rectangles=1:4; % e.g. 1:3
 
 % depth slices instead of time slices (input is in m)
-dsl = 0; % =1: depth, =0: time
+dsl = 1; % =1: depth, =0: time
 
 % if depth slice, cut horizontally (=0) or follow topography (=1)?
-followTopo=0;
+followTopo=1;
 
 % starting time of first timeslice
 t_start=0;  % in ns (or m if depth slice starting from top of data (=0m))
 
 % thickness of timeslices
-thick=5; % in ns (or m if dsl=1)
+thick=0.2; % in ns (or m if dsl=1)
 
 % overlap of timeslices
 overlap = 0; % in ns (or m if dsl=1)
 
 % ending time of timeslices
-t_end=60; % in ns (or m if dsl=1, meters below top of data, positive!)
+t_end=4; % in ns (or m if dsl=1, meters below top of data, positive!)
 
 % dx of timeslices (<=dx of bins)
-dx_tsl=0.05;    % in m
+dx_tsl=0.04;    % in m
 
 % use 3D processed data (if =1, then use data in /processed folder in 3Dbins)
 proc=0;
@@ -285,13 +285,21 @@ for j=1:length(rectangles)  % in each rectangle...
                 w=find(isnan(g(1,:))); % columns with nan as first value
                 for l=1:length(w)
                     firstval=g(find(~isnan(g(:,w(l))),1,'first'),w(l)); % first not-nan value of this trace
-                    g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear',firstval);
+                    if length(find(~isnan(g(:,w(l)))))>1
+                        g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear',firstval);
+                    else
+                        g(:,w(l))=NaN(size(g(:,w(l))));
+                    end
                 end
                 % sometimes there are some nan-values at the bottom -> extrapolate
                 w=find(isnan(g(end,:))); % columns with nan as last value
                 for l=1:length(w)
                     lastval=g(find(~isnan(g(:,w(l))),1,'last'),w(l)); % last non-nan value of this trace
-                    g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear',lastval);
+                    if length(find(~isnan(g(:,w(l)))))>1
+                        g(:,w(l))=interp1(find(~isnan(g(:,w(l)))),g(~isnan(g(:,w(l))),w(l)),1:length(t_ind{i}),'linear',lastval);
+                    else
+                        g(:,w(l))=NaN(size(g(:,w(l))));
+                    end
                 end
                 % prepare new slice
                 new=NaN(length(t_ind{i}),size(temp,2)); 
