@@ -13,12 +13,12 @@ clc
 % Dr. Tina Wunderlich, CAU Kiel 2021, tina.wunderlich@ifg.uni-kiel.de
 
 
-numbers=[1:50:500]; % give numbers of processed radargrams or leave empty =[] for all
+numbers=[96 138 140 109]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Plotting options for radargrams:
 colorclip=3; % 0 is colorscale from min(data) to max(data), 1 is 1% clip value, 2 is 2% clip value and 3 is 3% clip value, ... (will not be saved, for plotting only!)
 aspectratio_t=7;    % for time plots: give aspectratio for y-axis. If you want to plot over whole screen, set =0. If you want to make the taxis larger, make this number smaller.
-aspectratio_z=1;    % for depth plots: give aspectratio for y-axis. If you want to plot over whole screen, set =0. If you want to make the zaxis larger, make this number smaller.
+aspectratio_z=0.3;    % for depth plots: give aspectratio for y-axis. If you want to plot over whole screen, set =0. If you want to make the zaxis larger, make this number smaller.
 wiggleplot=0;  % =1: make wiggle plot instead of grayscale picture (=0)
 wigglescale=1; % scaling factor for wiggle plot
 tz_flag=2; % y-axis is 1=time [ns] or 2=depth [m]
@@ -33,11 +33,11 @@ linewidth=1; % linewidth
 markersize=5; % markersize of points
 
 % save as georeferenced png?
-save_georef=0; % yes=1, no=0
+save_georef=1; % yes=1, no=0
 
 % save profile coordinates as shape file?
 save_shape=0; % yes=1, no=0
-shapename='GPR_Profiles_Chan1.shp'; % give name for shape file
+shapename='GPR_Profiles.shp'; % give name for shape file
 
 % Plotting options for map:
 plot_map=0; % plot map? yes=1, no=0

@@ -9,7 +9,7 @@ clc
 % Dr. Tina Wunderlich, CAU Kiel 2023, tina.wunderlich@ifg.uni-kiel.de
 
 
-numbers=[1]; % give numbers of processed radargrams or leave empty =[] for all
+numbers=[109]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Plotting options for radargrams:
 colorauto=0; % 0 is manual colorscale selection, 1 is automatic color range (min-max)

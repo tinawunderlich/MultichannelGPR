@@ -11,28 +11,28 @@ clc
 % requires binned data in rectangles 3D_Grid_R* or processed data in
 % 3D_Grid_R*/processed/
 % Number of rectangles with binned data
-rectangles=1:4; % e.g. 1:3
+rectangles=1:19; % e.g. 1:3
 
 % depth slices instead of time slices (input is in m)
-dsl = 1; % =1: depth, =0: time
+dsl = 0; % =1: depth, =0: time
 
 % if depth slice, cut horizontally (=0) or follow topography (=1)?
-followTopo=1;
+followTopo=0;
 
 % starting time of first timeslice
 t_start=0;  % in ns (or m if depth slice starting from top of data (=0m))
 
 % thickness of timeslices
-thick=0.2; % in ns (or m if dsl=1)
+thick=2; % in ns (or m if dsl=1)
 
 % overlap of timeslices
 overlap = 0; % in ns (or m if dsl=1)
 
 % ending time of timeslices
-t_end=4; % in ns (or m if dsl=1, meters below top of data, positive!)
+t_end=30; % in ns (or m if dsl=1, meters below top of data, positive!)
 
 % dx of timeslices (<=dx of bins)
-dx_tsl=0.04;    % in m
+dx_tsl=0.08;    % in m
 
 % use 3D processed data (if =1, then use data in /processed folder in 3Dbins)
 proc=0;
@@ -47,7 +47,7 @@ method=1;   % 1: sum absolute amplitudes,
             % 4: no summing, just absolute amplitudes at certain times
 
 % masking options
-nn_radius=3;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
+nn_radius=6;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
 
 % Interpolation
 griding=1;  % 1: Griddata (linear interpolation)

@@ -410,9 +410,16 @@ data=zeros(rh_nsamp,rh_ntraces*rh_nchan); % Datenmatrix initialisieren
 
 % Daten auslesen
 datatemp=fread(fid,[rh_nsamp,rh_ntraces*rh_nchan],'int32','l');
-if strcmp(marktype,'NA')
+if any(strcmp(marktype,'NA')) && isempty(mark)
     mark=find(datatemp(2,:)~=0); % markers are non-zero numbers in second row
     mark(1)=[]; % delete marker on first trace
+elseif any(strcmp(marktype,'NA')) && length(mark)==length(marktype)
+    if mark(strcmp(marktype,'NA'))==1 % if marker on first trace with 'NA' -> not real marker
+        mark(1)=[];
+        marktype(1)=[];
+    else
+        marktype(strcmp(marktype,'NA'))={'User'}; % valid marker -> set correct type
+    end
 end
 % ersten zwei Zeilen Null setzen
 datatemp(1:2,:)=0;
@@ -440,7 +447,7 @@ if isempty(xyz)
 end
 xyz(isnan(xyz(:,2)) | isnan(xyz(:,3)),:)=[];
 
-if zone~=0 % convert to UTM
+if zone~=0 && ~all(all(xyz(:,2:4)==0)) % convert to UTM
     lontemp=num2str(xyz(:,2),'%.8f');
     lattemp=num2str(xyz(:,3),'%.8f');
     for j=1:length(lattemp(:,1))

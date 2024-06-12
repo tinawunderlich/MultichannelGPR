@@ -13,7 +13,7 @@ clc
 
 
 % Mode of usage:
-mode=3; % 1: plot profiles with markers and get marker numbers, export table
+mode=1; % 1: plot profiles with markers and get marker numbers, export table
         % 2: set/delete markers (you can skip this step if not necessary)
         % 3: read table and set coordinates
 
