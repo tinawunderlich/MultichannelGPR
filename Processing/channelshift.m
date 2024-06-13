@@ -59,6 +59,9 @@ if nargin==2  % find best shifts for each channel
     end
 end
 
+if isempty(shiftsamples)
+    disp('      There is a problem with shiftsamples. Please try to enlarge the "maxshift" parameter in settings.txt and restart.')
+end
 
 % given shifts for each channel -> apply 
 for i=1:ch

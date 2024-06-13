@@ -15,10 +15,10 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Filename (without folder!) (folder is selected later)
-name='NIC_Line'; % Name of datafiles without '_number.mat'
-profiles=1:16;  % profile numbers
+name='SMLabatebunk'; % Name of datafiles without '_number.mat'
+profiles=1:17;  % profile numbers
 
-channels=[1:5]; % choose channels (one or several)
+channels=[1:22]; % choose channels (one or several)
 
 % Choose rSlicer folder (MIRA data) or folder with DT1/HD files (Spidar data)!
 

@@ -82,6 +82,7 @@ end
 temp=dir(fullfile(foldername,'/*.rad'));
 tempname=strsplit(temp(end).name,'_'); % Name of data files without '_???.rd3'
 name=[tempname{1}];
+name_withoutGPS=name; % name of files when not using GPS
 for i=2:length(tempname)-1
     name=[name,'_',tempname{i}];
 end
@@ -138,6 +139,16 @@ anz=0;
 for i=1:length(numbers)
     if exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info_proc.mat']),'file')
         m=matfile(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info_proc.mat']));
+        if i==1
+            xylist(1:profileinfo(i,4)*profileinfo(i,5),:)=[zeros(length(m.info(4,:)),1)+numbers(i) m.info(4,:)' m.info(5,:)' m.info(6,:)' m.info(3,:)' [1:profileinfo(i,4)*profileinfo(i,5)]']; % Number, x, y, z, channel of profile, tracenumber in profile
+            anz=anz+profileinfo(i,4)*profileinfo(i,5);
+        else
+            xylist(anz+1:anz+length(m.info(4,:)),:)=[zeros(length(m.info(4,:)),1)+numbers(i) m.info(4,:)' m.info(5,:)' m.info(6,:)' m.info(3,:)' [1:length(m.info(3,:))]']; % Number, x, y, z, channel of profile, tracenumber in profile
+            anz=anz+length(m.info(4,:));
+        end
+    elseif exist(fullfile(foldername,'profiles2mat',[name_withoutGPS,'_',int2str(numbers(i)),'_info_proc.mat']),'file')
+        m=matfile(fullfile(foldername,'profiles2mat',[name_withoutGPS,'_',int2str(numbers(i)),'_info_proc.mat']));
+        name=name_withoutGPS; % set correct name
         if i==1
             xylist(1:profileinfo(i,4)*profileinfo(i,5),:)=[zeros(length(m.info(4,:)),1)+numbers(i) m.info(4,:)' m.info(5,:)' m.info(6,:)' m.info(3,:)' [1:profileinfo(i,4)*profileinfo(i,5)]']; % Number, x, y, z, channel of profile, tracenumber in profile
             anz=anz+profileinfo(i,4)*profileinfo(i,5);
