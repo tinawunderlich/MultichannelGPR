@@ -1,9 +1,10 @@
-function [data,trh,h]=readdzt_all(dztfile,plotten) 
+function [data,trh,h]=readdzt_all(dztfile,plotten,app) 
 
-%%% [data,trh,h]=readdzt(dztfile,plotten) 
+%%% [data,trh,h]=readdzt(dztfile,plotten,app) 
 %
 % dztfile: Name der dzt-Datei
 % plotten: wenn =1 -> Bild wird geplottet, sonst =0
+% app: Apparatur ('SIR3000' or 'SIR20')
 %
 % Output: 
 % data: Datensamples in einer Matrix
@@ -29,16 +30,21 @@ SIR20=0;
 SIR30=0;
 SIR3000=0;
 SIR4000=0;
-% dann die entsprechende Apparatur raussuchen
-if test(1)==2047
-    SIR30=1;
-    SIR20=1;
-    SIR4000=1;
-elseif test(1)==255
-    SIR10=1;
-elseif test(1)==1792
+if strcmp(app,'SIR3000')
     SIR3000=1;
+elseif strcmp(app,'SIR20')
+    SIR20=1;
 end
+% % dann die entsprechende Apparatur raussuchen
+% if test(1)==2047
+%     SIR30=1;
+%     SIR20=1;
+%     SIR4000=1;
+% elseif test(1)==255
+%     SIR10=1;
+% elseif test(1)==1792
+%     SIR3000=1;
+% end
 rh_tag=test(1);
 
 %---------------------------------------------------------
@@ -155,7 +161,7 @@ variable=test;  % rh_rgain, rh_text und rh_proc
 
 %---------------------------------------------------------
 if rh_nchan==1   % f?r einen Kanal
-    fseek(fid,rh_data,'bof');   % Springen auf Anfang der Daten
+    fseek(fid,rh_data+rh_nsamp*64,'bof');   % Springen auf Anfang der Daten
     if rh_bit==16
         test=fread(fid,'uint16','l'); % Rest einlesen zum gucken wie viele Spuren
     elseif rh_bit==32
@@ -165,17 +171,17 @@ if rh_nchan==1   % f?r einen Kanal
     rh_ntraces=length(test)/rh_nsamp;  % Anzahl Spuren
     
     %---------------------------------------------------------
-    fseek(fid,rh_data,'bof');   % Zur?cksetzen auf Anfang der Daten
+    fseek(fid,rh_data+rh_nsamp*64,'bof');   % Zur?cksetzen auf Anfang der Daten
 
     % Daten auslesen
-    if SIR30==1
+    if SIR30==1 && rh_bit==32
         fseek(fid,rh_data+rh_nsamp*64-64*2,'bof'); % keine Ahnung warum... ausprobiert!
         data=fread(fid,[rh_nsamp,rh_ntraces],'int32','l');
     else
         data=fread(fid,[rh_nsamp,rh_ntraces],'uint16','l')-32768;
     end
 
-    if SIR3000==1 || SIR30==1
+    if SIR30==1 %|| SIR3000==1
         data(1:2,:)=zeros(size(data(1:2,:)));   % die ersten zwei Zeilen 0 setzen
     end
     
@@ -243,14 +249,18 @@ if SIR20==1
         end
     end
 elseif SIR3000==1
-    fseek(fid,rh_data*2,'bof');   % Zur?cksetzen auf Anfang der Daten
-    for i=1:rh_ntraces
-        test=fread(fid,4,'char*1=>uint8','l');
-        marker(i)=test(4);
-        fseek(fid,rh_data+rh_nsamp*i*2,'bof');    % zum n?chsten Spuranfang setzen
-    end
+    val=unique(data(2,:));
+    test=[sum(data(2,:)==val(1)) sum(data(2,:)==val(2))]; % get number of occurences
+    mark=find(data(2,:)==val(min(test)==test));
 
-    mark=find(marker==104);
+%     fseek(fid,rh_data*2,'bof');   % Zur?cksetzen auf Anfang der Daten
+%     for i=1:rh_ntraces
+%         test=fread(fid,4,'char*1=>uint8','l');
+%         marker(i)=test(4);
+%         fseek(fid,rh_data+rh_nsamp*i*2,'bof');    % zum n?chsten Spuranfang setzen
+%     end
+% 
+%     mark=find(marker<mean(marker));
 end
     
 if ~ exist('mark','var')

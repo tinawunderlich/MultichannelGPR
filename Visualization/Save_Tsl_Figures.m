@@ -11,7 +11,7 @@ clc
 % make_Timeslices.m)
 
 
-colperc=2; % Colorscale clipping in percent (if =0: autoscale min-max)
+colperc=3; % Colorscale clipping in percent (if =0: autoscale min-max)
 
 removeBorder=1; % =1: remove border artifacts from interpolation, =0: leave as it is
 pix=2; % if removeBorder==1: how many pixels are removed from border around area

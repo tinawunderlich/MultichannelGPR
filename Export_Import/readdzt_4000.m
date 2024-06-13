@@ -115,9 +115,14 @@ if exist([pathstr,'/',fname,'.DZG'])    % falls koordinatendatei vorhanden
                         if matlab
                             t(count) = datetime(GPGGALine{2},'InputFormat','HHmmss.SS');
                         end
+
+                        % extract the gps quality
+                        q(count) = str2double(GPGGALine{7});
+
                         % extract the trace number
                         trn(count)=str2double(GSSILine{2});
                         count = count + 1;
+                        
                     end
                 end
             end
@@ -132,6 +137,8 @@ if exist([pathstr,'/',fname,'.DZG'])    % falls koordinatendatei vorhanden
         else
             time = zeros(size(trnum));
         end
+
+        quality = q(ia);
 
         xyz = [ trnum', x(ia)', y(ia)', z(ia)' ];
     else
@@ -447,7 +454,7 @@ if isempty(xyz)
 end
 xyz(isnan(xyz(:,2)) | isnan(xyz(:,3)),:)=[];
 
-if zone~=0 && ~all(all(xyz(:,2:4)==0)) % convert to UTM
+if zone~=0 && ~all(all(xyz(:,2:3)==0)) % convert to UTM
     lontemp=num2str(xyz(:,2),'%.8f');
     lattemp=num2str(xyz(:,3),'%.8f');
     for j=1:length(lattemp(:,1))
@@ -608,7 +615,12 @@ if ~isempty(xyz) && ~all(xyz(:,2)==0)
     else 
         klein_flag=0;
     end
-    
+    quality(klein) = [];
+    q = quality;
+    quality = NaN(size(trnum1));
+    quality(xyz(:,1)) = q;
+    quality=interp1(xyz(:,1),q,trnum1,'nearest',NaN);
+   
     x=interp1(xyz(:,1),xyz(:,2),trnum1,'linear',NaN);
     y=interp1(xyz(:,1),xyz(:,3),trnum1,'linear',NaN);
     z=interp1(xyz(:,1),xyz(:,4),trnum1,'linear',NaN);
@@ -630,6 +642,7 @@ else
     y=zeros(1,length(data(1,:))/rh_nchan);
     z=zeros(1,length(data(1,:))/rh_nchan);
     t=zeros(1,length(data(1,:))/rh_nchan);
+    quality=zeros(1,length(data(1,:))/rh_nchan);
 end
 % Spuren ohne Koordinaten löschen
 weg=find(isnan(x) | isnan(y));
@@ -637,6 +650,8 @@ x(weg)=[];
 y(weg)=[];
 z(weg)=[];
 t(weg)=[];
+quality(weg) = [];
+
 if rh_nchan==2
     data(:,rh_ntraces/2+weg)=[];
 end
@@ -729,6 +744,7 @@ if ~isempty(xyz) && length(xyz(:,1))==1  % CMP
             trh.mark=mark;
         end
         trh.time = NaT(size(trh.tracenum));
+        trh.quality = NaN(size(trh.tracenum));
     else
         trh.x=[zeros(size(trh.tracenum)) zeros(size(trh.tracenum))];
         trh.y=[zeros(size(trh.tracenum)) zeros(size(trh.tracenum))];
@@ -739,6 +755,7 @@ if ~isempty(xyz) && length(xyz(:,1))==1  % CMP
             trh.mark=[mark mark];
         end
         trh.time = [NaT(size(trh.tracenum)) NaT(size(trh.tracenum))];
+        trh.quality = [NaN(size(trh.tracenum)) NaN(size(trh.tracenum))];
     end
 else
     if rh_nchan==2
@@ -746,12 +763,14 @@ else
         trh.y=[y y];
         trh.z=[z z];
         trh.time = [time time];
+        trh.quality = [quality quality];
 
     else
         trh.x=x;
         trh.y=y;
         trh.z=z;
         trh.time=time;
+        trh.quality=quality;
     end
 
 end

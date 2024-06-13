@@ -12,9 +12,9 @@ clc
 
 
 % Choose options for velocity model:
-vopt=4;
+vopt=1;
 % vopt=1: Constant velocity for all profiles in radargrams.mat
-vconst=0.13; % v in m/ns
+vconst=0.08; % v in m/ns
 % vopt=2: Constant velocity (but different) for each profile in radargrams.mat
 vall=[0.1 0.08]; % v for each profile in m/ns
 % vopt=3: 1D velocity model for all profiles
@@ -25,7 +25,7 @@ t1d=[0 18]; % corresponding times in ns
 
 
 % Choose options for topography:
-topoopt=1;
+topoopt=0;
 % topoopt=0: no topography file required
 % topoopt=1: topography is already set in global_coords(:,3)
 % topoopt=2: topography has to be set with file containing profile number (1. column),

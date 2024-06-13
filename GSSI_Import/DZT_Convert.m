@@ -15,8 +15,8 @@ app='SIR4000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet
 
 dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
-convert2utm=1; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
-zone=32; % if convert2utm==1 -> give UTM-zone
+convert2utm=0; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
+zone=33; % if convert2utm==1 -> give UTM-zone
 
 offsetGPS_X=0; % [m] Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
 offsetGPS_Y=0; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
@@ -138,7 +138,7 @@ for i=1:length(list)
         elseif strcmp(app,'SIR30')
             [data,trh,h]=readdzt_30(fullfile(pfad,[name{i},'.DZT']),dataplot);
         else
-            [data,trh,h]=readdzt_all(fullfile(pfad,[name{i},'.DZT']),dataplot);
+            [data,trh,h]=readdzt_all(fullfile(pfad,[name{i},'.DZT']),dataplot,app);
         end
         
         if ~strcmp(app,'SIR4000') && convert2utm==1 && exist([pfad,'/', name{i}, '.DZG'])
@@ -165,6 +165,7 @@ for i=1:length(list)
             trh.y=trh.y(~weg);
             trh.z=trh.z(~weg);
             trh.time=trh.time(~weg);
+            trh.quality=trh.quality(~weg);
             trh.mark=trh.mark(~weg);
             trh.channum=trh.channum(~weg);
             trh.tracenum=1:length(trh.mark);
@@ -416,6 +417,7 @@ for i=1:length(list)
         % if readdzt_all was used no field time is created
         if ~isfield(trh,'time')
             trh.time = zeros(size(trh.x));
+            trh.quality = NaN(size(trh.x)); % NaN because zero has a definition: (0=Fix not valid)
         end
         
         if h.nchan==2
@@ -438,8 +440,10 @@ for i=1:length(list)
                 elseif coords_opt==2 % cumulative sum
                     x=[x; {[0; cumsum(sqrt(diff(xtemp).^2+diff(ytemp).^2)')]}];
                 end
-                time = [{trh.time(trh.channum==1) }];
-                time = [time; {trh.time(trh.channum==2) }];
+                time = [{trh.time(trh.channum==1)}];
+                time = [time; {trh.time(trh.channum==2)}];
+                quality = [{trh.quality(trh.channum==1)}];
+                quality = [quality; {trh.quality(trh.channum==2)}];
                 if ~all(trh.mark==0) % marker present
                     marker=[{trh.mark(trh.channum==1)}];
                     marker=[marker; {trh.mark(trh.channum==2)}];
@@ -465,8 +469,10 @@ for i=1:length(list)
                 elseif coords_opt==2 % cumulative sum
                     x=[x; {[0; cumsum(sqrt(diff(xtemp).^2+diff(ytemp).^2)')]}];  
                 end
-                time = [time; {trh.time(trh.channum==1) }];
-                time = [time; {trh.time(trh.channum==2) }];
+                time = [time; {trh.time(trh.channum==1)}];
+                time = [time; {trh.time(trh.channum==2)}];
+                quality = [quality; {trh.quality(trh.channum==1)}];
+                quality = [quality; {trh.quality(trh.channum==2)}];
                 if ~all(trh.mark==0) % marker present
                     marker=[marker; {trh.mark(trh.channum==1)}];
                     marker=[marker; {trh.mark(trh.channum==2)}];
@@ -501,7 +507,8 @@ for i=1:length(list)
                     x=[{[0; cumsum(sqrt(diff(xtemp).^2+diff(ytemp).^2)')]}];
                 end
                 
-                time = [{trh.time(trh.channum==1) }];
+                time = [{trh.time(trh.channum==1)}];
+                quality = [{trh.quality(trh.channum==1)}];
 
                 if ~all(trh.mark==0) % marker present
                     marker=[{trh.mark(trh.channum==1)}];
@@ -520,7 +527,8 @@ for i=1:length(list)
                     x=[x; {[0; cumsum(sqrt(diff(xtemp).^2+diff(ytemp).^2)')]}];    
                 end
                 
-                time = [time; {trh.time(trh.channum==1) }];
+                time = [time; {trh.time(trh.channum==1)}];
+                quality = [quality; {trh.quality(trh.channum==1)}];
                 if ~all(trh.mark==0) % marker present
                     marker=[marker; {trh.mark(trh.channum==1)}];
                 end
@@ -558,11 +566,13 @@ if export2mat==1
             mtemp=marker;
             ttemp=t;
             timetemp = time;
+            qualitytemp = quality;
             clear global_coords;
             clear x;
             clear radargrams;
             clear marker;
             clear time;
+            clear quality;
             
             % make new folder
             if ~exist(fullfile(pfad,'mat_ch1'),'dir')
@@ -581,6 +591,7 @@ if export2mat==1
                     x{anz}=xtemp{i};
                     global_coords{anz}=ctemp{i};
                     time{anz}=timetemp{i};
+                    quality{anz}=qualitytemp{i};
                     if ~isempty(mtemp)
                         marker{anz}=mtemp{i};
                     end
@@ -593,6 +604,7 @@ if export2mat==1
             save(fullfile(pfad,'mat_ch1','global_coords.mat'),'global_coords','-v7.3');
             save(fullfile(pfad,'mat_ch1','h.mat'),'headers','-v7.3');
             save(fullfile(pfad,'mat_ch1','time.mat'),'time','-v7.3');
+            save(fullfile(pfad,'mat_ch1','quality.mat'),'quality','-v7.3');
             if ~isempty(mtemp)
                 save(fullfile(pfad,'mat_ch1','marker.mat'),'marker','-v7.3');
             end
@@ -615,6 +627,7 @@ if export2mat==1
                     x{anz}=xtemp{i};
                     global_coords{anz}=ctemp{i};
                     time{anz}=timetemp{i};
+                    quality{anz}=qualitytemp{i};
                     if ~isempty(mtemp)
                         marker{anz}=mtemp{i};
                     end
@@ -628,6 +641,7 @@ if export2mat==1
             save(fullfile(pfad,'mat_ch2','global_coords.mat'),'global_coords','-v7.3');
             save(fullfile(pfad,'mat_ch2','h.mat'),'headers','-v7.3');
             save(fullfile(pfad,'mat_ch2','time.mat'),'time','-v7.3');
+            save(fullfile(pfad,'mat_ch2','quality.mat'),'quality','-v7.3');
             if ~isempty(mtemp)
                 save(fullfile(pfad,'mat_ch2','marker.mat'),'marker','-v7.3');
             end
@@ -660,6 +674,7 @@ if export2mat==1
             save(fullfile(pfad,'mat','global_coords.mat'),'global_coords','-v7.3');
             save(fullfile(pfad,'mat','h.mat'),'headers','-v7.3');
             save(fullfile(pfad,'mat','time.mat'),'time','-v7.3');
+            save(fullfile(pfad,'mat','quality.mat'),'quality','-v7.3');
             if ~isempty(marker)
                 save(fullfile(pfad,'mat','marker.mat'),'marker','-v7.3');
             end
@@ -683,12 +698,14 @@ if export2mat==1
             mtemp=marker;
             ttemp=t;
             timetemp = time;
+            qualitytemp = quality;
             clear global_coords;
             clear x;
             clear radargrams;
             clear marker;
             clear time;
-            
+            clear quality;
+
             % make new folder
             if ~exist(fullfile(pfad,'mat_ch1'),'dir')
                 mkdir(fullfile(pfad,'mat_ch1'));
@@ -706,6 +723,7 @@ if export2mat==1
                     x{anz}=xtemp{i};
                     global_coords{anz}=ctemp{i};
                     time{anz}=timetemp{i};
+                    quality{anz}=qualitytemp{i};
                     if ~isempty(mtemp)
                         marker{anz}=mtemp{i};
                     end
@@ -718,6 +736,7 @@ if export2mat==1
             save(fullfile(pfad,'mat_ch1','global_coords.mat'),'global_coords');
             save(fullfile(pfad,'mat_ch1','h.mat'),'headers');
             save(fullfile(pfad,'mat_ch1','time.mat'),'time');
+            save(fullfile(pfad,'mat_ch1','quality.mat'),'quality');
             if ~isempty(mtemp)
                 save(fullfile(pfad,'mat_ch1','marker.mat'),'marker');
             end
@@ -740,6 +759,7 @@ if export2mat==1
                     x{anz}=xtemp{i};
                     global_coords{anz}=ctemp{i};
                     time{anz}=timetemp{i};
+                    quality{anz}=qualitytemp{i};
                     if ~isempty(mtemp)
                         marker{anz}=mtemp{i};
                     end
@@ -753,6 +773,7 @@ if export2mat==1
             save(fullfile(pfad,'mat_ch2','global_coords.mat'),'global_coords');
             save(fullfile(pfad,'mat_ch2','h.mat'),'headers');
             save(fullfile(pfad,'mat_ch2','time.mat'),'time');
+            save(fullfile(pfad,'mat_ch2','quality.mat'),'quality');
 
             if ~isempty(mtemp)
                 save(fullfile(pfad,'mat_ch2','marker.mat'),'marker');
@@ -786,6 +807,7 @@ if export2mat==1
             save(fullfile(pfad,'mat','global_coords.mat'),'global_coords');
             save(fullfile(pfad,'mat','h.mat'),'headers');
             save(fullfile(pfad,'mat','time.mat'),'time');
+            save(fullfile(pfad,'mat','quality.mat'),'quality');
             if ~isempty(marker)
                 save(fullfile(pfad,'mat','marker.mat'),'marker');
             end

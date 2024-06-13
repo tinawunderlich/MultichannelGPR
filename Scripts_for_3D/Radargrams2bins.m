@@ -27,9 +27,9 @@ dx=0.05; % [m]
 rotate_area=1;  % 1=yes, 0=no
 
 % Division into rectangles for processing
-border=0.5;   % overlapping border of rectangles in m
+border=0;   % overlapping border of rectangles in m
 
-force_division=1; % if =1: force program to divide into several rectangles
+force_division=0; % if =1: force program to divide into several rectangles
 
 % Parallelization (set this to 0 if you run into memory problems or if you
 % do not have a parallel pool)
