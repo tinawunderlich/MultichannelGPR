@@ -61,8 +61,10 @@ S.fh.Visible='on';
         S.panel1a=uipanel('Parent',S.panel1);
         set(S.panel1,'Position',[210 80+S.siz(4)/2+80 S.siz(3)-220 S.siz(4)/2-100],'Units','pixels'); % panel for cutting frame with slider
         set(S.panel1a,'Position',[210 80+S.siz(4)/2+80 2000 S.siz(4)/2-100],'Units','pixels'); % panel inside cutting frame with image
+        S.panel1a_pos=[210 80+S.siz(4)/2+80 2000 S.siz(4)/2-100];
 
-        S.slider1=uicontrol('Style','Slider','Parent',S.fh,'Units','pixels','Position',[210 80+S.siz(4)/2+80 S.siz(3)-220 0.05],'Value',0.5,'Callback',@slider_callback1);
+        S.slider1H=uicontrol('Style','Slider','Parent',S.fh,'Units','pixels','Position',[210 80+S.siz(4)/2+80 S.siz(3)-220 0.05],'Value',0.5,'Callback',@slider_callback1);
+        S.slider1V=uicontrol('Style','Slider','Parent',S.fh,'Units','pixels','Position',[210 120 0.05 S.siz(4)/2-100],'Value',0.5,'Callback',@slider_callback1);
         
         S.ax1 = axes('OuterPosition',[0.02 0.02 0.98 0.98],'Units','normalized','Parent',S.panel1a);
         % make initial plot
@@ -94,9 +96,12 @@ S.fh.Visible='on';
         S.panel2a=uipanel('Parent',S.panel2);
         set(S.panel2,'Position',[210 120 S.siz(3)-220 S.siz(4)/2-100],'Units','pixels');
         set(S.panel2a,'Position',[210 120 2000 S.siz(4)/2-100],'Units','pixels');
+        S.panel2a_pos=[210 120 2000 S.siz(4)/2-100];
 
-        S.slider2=uicontrol('Style','Slider','Parent',S.fh,'Units','pixels','Position',[210 120 S.siz(3)-220 0.05],'Value',0.5,'Callback',@slider_callback2);
-        
+        S.slider2H=uicontrol('Style','Slider','Parent',S.fh,'Units','pixels','Position',[210 120 S.siz(3)-220 0.05],'Value',0.5,'Callback',@slider_callback2);
+        S.slider2V=uicontrol('Style','Slider','Parent',S.fh,'Units','pixels','Position',[210 80+S.siz(4)/2+80 0.05 S.siz(4)/2-100],'Value',0.5,'Callback',@slider_callback2);
+
+
         S.ax2 = axes('OuterPosition',[0.02 0.02 0.98 0.98],'Units','normalized','Parent',S.panel2a);
         % make initial plot
         if isnan(S.z)
@@ -148,22 +153,25 @@ S.fh.Visible='on';
         S.flag=1;
         
         % UI control - pushbutton for saving
-        S.save=uicontrol(S.fh,'Style','pushbutton','String','Save all picks','Position',[10 220 180 25],'Callback',@save_picks);
+        S.save=uicontrol(S.fh,'Style','pushbutton','String','Save all picks','Position',[10 320 180 25],'Callback',@save_picks);
         
         % UI control - pushbutton for loading
-        S.load=uicontrol(S.fh,'Style','pushbutton','String','Load picks','Position',[10 250 180 25],'Callback',@load_picks);
+        S.load=uicontrol(S.fh,'Style','pushbutton','String','Load picks','Position',[10 350 180 25],'Callback',@load_picks);
         
         % UI control - pushbutton for deleting of layer
-        S.dellayer=uicontrol(S.fh,'Style','pushbutton','String','Delete current layer','Position',[10 280 180 25],'Callback',@delete_layer);
+        S.dellayer=uicontrol(S.fh,'Style','pushbutton','String','Delete current layer','Position',[10 380 180 25],'Callback',@delete_layer);
         
-        
+        % UI control - zoom
+        S.zoom=uicontrol(S.fh,'Style','listbox','unit','pix','position',[10 220 80 60],'Value',3,'String',[{'25%'} {'50%'} {'100%'} {'150%'} {'200%'} {'300%'}],'Callback',@zoom_call);
+        S.zoomtext=uicontrol(S.fh,'style','text','unit','pix','position',[10 280 80 20],'String','Zoom','HorizontalAlignment','left');
+
         % UI control for profile number
-        S.prof=uicontrol(S.fh,'Style','listbox','unit','pix','position',[100 20 90 160],'String',S.profilelist,'Value',1,'callback',@profnum_call);
-        S.proftext=uicontrol(S.fh,'style','text','unit','pix','position',[100 180 90 20],'String','Profile','HorizontalAlignment','left');
+        S.prof=uicontrol(S.fh,'Style','listbox','unit','pix','position',[100 120 90 160],'String',S.profilelist,'Value',1,'callback',@profnum_call);
+        S.proftext=uicontrol(S.fh,'style','text','unit','pix','position',[100 280 90 20],'String','Profile','HorizontalAlignment','left');
         
         % UI control for layer list
-        S.layerlist=uicontrol(S.fh,'Style','listbox','unit','pix','position',[10 320 180 160],'String','','Value',1,'callback',@layerlist_call);
-        S.layertext=uicontrol(S.fh,'style','text','unit','pix','position',[10 480 90 20],'String','List of layers','HorizontalAlignment','left');
+        S.layerlist=uicontrol(S.fh,'Style','listbox','unit','pix','position',[10 420 180 160],'String','','Value',1,'callback',@layerlist_call);
+        S.layertext=uicontrol(S.fh,'style','text','unit','pix','position',[10 580 90 20],'String','List of layers','HorizontalAlignment','left');
         
         
         % UI control - pushbutton for delete all picks
@@ -184,7 +192,7 @@ S.fh.Visible='on';
         S.new_layer=uicontrol(S.fh,'Style','pushbutton','String','Start picking','Position',[200 20 250 25],'Callback',@newlayer_call);
         
         % UI control for info text
-        S.infotext=uicontrol('Style','text','String','For scrolling: move mouse inside plot and use arrow keys','Position',[10 550 180 50]);
+        S.infotext=uicontrol('Style','text','String','For scrolling: move mouse inside plot and use arrow keys','Position',[10 650 180 50]);
     end
 
 % save handles
@@ -202,64 +210,106 @@ guidata(S.fh,S);
         % find out if mouse is inside a plot
         if pos(1)>=pos_ax1_panel(1) && pos(1)<=pos_ax1_panel(1)+pos_ax1_panel(3) && pos(2)>=pos_ax1_panel(2) && pos(2)<=pos_ax1_panel(2)+pos_ax1_panel(4)
             % Mouse in upper radargram-panel
-            val = get(S.slider1,'Value');
+            valH = get(S.slider1H,'Value');
+            valV = get(S.slider1V,'Value');
             if strcmp(event.Key,'rightarrow')
-                set(S.panel1a,'Position',[-(val+0.05) 0 2 1],'Units','normalized')
-                S.slider1.Value=val+0.05;
+                set(S.panel1a,'Position',[-(valH+0.05)*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                S.slider1H.Value=valH+0.05;
                 if S.connect.Value==1
-                    set(S.panel2a,'Position',[-(val+0.05) 0 2 1],'Units','normalized')
-                    set(S.slider2,'Value',val+0.05);
+                    set(S.panel2a,'Position',[-(valH+0.05)*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                    set(S.slider2H,'Value',valH+0.05);
                 end
             elseif strcmp(event.Key,'leftarrow')
-                set(S.panel1a,'Position',[-(val-0.05) 0 2 1],'Units','normalized')
-                S.slider1.Value=val-0.05;
+                set(S.panel1a,'Position',[-(valH-0.05)*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                S.slider1H.Value=valH-0.05;
                 if S.connect.Value==1
-                    set(S.panel2a,'Position',[-(val-0.05) 0 2 1],'Units','normalized')
-                    set(S.slider2,'Value',val-0.05);
+                    set(S.panel2a,'Position',[-(valH+0.05)*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                    set(S.slider2H,'Value',valH-0.05);
+                end
+            elseif strcmp(event.Key,'uparrow')
+                set(S.panel1a,'Position',[-valH*S.zoomval -(valV+0.05)*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                S.slider1V.Value=valV+0.05;
+                if S.connect.Value==1
+                    set(S.panel2a,'Position',[-valH*S.zoomval -(valV+0.05)*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                    set(S.slider2H,'Value',valV+0.05);
+                end
+            elseif strcmp(event.Key,'downarrow')
+                set(S.panel1a,'Position',[-valH*S.zoomval -(valV-0.05)*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                S.slider1V.Value=valV-0.05;
+                if S.connect.Value==1
+                    set(S.panel2a,'Position',[-valH*S.zoomval -(valV-0.05)*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                    set(S.slider2H,'Value',valV-0.05);
                 end
             end
         elseif pos(1)>=pos_ax2_panel(1) && pos(1)<=pos_ax2_panel(1)+pos_ax2_panel(3) && pos(2)>=pos_ax2_panel(2) && pos(2)<=pos_ax2_panel(2)+pos_ax2_panel(4)
             % Mouse in lower radargram-panel
-            val = get(S.slider2,'Value');
+            valH = get(S.slider2H,'Value');
+            valV = get(S.slider2V,'Value');
             if strcmp(event.Key,'rightarrow')
-                set(S.panel2a,'Position',[-(val+0.05) 0 2 1],'Units','normalized')
-                S.slider2.Value=val+0.05;
+                set(S.panel2a,'Position',[-(valH+0.05)*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                S.slider2H.Value=valH+0.05;
                 if S.connect.Value==1
-                    set(S.panel1a,'Position',[-(val+0.05) 0 2 1],'Units','normalized')
-                    set(S.slider1,'Value',val+0.05);
+                    set(S.panel1a,'Position',[-(valH+0.05)*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                    set(S.slider1H,'Value',valH+0.05);
                 end
             elseif strcmp(event.Key,'leftarrow')
-                set(S.panel2a,'Position',[-(val-0.05) 0 2 1],'Units','normalized')
-                S.slider2.Value=val-0.05;
+                set(S.panel2a,'Position',[-(valH-0.05)*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                S.slider2H.Value=valH-0.05;
                 if S.connect.Value==1
-                    set(S.panel1a,'Position',[-(val-0.05) 0 2 1],'Units','normalized')
-                    set(S.slider1,'Value',val-0.05);
+                    set(S.panel1a,'Position',[-(valH+0.05)*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                    set(S.slider1H,'Value',valH-0.05);
+                end
+            elseif strcmp(event.Key,'uparrow')
+                set(S.panel2a,'Position',[-valH*S.zoomval -(valV+0.05)*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                S.slider2V.Value=valV+0.05;
+                if S.connect.Value==1
+                    set(S.panel1a,'Position',[-valH*S.zoomval -(valV+0.05)*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                    set(S.slider1H,'Value',valV+0.05);
+                end
+            elseif strcmp(event.Key,'downarrow')
+                set(S.panel2a,'Position',[-valH*S.zoomval -(valV-0.05)*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                S.slider2V.Value=valV-0.05;
+                if S.connect.Value==1
+                    set(S.panel1a,'Position',[-valH*S.zoomval -(valV-0.05)*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+                    set(S.slider1H,'Value',valV-0.05);
                 end
             end
         end
     end
 
-    function slider_callback1(varargin)
+    function slider_callback1(varargin) % 1 Top
         S=guidata(gcbf);
-        val = get(S.slider1,'Value');
-        set(S.panel1a,'Position',[-val 0 2 1],'Units','normalized')
+        valH = get(S.slider1H,'Value');
+        valV = get(S.slider1V,'Value');
+
+        S.zoomval=S.zoom.String(S.zoom.Value);
+        temp=extractBefore(S.zoomval,'%');
+        S.zoomval=str2double(temp)./100; % zoom factor
+
+        set(S.panel1a,'Position',[-valH*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
         if S.connect.Value==1
-            set(S.panel2a,'Position',[-val 0 2 1],'Units','normalized')
-            set(S.slider2,'Value',val);
+            set(S.panel2a,'Position',[-valH*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+            set(S.slider2H,'Value',valH);
+            set(S.slider2V,'Value',valV);
         end
         guidata(gcbf,S); % Update
     end
 
-    function slider_callback2(varargin)
+    function slider_callback2(varargin) % 2 bottom
         S=guidata(gcbf);
-        val = get(S.slider2,'Value');
-        set(S.panel2a,'Position',[-val 0 2 1],'Units','normalized')
+        valH = get(S.slider2H,'Value');
+        valV = get(S.slider2V,'Value');
+
+        set(S.panel2a,'Position',[-valH*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
         if S.connect.Value==1
-            set(S.panel1a,'Position',[-val 0 2 1],'Units','normalized')
-            set(S.slider1,'Value',val);
+            set(S.panel1a,'Position',[-valH*S.zoomval -valV*S.zoomval 2 2].*S.zoomval,'Units','normalized')
+            set(S.slider1H,'Value',valH);
+            set(S.slider1V,'Value',valV);
         end
         guidata(gcbf,S); % Update
     end
+
+    
 
     function resizeui(hObject,event)
 
@@ -281,8 +331,10 @@ guidata(S.fh,S);
         S.panel2.Position=[210 120 wid_fig-220 hei_fig/2-100];
 
         % change size of sliders
-        S.slider2.Position=[210 120 wid_fig-220 0.05]; % bottom
-        S.slider1.Position=[210 80+hei/2+80 wid_fig-220 0.05]; % top
+        S.slider2H.Position=[210 120 wid_fig-220 0.05]; % bottom
+        S.slider1H.Position=[210 80+hei/2+80 wid_fig-220 0.05]; % top
+        S.slider2V.Position=[210 120 0.05 hei_fig/2-100]; % bottom/left
+        S.slider1V.Position=[210 80+hei/2+80 0.05 hei_fig/2-100]; % top/left
 
         % change position of auto and comparenum-boxes
         S.comparenum.Position=[380 170+hei 40 20];
@@ -294,12 +346,33 @@ guidata(S.fh,S);
         S.title2.Position=[210 120+hei/2 200 20];
 
         % slider update
-        val1 = get(S.slider1,'Value');
-        set(S.panel1a,'Position',[-val1 0 2 1],'Units','normalized');
-        val2 = get(S.slider2,'Value');
-        set(S.panel2a,'Position',[-val2 0 2 1],'Units','normalized');
+        S.zoomval=S.zoom.String(S.zoom.Value);
+        temp=extractBefore(S.zoomval,'%');
+        S.zoomval=str2double(temp)./100; % zoom factor
+        val1 = get(S.slider1H,'Value');
+        val2 = get(S.slider2H,'Value');
+        val3 = get(S.slider1V,'Value');
+        val4 = get(S.slider2V,'Value');
+        set(S.panel1a,'Position',[-val1*S.zoomval -val3*S.zoomval 2 2].*S.zoomval,'Units','normalized');
+        set(S.panel2a,'Position',[-val2*S.zoomval -val4*S.zoomval 2 2].*S.zoomval,'Units','normalized');
+       
     end
 
+    function [] = zoom_call(varargin)
+        % Callback for zoom
+        S=guidata(gcbf);
+        S.zoomval=S.zoom.String(S.zoom.Value);
+        temp=extractBefore(S.zoomval,'%');
+        S.zoomval=str2double(temp)./100;
+        val1 = get(S.slider1H,'Value');
+        val2 = get(S.slider1V,'Value');
+        val3 = get(S.slider2H,'Value');
+        val4 = get(S.slider2V,'Value');
+        set(S.panel1a,'Position',[-val1*S.zoomval -val2*S.zoomval 2 2]*S.zoomval,'Units','normalized');
+        set(S.panel2a,'Position',[-val3*S.zoomval -val4*S.zoomval 2 2]*S.zoomval,'Units','normalized');
+
+        guidata(gcbf,S); % Update
+    end
 
 
     function [] = asp_call(varargin)
@@ -312,8 +385,8 @@ guidata(S.fh,S);
         set(S.ax2,'DataAspectratio',[S.aspval 1 1]);
         drawnow;
 
-        S.slider1.Value=0.5;
-        S.slider2.Value=0.5;
+        S.slider1H.Value=0.5;
+        S.slider2H.Value=0.5;
 
         guidata(gcbf,S); % Update
     end

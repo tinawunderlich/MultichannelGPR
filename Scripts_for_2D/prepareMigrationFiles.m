@@ -14,7 +14,7 @@ clc
 % Choose options for velocity model:
 vopt=1;
 % vopt=1: Constant velocity for all profiles in radargrams.mat
-vconst=0.16; % v in m/ns
+vconst=0.06; % v in m/ns
 % vopt=2: Constant velocity (but different) for each profile in radargrams.mat
 vall=[0.1 0.08]; % v for each profile in m/ns
 % vopt=3: 1D velocity model for all profiles
