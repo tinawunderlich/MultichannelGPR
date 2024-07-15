@@ -16,7 +16,7 @@ clc
 %%-------------------------------------------------------------------------
 
 
-filter_coords=2; % possible values: 0, 1, 2:
+filter_coords=0; % possible values: 0, 1, 2:
 % if =0: no filtering
 % if =1: coordinates are filtered and traces at
 % approx. the same position will be removed (e.g. at the beginning or
@@ -451,11 +451,14 @@ pps(pps(:,2)<=10,:)=[];
 pps=[pps(:,1) [0;diff(pps(:,1))] [0;diff(log_cpdt(pps(:,1),2))]];
 
 % if pss was missing inbetween -> tr_diff large -> divide
-if median(pps(:,2))>40 && median(pps(:,2))<60
-    thresh=55; % should be around 50 for 50 Hz (time dist 0.02s) GPR data (=50 traces per second)
-elseif median(pps(:,2))>70 && median(pps(:,2))<130
-    thresh=110; % should be around 100 for 100 Hz (time dist 0.01s) GPR data (=100 traces per second)
-end
+% if median(pps(:,2))>40 && median(pps(:,2))<60
+%     thresh=55; % should be around 50 for 50 Hz (time dist 0.02s) GPR data (=50 traces per second)
+% elseif median(pps(:,2))>70 && median(pps(:,2))<130
+%     thresh=110; % should be around 100 for 100 Hz (time dist 0.01s) GPR data (=100 traces per second)
+% else
+%     thresh=median(pps(:,2));
+% end
+thresh=55;
 for i=1:length(pps(:,1))
     temp=pps(i,2);
     a=2;
@@ -470,7 +473,7 @@ end
 pps(:,3)=pps(:,3)./factor;
 
 % time diff should be around 1 s -> delete other points
-f=pps(:,3)<=990 | pps(:,3)>=1010; % bad points (time diff too small/large)
+f=pps(:,3)<=900 | pps(:,3)>=1100; % bad points (time diff too small/large) % original: 990/1010
 pps(f,:)=[];
 
 % only take the lines where utm and pps have the same trace number
@@ -528,11 +531,14 @@ else
     % interpolate coordinates:
     trnum=[1:log_cpss(end,1)]';
     postime_int=round(interp1(log_cpss(:,1),log_cpss(:,2),trnum)); % interpolate pos-time for every  trace
-    shift_postime=postime_int-moffset;  % + oder -?????
-    new_trn=interp1(log_cpss(:,2),log_cpss(:,1),shift_postime);  % new trace numbers
-    x=interp1(log_cpss(:,2),utm(:,2),shift_postime,'linear','extrap'); % new x-coords
-    y=interp1(log_cpss(:,2),utm(:,3),shift_postime,'linear','extrap'); % new y-coords
-    z=interp1(log_cpss(:,2),utm(:,4),shift_postime,'linear','extrap'); % new z-coords
+    shift_postime=postime_int-moffset; 
+    % sometimes log_cpss(:,2) is not monotonically increasing, but has the
+    % same values in between -> make unique
+    [~,a,~]=unique(log_cpss(:,2));
+    %new_trn=interp1(log_cpss(a,2),log_cpss(a,1),shift_postime);  % new trace numbers
+    x=interp1(log_cpss(a,2),utm(a,2),shift_postime,'linear','extrap'); % new x-coords
+    y=interp1(log_cpss(a,2),utm(a,3),shift_postime,'linear','extrap'); % new y-coords
+    z=interp1(log_cpss(a,2),utm(a,4),shift_postime,'linear','extrap'); % new z-coords
 
     utm=[utm(:,1) x(utm(:,1)) y(utm(:,1)) z(utm(:,1))];
 end
