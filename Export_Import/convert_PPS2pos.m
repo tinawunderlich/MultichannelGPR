@@ -15,6 +15,9 @@ clc
 % Dr. Tina Wunderlich, CAU Kiel, tina.wunderlich@ifg.uni-kiel.de, 2023
 %%-------------------------------------------------------------------------
 
+% The settings made in MIRAsoft are not correctly set in the *.rad-files!
+% Therefore you have to give the trace interval:
+tr_interval=0.02; % [sec] e.g. 0.02 seconds
 
 filter_coords=0; % possible values: 0, 1, 2:
 % if =0: no filtering
@@ -106,7 +109,7 @@ if ~isempty(list)
         movefile(fullfile(foldername,list(i).name),fullfile(foldername,'local_coords',list(i).name));
 
         % determine time offset with PPS and apply it
-        utm=PPS_synchro(foldername,list(i).name,utm);
+        utm=PPS_synchro(foldername,list(i).name,utm,tr_interval);
 
         if isempty(utm)
             disp(['File ',int2str(number(i)),' is too short (test file). Moving into folder "notValid".'])
@@ -327,7 +330,7 @@ end
 
 
 %% function for PPS synchronization
-function utm=PPS_synchro(foldername,filename,utm)
+function utm=PPS_synchro(foldername,filename,utm,tr_interval)
 % split filename:
 temp=strsplit(filename,'_');
 
@@ -451,6 +454,7 @@ pps(pps(:,2)<=10,:)=[];
 pps=[pps(:,1) [0;diff(pps(:,1))] [0;diff(log_cpdt(pps(:,1),2))]];
 
 % if pss was missing inbetween -> tr_diff large -> divide
+%%% OLD:
 % if median(pps(:,2))>40 && median(pps(:,2))<60
 %     thresh=55; % should be around 50 for 50 Hz (time dist 0.02s) GPR data (=50 traces per second)
 % elseif median(pps(:,2))>70 && median(pps(:,2))<130
@@ -458,7 +462,8 @@ pps=[pps(:,1) [0;diff(pps(:,1))] [0;diff(log_cpdt(pps(:,1),2))]];
 % else
 %     thresh=median(pps(:,2));
 % end
-thresh=55;
+%%% NEW:
+thresh=(1/tr_interval)/100*110;
 for i=1:length(pps(:,1))
     temp=pps(i,2);
     a=2;
