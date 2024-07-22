@@ -13,19 +13,19 @@ clc
 
 % which rectangles?
 rect_start=1;
-rect_end=15;
+rect_end=2;
 
 % which timeslice for profile selection?
-tsl_start=20;   % start time in ns (or m if dsl=1)
-tsl_end=22;     % ending time in ns (or m if dsl=1)
-dsl=0; % =1 if vertical axis is depth, =0 if vertical axis is time
+tsl_start=45;   % start time in ns (or m if dsl=1)
+tsl_end=45.2;     % ending time in ns (or m if dsl=1)
+dsl=1; % =1 if vertical axis is depth, =0 if vertical axis is time
 % Tipp: If you have depth migrated data, tsl_start and tsl_end are in m
 % according to the depths in vector t. If you get an error message, please
 % check these numbers. tsl_start<tsl_end!
 
 % list of profile coordinates in rSlicer-folder?
 % (columns are: xstart ystart xend yend)
-list='Radargrams.txt'; % if no list, leave empty [] -> interactive picking in plot
+list='Radargrams_Gruben.txt'; % if no list, leave empty [] -> interactive picking in plot
 %list =[];
 coordglobal=1; % if the 3Dbins-R* are in local coordinates: do coordinate transformation if ==1
 
@@ -141,12 +141,10 @@ for i=rect_start:rect_end % for each rectangle...
     if dsl==1
         zrb{i}=NaN(size(xr{i}));
         data=permute(matFileObj.data(:,:,:),[3 1 2]);
-        [r,c]=find(~isnan(data)); % r is index of time vector, c is linear index for x-y-grids
-        b=unique(c); % find bins with non-isnan data (b is linear index corresponding to x-y-grids)
-        for kk=1:length(b) % for each bin with data...
-            zs=t(r(c==b(kk))); % get depth values with data
-            zrb{i}(b(kk))=min(zs); % set minimum depth of data in large matrix
-        end
+        tt=repmat(t',[1 size(data,2) size(data,3)]); % depth vector for each x/y grid point
+        tt(isnan(data))=NaN; % set values outside data to NaN
+        test=min(tt,[],1,'omitnan'); % get minimum depth for each grid point
+        zrb{i}=permute(test,[2 3 1]); % minimum data depth for this rectangle
     end
 
 end
