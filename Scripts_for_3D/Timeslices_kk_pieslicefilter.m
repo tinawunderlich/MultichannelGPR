@@ -269,6 +269,7 @@ if apply_to_all_tsl==1
     copyfile(fullfile(folder,'topo_interp.mat'),fullfile(folder,name,'topo_interp.mat'));
     copyfile(fullfile(folder,'xgrid_interp.mat'),fullfile(folder,name,'xgrid_interp.mat'));
     copyfile(fullfile(folder,'ygrid_interp.mat'),fullfile(folder,name,'ygrid_interp.mat'));
+    copyfile(fullfile(folder,'tslinfo.txt'),fullfile(folder,name,'tslinfo.txt'));
 
     disp('Done!')
 end
