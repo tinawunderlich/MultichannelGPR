@@ -160,6 +160,8 @@ for i=1:length(list)
             % if there are traces at the same position -> delete
             d1=diff(trh.x);
             d2=diff(trh.y);
+            d1=[d1 d1(end)];
+            d2=[d2 d2(end)];
             weg=(d1==0 & d2==0);
             trh.x=trh.x(~weg);
             trh.y=trh.y(~weg);
@@ -170,6 +172,8 @@ for i=1:length(list)
             trh.channum=trh.channum(~weg);
             trh.tracenum=1:length(trh.mark);
             data=data(:,~weg);
+            % adjust header
+            h.numtraces=size(data,2)/h.nchan;
 
             % now correct for offsets:
             anz2=round(0.5/mean(sqrt(diff(trh.x).^2+diff(trh.y).^2))); % number of points for direction determination (using mean trace spacing for 0.5 m distance)
