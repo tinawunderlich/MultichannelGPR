@@ -17,7 +17,7 @@ clc
 
 % The settings made in MIRAsoft are not correctly set in the *.rad-files!
 % Therefore you have to give the trace interval:
-tr_interval=0.02; % [sec] e.g. 0.02 seconds
+tr_interval=0.05; % [sec] e.g. 0.02 seconds
 
 filter_coords=0; % possible values: 0, 1, 2:
 % if =0: no filtering

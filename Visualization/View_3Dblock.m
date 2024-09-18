@@ -17,10 +17,10 @@ clc
 rectangles=1; % e.g. 1:3
 
 % depth or time domain?
-dsl=0;  % =1: depth, =0: time
+dsl=1;  % =1: depth, =0: time
 
 % use processed data (if =1, then use data in "3D_Grid_R*/processed" folder)
-proc=0;
+proc=1;
 
 % -------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!

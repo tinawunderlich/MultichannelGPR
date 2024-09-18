@@ -13,14 +13,14 @@ clc
 
 app='SIR4000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet
 
-dataplot=0; % plot radargram for controlling? 1=yes, 0=no
+dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
-convert2utm=1; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
+convert2utm=0; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
 zone=32; % if convert2utm==1 -> give UTM-zone
 
 offsetGPS_X=0; % [m] Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
-offsetGPS_Y=0.15; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
-h_GPS=0.55; % [m] height of GPS/prism above ground
+offsetGPS_Y=0; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
+h_GPS=0; % [m] height of GPS/prism above ground
 
 % Options for calculating inline coordinates for each trace:
 coords_opt=2;   % =1: trace coordinate is difference to beginning of profile (only use this for straight profiles!)
@@ -35,7 +35,7 @@ removeOutliers=0; % do you want to remove coordinate outliers?
 
 % Export to other formats
 export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
-export2segy=1; % export all radargrams as segy-files
+export2segy=0; % export all radargrams as segy-files
 constoff=0; % if=1: a constant coordinate offset will be subtracted and coordinates will be in mm accuracy in segy file (offsets will be saved in Inline3D (x) and Crossline3D (y))
 
 

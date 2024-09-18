@@ -1,4 +1,4 @@
-function wigglesc(data,t,x,scal)
+function wigglesc(data,t,x,scal,ax)
 
 %% scaled wiggle plot function
 % Dr. Tina Wunderlich, CAU Kiel, July 2022
@@ -8,6 +8,11 @@ function wigglesc(data,t,x,scal)
 % x: vector of profile coordinates with same length as data(1,:)
 % t: time vector of length(data(:,1))
 % scal: scaling factor, if=1, max amplitude is scaled as dx
+% ax: axes to plot in (optional)
+
+if nargin==4
+    ax=gca;
+end
 
 zci = @(v) find(v(:).*circshift(v(:), [-1 0]) <= 0); % anonymous function for finding the indices of zero crossings
 
@@ -40,6 +45,6 @@ for i=1:length(data(1,:)) % for every trace
     F2=F2(V(:,1)>=0); % black polygon = positive amplitudes
     F2=[1 F2 n]; % add first and last sample
     V(:,1)=V(:,1)+x(i); % add x-value of trace to amplitudes
-    patch('Faces',F1,'Vertices',V,'FaceColor','none');
-    patch('Faces',F2,'Vertices',V,'FaceColor','k');
+    patch(ax,'Faces',F1,'Vertices',V,'FaceColor','none');
+    patch(ax,'Faces',F2,'Vertices',V,'FaceColor','k');
 end
