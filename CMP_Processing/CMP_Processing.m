@@ -8,7 +8,7 @@ clc
 %
 % For using this script you need your data in the MultichannelGPR-format
 % (radargrams.mat, t.mat, global_coords.mat, x.mat), but with no
-% coordinates in x.mat and glbal_coords.mat. For GSSI-data use
+% coordinates in x.mat and global_coords.mat. For GSSI-data use
 % DZT_Convert.m first.
 %--------------------------------------------------------------------------
 

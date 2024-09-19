@@ -294,9 +294,9 @@ classdef CMPproc_exported < matlab.apps.AppBase
             % plot semblance
             imagesc(app.UISemblance,vs,t0s,app.data.S);
             set(app.UISemblance,'XLim',[vmin vmax],'YLim',[0 max(t0s)])
-            % set same height as other plot
-            app.UISemblance.DataAspectRatio=[1 4 1];
             colorbar(app.UISemblance);
+            % set same height as other plot
+            app.UISemblance.DataAspectRatio=[1 3.5 1];
 
             % enable other buttons:
             app.AutoPick_Button.Enable='on';
@@ -859,7 +859,7 @@ classdef CMPproc_exported < matlab.apps.AppBase
             % Create ThresholdEditField
             app.ThresholdEditField = uieditfield(app.SemblanceanalysisPanel, 'text');
             app.ThresholdEditField.Enable = 'off';
-            app.ThresholdEditField.Position = [225 49 20 25];
+            app.ThresholdEditField.Position = [225 49 30 25];
             app.ThresholdEditField.Value='0.4';
 
             % Create epsEditFieldLabel
@@ -873,19 +873,19 @@ classdef CMPproc_exported < matlab.apps.AppBase
             app.epsEditField = uieditfield(app.SemblanceanalysisPanel, 'text');
             app.epsEditField.Enable = 'off';
             app.epsEditField.Position = [310 49 20 25];
-            app.epsEditField.Value='5';
+            app.epsEditField.Value='3';
 
             % Create minptsEditFieldLabel
             app.minptsEditFieldLabel = uilabel(app.SemblanceanalysisPanel);
             app.minptsEditFieldLabel.HorizontalAlignment = 'right';
             app.minptsEditFieldLabel.Enable = 'off';
-            app.minptsEditFieldLabel.Position = [330 51 60 22];
+            app.minptsEditFieldLabel.Position = [325 51 60 22];
             app.minptsEditFieldLabel.Text = 'minpts';
 
             % Create minptsEditField
             app.minptsEditField = uieditfield(app.SemblanceanalysisPanel, 'text');
             app.minptsEditField.Enable = 'off';
-            app.minptsEditField.Position = [395 49 20 25];
+            app.minptsEditField.Position = [390 49 20 25];
             app.minptsEditField.Value='5';
 
             % Create ManualPick_Button
@@ -907,6 +907,7 @@ classdef CMPproc_exported < matlab.apps.AppBase
             app.HowTo_Label.FontWeight = 'bold';
             app.HowTo_Label.Position = [16 565 800 22];
             app.HowTo_Label.Text = 'Load CMP data and check offsets';
+            app.HowTo_Label.WordWrap="on";
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
