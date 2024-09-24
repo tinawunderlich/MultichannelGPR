@@ -263,21 +263,28 @@ S.fh.Visible='on';
         off5=110;
         % isochrone migration 2d (reduced to 1d-v-function for easier input)
         S.migration=uicontrol(S.fh,'Style','checkbox','String','Isochrone migration v(z)','FontWeight','bold','Position',[1100-off1-off5 300 200 15],'Value',0,'Callback',@migration_call);
-        S.v=uicontrol(S.fh,'Style','edit','String','','Enable','off','Position',[1120-off1-off5 270 35 20],'Callback',@readv_call);
-        S.tv=uicontrol(S.fh,'Style','edit','String','','Enable','off','Position',[1120-off1-off5 240 35 20],'Callback',@readtv_call);
-        S.aperture=uicontrol(S.fh,'Style','edit','String','30','Enable','off','Position',[1120-off1-off5 210 35 20]);
+        S.v=uicontrol(S.fh,'Style','edit','String','0.1','Enable','off','Position',[1120-off1-off5 270 35 20]);
+        S.aperture=uicontrol(S.fh,'Style','edit','String','30','Enable','off','Position',[1120-off1-off5 240 35 20]);
         S.vtext=uicontrol(S.fh,'Style','text','String','v [m/ns]','Position',[1160-off1-off5 270 140 20],'HorizontalAlignment','left');
-        S.tvtext=uicontrol(S.fh,'Style','text','String','corresp. t [ns]','Position',[1160-off1-off5 240 140 20],'HorizontalAlignment','left');
-        S.aperturetext=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 210 140 20],'HorizontalAlignment','left');
+        S.aperturetext=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 240 140 20],'HorizontalAlignment','left');
         
         % Topomigration/korrektur (reduced to constant v for easier input)
-        S.topo=uicontrol(S.fh,'Style','checkbox','String','Topographic migration (const. v)','FontWeight','bold','Position',[1100-off1-off5 180 200 15],'Value',0,'Callback',@topo_call);
-        S.v2=uicontrol(S.fh,'Style','edit','String','0.1','Enable','off','Position',[1120-off1-off5 150 35 20]);
-        S.flagtopo=uicontrol(S.fh,'Style','edit','String','1','Enable','off','Position',[1120-off1-off5 120 35 20]);
-        S.aperture2=uicontrol(S.fh,'Style','edit','String','30','Enable','off','Position',[1120-off1-off5 90 35 20]);
-        S.v2text=uicontrol(S.fh,'Style','text','String','v [m/ns]','Position',[1160-off1-off5 150 140 20],'HorizontalAlignment','left');
-        S.flagtopotext=uicontrol(S.fh,'Style','text','String','correction(1), migration(2)','Position',[1160-off1-off5 120 140 20],'HorizontalAlignment','left');
-        S.aperture2text=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 90 140 20],'HorizontalAlignment','left');
+        S.topo=uicontrol(S.fh,'Style','checkbox','String','Topographic migration (const. v)','FontWeight','bold','Position',[1100-off1-off5 210 200 15],'Value',0,'Callback',@topo_call);
+        S.v2=uicontrol(S.fh,'Style','edit','String','0.1','Enable','off','Position',[1120-off1-off5 180 35 20]);
+        S.flagtopo=uicontrol(S.fh,'Style','edit','String','1','Enable','off','Position',[1120-off1-off5 150 35 20]);
+        S.aperture2=uicontrol(S.fh,'Style','edit','String','30','Enable','off','Position',[1120-off1-off5 120 35 20]);
+        S.v2text=uicontrol(S.fh,'Style','text','String','v [m/ns]','Position',[1160-off1-off5 180 140 20],'HorizontalAlignment','left');
+        S.flagtopotext=uicontrol(S.fh,'Style','text','String','correction(1), migration(2)','Position',[1160-off1-off5 150 140 20],'HorizontalAlignment','left');
+        S.aperture2text=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 120 140 20],'HorizontalAlignment','left');
+
+        % median filter along x
+        S.medfilt_x=uicontrol(S.fh,'Style','checkbox','String','X-wise median filter','FontWeight','bold','Position',[1100-off1-off5 90 200 15],'Value',0,'Callback',@medfilt_x_call);
+        S.numsamp_x=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[1120-off1-off5 60 35 20]);
+        S.tstart_x=uicontrol(S.fh,'Style','edit','String','0','Enable','off','Position',[1120-off1-off5 30 35 20]);
+        S.numsamptext_x=uicontrol(S.fh,'Style','text','String','number of samples','Position',[1160-off1-off5 60 140 20],'HorizontalAlignment','left');
+        S.tstarttext_x=uicontrol(S.fh,'Style','text','String','tstart [ns]','Position',[1160-off1-off5 30 140 20],'HorizontalAlignment','left');
+        
+
         
         % 6th column:
         off6=120;
@@ -291,20 +298,20 @@ S.fh.Visible='on';
         S.alpha_text=uicontrol(S.fh,'Style','text','String','alpha','Position',[1360-off1-off6 210 140 20],'HorizontalAlignment','left');
 
         off6=-80;
-        % median filter on traces
-        S.medfilt=uicontrol(S.fh,'Style','checkbox','String','Trace-wise median filter','FontWeight','bold','Position',[1100-off1-off6 180 200 15],'Value',0,'Callback',@medfilt_call);
-        S.numsamp=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[1120-off1-off6 150 35 20]);
-        S.numsamptext=uicontrol(S.fh,'Style','text','String','number of samples','Position',[1160-off1-off6 150 140 20],'HorizontalAlignment','left');
-
         % Const Trace Distance
         S.constDist=uicontrol(S.fh,'Style','checkbox','String','Constant trace distance','FontWeight','bold','Position',[1100-off1-off6 120 200 15],'Value',0,'Callback',@constDist_call);
         S.dist=uicontrol(S.fh,'Style','edit','String','0.02','Value',0,'Enable','off','Position',[1120-off1-off6 90 35 20]);
         S.disttext=uicontrol(S.fh,'Style','text','String','dx [m]','Position',[1160-off1-off6 90 140 20],'HorizontalAlignment','left');
 
         % Trace interpolation
-        S.traceinterp=uicontrol(S.fh,'Style','checkbox','String','Trace interpolation','FontWeight','bold','Position',[1100-off1-off6 60 200 15],'Value',0,'Callback',@traceinterp_call);
-        S.gap=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[1120-off1-off6 30 35 20]);
-        S.gaptext=uicontrol(S.fh,'Style','text','String','number of traces','Position',[1160-off1-off6 30 140 20],'HorizontalAlignment','left');
+        S.traceinterp=uicontrol(S.fh,'Style','checkbox','String','Trace interpolation','FontWeight','bold','Position',[1100-off1-off6 180 200 15],'Value',0,'Callback',@traceinterp_call);
+        S.gap=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[1120-off1-off6 150 35 20]);
+        S.gaptext=uicontrol(S.fh,'Style','text','String','number of traces','Position',[1160-off1-off6 150 140 20],'HorizontalAlignment','left');
+
+        % median filter on traces
+        S.medfilt=uicontrol(S.fh,'Style','checkbox','String','Trace-wise median filter','FontWeight','bold','Position',[1100-off1-off6 60 200 15],'Value',0,'Callback',@medfilt_call);
+        S.numsamp=uicontrol(S.fh,'Style','edit','String','3','Enable','off','Position',[1120-off1-off6 30 35 20]);
+        S.numsamptext=uicontrol(S.fh,'Style','text','String','number of samples','Position',[1160-off1-off6 30 140 20],'HorizontalAlignment','left');
     end
 
 
@@ -323,21 +330,6 @@ guidata(S.fh,S);
         S.ax.Position = [300 360 wid_fig-320 hei_fig-380];
     end
 
-    function [] = readv_call(varargin)
-        % Callback for path and name of v-file (migration mig)
-        S=guidata(gcbf);
-        [S.vfile,S.vpath]=uigetfile('*.mat','Select v-vector file (1D)',S.folder);
-        S.v.String=fullfile(S.vpath,S.vfile);
-        guidata(gcbf,S); % Update
-    end
-
-    function [] = readtv_call(varargin)
-        % Callback for path and name of tv-file (migration mig)
-        S=guidata(gcbf);
-        [S.tvfile,S.tvpath]=uigetfile('*.mat','Select corresponding t-vector file (1D)',S.folder);
-        S.tv.String=fullfile(S.tvpath,S.tvfile);
-        guidata(gcbf,S); % Update
-    end
 
     function [] = asp_call(varargin)
         % Callback for aspectratio
@@ -442,6 +434,11 @@ guidata(S.fh,S);
             fprintf(fid,['do_medfilt ',int2str(order(ismember(steps,'Trace-wise median filter'))),'\nnumsamp ',S.numsamp.String,'\n\n']);
         else
             fprintf(fid,['do_medfilt 0\nnumsamp 3\n\n']);
+        end
+        if any(ismember(steps,'X-wise median filter'))
+            fprintf(fid,['do_medfilt_x ',int2str(order(ismember(steps,'X-wise median filter'))),'\nnumsamp_x ',S.numsamp_x.String,'\ntstart_x ',S.tstart_x.String,'\n\n']);
+        else
+            fprintf(fid,['do_medfilt_x 0\nnumsamp_x 3\ntstart_x 0\n\n']);
         end
         if any(ismember(steps,'Spherical divergence'))
             fprintf(fid,['do_sphericalDivergence ',int2str(order(ismember(steps,'Spherical divergence'))),'\n\n']);
@@ -574,6 +571,23 @@ guidata(S.fh,S);
         end
         guidata(gcbf,S); % Update
     end
+
+    function [] = medfilt_x_call(varargin) % x median filter
+        S=guidata(gcbf);
+        if S.medfilt_x.Value==1
+            S.proclist.String=[S.proclist.String; {'X-wise median filter'}];
+            S.apply.Enable='on';
+            S.delete.Enable='on';
+            S.numsamp_x.Enable='on';
+            S.tstart_x.Enable='on';
+        else
+            S.proclist.String(ismember(S.proclist.String,'X-wise median filter'))=[];
+            S.numsamp_x.Enable='off';
+            S.tstart_x.Enable='off';
+        end
+        guidata(gcbf,S); % Update
+    end
+
     function [] = constDist_call(varargin)
         S=guidata(gcbf);
         if S.constDist.Value==1
@@ -622,14 +636,12 @@ guidata(S.fh,S);
         if S.migration.Value==1
             S.proclist.String=[S.proclist.String; {'Isochrone migration'}];
             S.v.Enable='on';
-            S.tv.Enable='on';
             S.aperture.Enable='on';
             S.apply.Enable='on';
             S.delete.Enable='on';
         else
             S.proclist.String(ismember(S.proclist.String,'Isochrone migration'))=[];
             S.v.Enable='off';
-            S.tv.Enable='off';
             S.aperture.Enable='off';
         end
         guidata(gcbf,S); % Update
@@ -965,7 +977,7 @@ guidata(S.fh,S);
             ylabel(S.ax,'t [ns]')
             set(S.ax,'YDir','reverse')
         else % proc data
-            if isempty(num)
+            if isempty(num) % all channels
                 if isempty(S.zmig)
                     set(S.rad,'CData',S.proc,'XData',S.xproc,'YData',S.tproc);
                     for i=1:length(S.xprof)-1
@@ -981,7 +993,7 @@ guidata(S.fh,S);
                     ylabel(S.ax,'z [m]')
                     set(S.ax,'YDir','normal')
                 end
-            else
+            else % only one channel
                 if isempty(S.zmig)
                     set(S.rad,'CData',S.proc(:,S.info_proc==num),'XData',S.xproc(S.info_proc==num)-min(S.xproc(S.info_proc==num)),'YData',S.tproc);
                     ylabel(S.ax,'t [ns]')
@@ -1038,6 +1050,7 @@ guidata(S.fh,S);
         params=struct('tstart',str2num(S.tstart.String),'tend',str2num(S.tend.String),...
             'tmax',str2num(S.tmax.String),'dist',str2num(S.dist.String),'gap',str2num(S.gap.String),'numsamp',str2num(S.numsamp.String),'numtraces_mean',str2num(S.numtrace.String),...
             'numtraces_median',str2num(S.numtrace2.String),'minfactor',str2num(S.minfactor.String),...
+            'tstart_x',str2num(S.tstart_x.String),'numsamp_x',str2num(S.numsamp_x.String),...
             'maxfactor',str2num(S.maxfactor.String),'g1',str2num(S.g1.String),...
             'g2',str2num(S.g2.String),'g3',str2num(S.g3.String),'g4',str2num(S.g4.String),...
             'g5',str2num(S.g5.String),'threshold',str2num(S.thresh.String),...
@@ -1046,8 +1059,8 @@ guidata(S.fh,S);
             'sigma',str2num(S.sigma.String),'eps',str2num(S.eps.String),...
             'fstart',str2num(S.fstart.String),'fend',str2num(S.fend.String),...
             'qclip',str2num(S.qclip.String),'dx',mean(diff(S.xloc)),'kcutoff',str2num(S.kcutoff.String),...
-            'method',S.t0list.Value,'v',S.v.String,'v2',str2num(S.v2.String),'aperture',str2num(S.aperture.String),...
-            'aperture2',str2num(S.aperture2.String),'flagtopo',str2num(S.flagtopo.String),'tv',S.tv.String,...
+            'method',S.t0list.Value,'v',str2num(S.v.String),'v2',str2num(S.v2.String),'aperture',str2num(S.aperture.String),...
+            'aperture2',str2num(S.aperture2.String),'flagtopo',str2num(S.flagtopo.String),...
             'fmin_sw',str2num(S.fmin_sw.String),'fmax_sw',str2num(S.fmax_sw.String),'alpha',str2num(S.alpha.String));
         
         if S.t0corr.Value==1 && S.t0list.Value~=2 && S.t0list.Value~=3 %only for t0 with reference trace (4) und channelshift all profiles (1)
@@ -1115,6 +1128,7 @@ guidata(S.fh,S);
         S.d2.Enable='off';
         % turn checkboxes off
         S.DCrem.Value=0;
+        S.medfilt_x.Value=0;
         S.traceinterp.Value=0;
         S.badtrace.Value=0;
         S.constDist.Value=0;
@@ -1136,11 +1150,12 @@ guidata(S.fh,S);
         % enable parameters off
         S.fmin_sw.Enable='off';
         S.fmax_sw.Enable='off';
+        S.numsamp_x.Enable='off';
+        S.tstart_x.Enable='off';
         S.alpha.Enable='off';
         S.v.Enable='off';
         S.gap.Enable='off';
         S.dist.Enable='off';
-        S.tv.Enable='off';
         S.numsamp.Enable='off';
         S.aperture.Enable='off';
         S.flagtopo.Enable='off';
@@ -1270,6 +1285,10 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         [datatraces]=medfilt(datatraces,params.numsamp);
     end
 
+    if strcmp(steps{order==k},'X-wise median filter')
+        [datatraces]=medfilt_x(datatraces,t,params.numsamp_x,params.tstart_x);
+    end
+
     if strcmp(steps{order==k},'Spectral Whitening')
         for i=1:length(unique(info)) % for each channel
             datatemp(:,info==S.ch_list(i))=spectralWhitening(datatraces(:,info==S.ch_list(i)),params.dt,params.fmin_sw,params.fmax_sw,params.alpha);
@@ -1278,35 +1297,33 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     end
     
     if strcmp(steps{order==k},'Topomigration/correction')
-        for i=1:length(unique(info)) % for each channel
-            [datatemp(:,info==S.ch_list(i)),zmig]=topomig2d_varV(datatraces(:,info==S.ch_list(i)),x(info==S.ch_list(i)),tproc,z(info==S.ch_list(i)),params.v2,params.aperture2,params.flagtopo,0,[],[]);
+        % check for constant trace spacing:
+        xtemp=x(info==S.ch_list(1));
+        dx=xtemp(2)-xtemp(1); %[m] Trace distance
+        if round(dx*1000)~=round(mean(diff(xtemp))*1000)
+            mode.Interpreter='tex';
+            mode.WindowStyle='non-modal';
+            msgbox('\fontsize{15}Constant trace spacing is neccessary before topomigration! Please add "constant trace distance" (and optionally "trace interpolation") before!','Error','warn',mode);
+        else
+            for i=1:length(unique(info)) % for each channel
+                [datatemp(:,info==S.ch_list(i)),zmig]=topomig2d_varV(datatraces(:,info==S.ch_list(i)),x(info==S.ch_list(i)),tproc,z(info==S.ch_list(i)),params.v2,params.aperture2,params.flagtopo,0,[],[]);
+            end
+            datatraces=datatemp;
+            ns=length(datatraces(:,1));
         end
-        datatraces=datatemp;
-        ns=length(datatraces(:,1));
     end
     
     if strcmp(steps{order==k},'Isochrone migration')
-        % read v(t)
-        temp=load(params.v);
-        temp2=fieldnames(temp);
-        v=getfield(temp,temp2{1});
-        temp=load(params.tv);
-        temp2=fieldnames(temp);
-        tv=getfield(temp,temp2{1});
+        % read v
+        v=params.v;
         for i=1:length(unique(info)) % for each channel
             % make column vectors
-            if length(v(:,1))<length(v(1,:))
-                v=v';
-            end
-            if length(tv(:,1))<length(tv(1,:))
-                tv=tv';
-            end
             tp=tproc;
             if length(tp(:,1))<length(tp(1,:))
                 tp=tp';
             end
             % interpolate vgrid
-            vgrid=repmat(interp1(tv,v,tp),[1 length(datatraces(1,info==S.ch_list(i)))]);
+            vgrid=zeros(size(datatraces(:,info==S.ch_list(i))))+v;
             % migration:
             [datatemp(:,info==S.ch_list(i)),zmig]=isochrone_mig_2d_varV(datatraces(:,info==S.ch_list(i)),x(info==S.ch_list(i)),tp,vgrid,params.aperture,0);
         end

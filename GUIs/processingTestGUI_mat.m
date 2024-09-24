@@ -1,8 +1,9 @@
 function []=processingTestGUI_mat(radargrams,t,x,global_coords,folder)
 
 % GUI for plotting of profiles and interactive testing of processing steps
+% for mat-files
 %
-% Dr. Tina Wunderlich, CAU Kiel 2023, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2023-2024, tina.wunderlich@ifg.uni-kiel.de
 %
 % Input:
 % radargrams, t, x, global_coords, folder
@@ -209,23 +210,21 @@ S.fh.Visible='on';
         
         % 5th column:
         off5=110;
-        % isochrone migration 2d (reduced to 1d-v-function for easier input)
+        % isochrone migration 2d (reduced to constant v for easier input)
         S.migration=uicontrol(S.fh,'Style','checkbox','String','Isochrone migration v(z)','FontWeight','bold','Position',[1100-off1-off5 300 200 15],'Value',0,'Callback',@migration_call);
-        S.v=uicontrol(S.fh,'Style','edit','String','','Enable','off','Position',[1120-off1-off5 270 35 20],'Callback',@readv_call);
-        S.tv=uicontrol(S.fh,'Style','edit','String','','Enable','off','Position',[1120-off1-off5 240 35 20],'Callback',@readtv_call);
-        S.aperture=uicontrol(S.fh,'Style','edit','String','30','Enable','off','Position',[1120-off1-off5 210 35 20]);
+        S.v=uicontrol(S.fh,'Style','edit','String','0.1','Enable','off','Position',[1120-off1-off5 270 35 20]);
+        S.aperture=uicontrol(S.fh,'Style','edit','String','30','Enable','off','Position',[1120-off1-off5 240 35 20]);
         S.vtext=uicontrol(S.fh,'Style','text','String','v [m/ns]','Position',[1160-off1-off5 270 140 20],'HorizontalAlignment','left');
-        S.tvtext=uicontrol(S.fh,'Style','text','String','corresp. t [ns]','Position',[1160-off1-off5 240 140 20],'HorizontalAlignment','left');
-        S.aperturetext=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 210 140 20],'HorizontalAlignment','left');
+        S.aperturetext=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 240 140 20],'HorizontalAlignment','left');
         
         % Topomigration/korrektur (reduced to constant v for easier input)
-        S.topo=uicontrol(S.fh,'Style','checkbox','String','Topographic migration (const. v)','FontWeight','bold','Position',[1100-off1-off5 180 200 15],'Value',0,'Callback',@topo_call);
-        S.v2=uicontrol(S.fh,'Style','edit','String','0.1','Enable','off','Position',[1120-off1-off5 150 35 20]);
-        S.flagtopo=uicontrol(S.fh,'Style','edit','String','1','Enable','off','Position',[1120-off1-off5 120 35 20]);
-        S.aperture2=uicontrol(S.fh,'Style','edit','String','30','Enable','off','Position',[1120-off1-off5 90 35 20]);
-        S.v2text=uicontrol(S.fh,'Style','text','String','v [m/ns]','Position',[1160-off1-off5 150 140 20],'HorizontalAlignment','left');
-        S.flagtopotext=uicontrol(S.fh,'Style','text','String','correction(1), migration(2)','Position',[1160-off1-off5 120 140 20],'HorizontalAlignment','left');
-        S.aperture2text=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 90 140 20],'HorizontalAlignment','left');
+        S.topo=uicontrol(S.fh,'Style','checkbox','String','Topographic migration (const. v)','FontWeight','bold','Position',[1100-off1-off5 210 200 15],'Value',0,'Callback',@topo_call);
+        S.v2=uicontrol(S.fh,'Style','edit','String','0.1','Enable','off','Position',[1120-off1-off5 180 35 20]);
+        S.flagtopo=uicontrol(S.fh,'Style','edit','String','1','Enable','off','Position',[1120-off1-off5 150 35 20]);
+        S.aperture2=uicontrol(S.fh,'Style','edit','String','30','Enable','off','Position',[1120-off1-off5 120 35 20]);
+        S.v2text=uicontrol(S.fh,'Style','text','String','v [m/ns]','Position',[1160-off1-off5 180 140 20],'HorizontalAlignment','left');
+        S.flagtopotext=uicontrol(S.fh,'Style','text','String','correction(1), migration(2)','Position',[1160-off1-off5 150 140 20],'HorizontalAlignment','left');
+        S.aperture2text=uicontrol(S.fh,'Style','text','String','aperture [°]','Position',[1160-off1-off5 120 140 20],'HorizontalAlignment','left');
         
         % 6th column:
         off6=-70;
@@ -266,22 +265,6 @@ guidata(S.fh,S);
         
         % change size of axes
         S.ax.Position = [300 360 wid_fig-320 hei_fig-380];
-    end
-
-    function [] = readv_call(varargin)
-        % Callback for path and name of v-file (migration mig)
-        S=guidata(gcbf);
-        [S.vfile,S.vpath]=uigetfile('*.mat','Select v-vector file',S.folder);
-        S.v.String=fullfile(S.vpath,S.vfile);
-        guidata(gcbf,S); % Update
-    end
-
-    function [] = readtv_call(varargin)
-        % Callback for path and name of tv-file (migration mig)
-        S=guidata(gcbf);
-        [S.tvfile,S.tvpath]=uigetfile('*.mat','Select corresponding t-vector file',S.folder);
-        S.tv.String=fullfile(S.tvpath,S.tvfile);
-        guidata(gcbf,S); % Update
     end
 
     function [] = asp_call(varargin)
@@ -603,14 +586,12 @@ guidata(S.fh,S);
         if S.migration.Value==1
             S.proclist.String=[S.proclist.String; {'Isochrone migration'}];
             S.v.Enable='on';
-            S.tv.Enable='on';
             S.aperture.Enable='on';
             S.apply.Enable='on';
             S.delete.Enable='on';
         else
             S.proclist.String(ismember(S.proclist.String,'Isochrone migration'))=[];
             S.v.Enable='off';
-            S.tv.Enable='off';
             S.aperture.Enable='off';
         end
         guidata(gcbf,S); % Update
@@ -883,7 +864,8 @@ guidata(S.fh,S);
             end
         end
         if S.d1.Value==1 % raw data
-            set(S.rad,'CData',S.raw,'XData',S.xprof,'YData',S.t);
+            S.rad=imagesc(S.ax,S.xprof,S.t,S.raw);
+            %set(S.rad,'CData',S.raw,'XData',S.xprof,'YData',S.t);
             ylabel(S.ax,'t [ns]')
             set(S.ax,'YDir','reverse')
         else % proc data
@@ -959,8 +941,8 @@ guidata(S.fh,S);
             'sigma',str2num(S.sigma.String),'eps',str2num(S.eps.String),...
             'fstart',str2num(S.fstart.String),'fend',str2num(S.fend.String),...
             'qclip',str2num(S.qclip.String),'dx',mean(diff(S.xprof)),'kcutoff',str2num(S.kcutoff.String),...
-            'method',S.t0list.Value,'v',S.v.String,'v2',str2num(S.v2.String),'aperture',str2num(S.aperture.String),...
-            'aperture2',str2num(S.aperture2.String),'flagtopo',str2num(S.flagtopo.String),'tv',S.tv.String,...
+            'method',S.t0list.Value,'v',str2num(S.v.String),'v2',str2num(S.v2.String),'aperture',str2num(S.aperture.String),...
+            'aperture2',str2num(S.aperture2.String),'flagtopo',str2num(S.flagtopo.String),...
             'dist',str2num(S.dist.String),'rednum',str2num(S.rednum.String));
         
         % do processing:
@@ -1018,7 +1000,6 @@ guidata(S.fh,S);
         S.fmax_sw.Enable='off';
         S.alpha.Enable='off';
         S.v.Enable='off';
-        S.tv.Enable='off';
         S.aperture.Enable='off';
         S.flagtopo.Enable='off';
         S.v2.Enable='off';
@@ -1101,33 +1082,30 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     end
     
     if strcmp(steps{order==k},'Topomigration/correction')
-        [datatemp,zmig]=topomig2d_varV(datatraces,x,tproc,xyz(:,3),params.v2,params.aperture2,params.flagtopo,0,[],[]);
-        datatraces=datatemp;
-        ns=length(datatraces(:,1));
+        % check for constant trace spacing:
+        dx=x(2)-x(1); %[m] Trace distance
+        if round(dx*1000)~=round(mean(diff(x))*1000)
+            mode.Interpreter='tex';
+            mode.WindowStyle='non-modal';
+            msgbox('\fontsize{15}Constant trace spacing is neccessary before topomigration! Please add "constant trace distance" (and optionally "trace interpolation") before!','Error','warn',mode);
+        else
+            [datatemp,zmig]=topomig2d_varV(datatraces,x,tproc,xyz(:,3),params.v2,params.aperture2,params.flagtopo,0,[],[]);
+            datatraces=datatemp;
+            ns=length(datatraces(:,1));
+        end
     end
     
     if strcmp(steps{order==k},'Isochrone migration')
-        % read v(t)
-        temp=load(params.v);
-        temp2=fieldnames(temp);
-        v=getfield(temp,temp2{1});
-        temp=load(params.tv);
-        temp2=fieldnames(temp);
-        tv=getfield(temp,temp2{1});
+
+        v=params.v;
 
         % make column vectors
-        if length(v(:,1))<length(v(1,:))
-            v=v';
-        end
-        if length(tv(:,1))<length(tv(1,:))
-            tv=tv';
-        end
         tp=tproc;
         if length(tp(:,1))<length(tp(1,:))
             tp=tp';
         end
         % interpolate vgrid
-        vgrid=repmat(interp1(tv,v,tp),[1 length(datatraces(:,1))]);
+        vgrid=zeros(size(datatraces))+v;
         % migration:
         [datatemp,zmig]=isochrone_mig_2d_varV(datatraces,x,tp,vgrid,params.aperture,0);
         datatraces=datatemp;
