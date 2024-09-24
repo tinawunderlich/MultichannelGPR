@@ -22,8 +22,8 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Select number of profiles:
-profile_min=0;  % minimum profile number
-profile_max=95;  % maximum profile number
+profile_min=1;  % minimum profile number
+profile_max=2;  % maximum profile number
 % number of channels for this dataset
 channels=16; % number of channels
 
@@ -39,7 +39,7 @@ settings='settings.txt';
 
 %%% Raw data is only read if userawdata=0! Otherwise mat-files of raw
 %%% data in folder profiles2mat are used.
-userawdata=1;  % if =1: use aready read in raw data and apply new processing steps
+userawdata=0;  % if =1: use aready read in raw data and apply new processing steps
 
 % save radargrams.mat of processed profile data in one variable (requires large memory -> probably not
 % working for every data set)?
@@ -122,14 +122,16 @@ if ~exist(fullfile(foldername,settings),'file') % if no settings-file is found: 
 
     fid=fopen(fullfile(foldername,settings),'wt');
     fprintf(fid,'do_amplitudeOffset 1\ntstart[ns] 0\ntend[ns] 100\n\n');
-    fprintf(fid,'do_traceInterpolation 0\nminfactor 3\nmaxfactor 3\n\n');
+    fprintf(fid,'do_badTraceRemoval 0\nminfactor 3\nmaxfactor 3\n\n');
+    fprintf(fid,'do_constTraceDist 2\ndx[m] 0.02\n\n');
+    fprintf(fid,'do_traceInterpolation 3\ngap 10\n\n');
+    fprintf(fid,'do_medfilt 0\nnumsamp 3\n\n');
+    fprintf(fid,'do_medfilt_x 0\nnumsamp_x 3\ntstart_x 0\n\n');
     fprintf(fid,'do_sphericalDivergence 0\n\n');
     fprintf(fid,'do_attenuationCorrection 0\nsigma[S/m] 0.002\neps 15\n\n');
     fprintf(fid,'do_spectralWhitening 0\nfmin_sw[MHz] 100\nfmax_sw[MHz] 600\nalpha 0.01\n\n');
     fprintf(fid,'do_bandpass 5\nfstart[MHz] 100\nfend[MHz] 600\n\n');
-    fprintf(fid,'do_constTraceDist 2\ndist[m] 0.02\ngap 100\n\n');
-    fprintf(fid,'do_medianFilter 0\nm 3\n\n');
-    fprintf(fid,'do_migration2d_vz 0\nv-file[m/ns] \ntv-file[ns] \naperture_m[degree] 30\n\n');
+    fprintf(fid,'do_migration2d_vz 0\nv-file[m/ns] vgrid.mat\ntv-file[ns] vt.mat\naperture_m[degree] 30\n\n');
     fprintf(fid,'do_topomig2d 0\nv[m/ns] 0.1\nflag 1\naperture_t[degree] 30\n\n');
     fprintf(fid,'do_cutTWT 6\ntmax[ns] 80\n\n');
     fprintf(fid,'do_khighpass 0\nkcutoff[1/m] 0.1\n\n');
@@ -150,7 +152,11 @@ else
     temp=textscan(fid,'%s%s');
     fclose(fid);
     % get order of processing steps:
-    steps=[{'do_amplitudeOffset'} {'do_t0shift'} {'do_crossprofileshift'} {'do_medianFilter'} {'do_constTraceDist'} {'do_cutTWT'} {'do_khighpass'} {'do_spectralWhitening'} {'do_migration2d_vz'} {'do_topomig2d'} {'do_traceInterpolation'} {'do_applygain'} {'do_removeMeanMedianTrace'} {'do_t0CorrectionThreshold'} {'do_t0CorrectionReferencetrace'} {'do_channelshift'} {'do_sphericalDivergence'} {'do_attenuationCorrection'} {'do_signalShaping'} {'do_bandpass'} {'do_normalization'}];
+    steps=[{'do_amplitudeOffset'} {'do_badTraceRemoval'} {'do_constTraceDist'} {'do_traceInterpolation'}...
+        {'do_medfilt'} {'do_medfilt_x'} {'do_sphericalDivergence'} {'do_attenuationCorrection'}...
+        {'do_spectralWhitening'} {'do_bandpass'} {'do_migration2d_vz'} {'do_topomig2d'}...
+        {'do_cutTWT'} {'do_khighpass'}  {'do_applygain'} {'do_normalization'} {'do_removeMeanMedianTrace'}...
+        {'do_t0shift'} {'do_t0CorrectionThreshold'} {'do_t0CorrectionReferencetrace'} {'do_crossprofileshift'} {'do_channelshift'}]; 
     order=zeros(1,length(steps));
     for i=1:length(steps)
         for j=1:length(temp{1})
@@ -172,7 +178,7 @@ else
         elseif strcmp(temp{1}(i),'tend[ns]')
             temp3=temp{2}(i);
             params.tend=str2double(temp3{1});
-        elseif strcmp(temp{1}(i),'dist[m]')
+        elseif strcmp(temp{1}(i),'dx[m]')
             temp3=temp{2}(i);
             params.dist=str2double(temp3{1});
         elseif strcmp(temp{1}(i),'t0s[ns]')
@@ -181,9 +187,15 @@ else
         elseif strcmp(temp{1}(i),'gap')
             temp3=temp{2}(i);
             params.gap=str2double(temp3{1});
-        elseif strcmp(temp{1}(i),'m')
+        elseif strcmp(temp{1}(i),'numsamp')
             temp3=temp{2}(i);
-            params.m=str2double(temp3{1});
+            params.numsamp=str2double(temp3{1});
+        elseif strcmp(temp{1}(i),'numsamp_x')
+            temp3=temp{2}(i);
+            params.numsamp_x=str2double(temp3{1});
+        elseif strcmp(temp{1}(i),'tstart_x')
+            temp3=temp{2}(i);
+            params.tstart_x=str2double(temp3{1});
         elseif strcmp(temp{1}(i),'maxshift_cps')
             temp3=temp{2}(i);
             params.maxshift_cps=str2double(temp3{1});
@@ -213,7 +225,15 @@ else
             params.kcutoff=str2double(temp3{1});
         elseif strcmp(temp{1}(i),'v[m/ns]')
             temp3=temp{2}(i);
-            params.v=str2double(temp3{1});
+            params.v=temp3{1};
+            params.vname=params.v;
+            if ~isempty(str2num(params.v)) % one number
+                params.v=str2num(params.v);
+            else % file name
+                temp4=load(fullfile(foldername,params.v));
+                temp2=fieldnames(temp4);
+                params.v=getfield(temp4,temp2{1});
+            end
         elseif strcmp(temp{1}(i),'flag')
             temp3=temp{2}(i);
             params.flagtopo=str2double(temp3{1});
@@ -223,6 +243,27 @@ else
         elseif strcmp(temp{1}(i),'tv-file[ns]')
             temp3=temp{2}(i);
             params.tfile=temp3{1};
+            % read v(t)
+            params.vfilename=params.vfile;
+            params.tfilename=params.tfile;
+            if ~isempty(str2num(params.vfile)) % one number
+                params.vfile=[str2num(params.vfile); str2num(params.vfile)];
+                params.tfile=[0; 100];
+            else
+                temp4=load(fullfile(foldername,params.vfile));
+                temp2=fieldnames(temp4);
+                params.vfile=getfield(temp4,temp2{1});
+                temp4=load(fullfile(foldername,params.tfile));
+                temp2=fieldnames(temp4);
+                params.tfile=getfield(temp4,temp2{1});
+                % make column vectors
+                if length(params.vfile(:,1))<length(params.vfile(1,:))
+                    params.vfile=params.vfile';
+                end
+                if length(params.tfile(:,1))<length(params.tfile(1,:))
+                    params.tfile=params.tfile';
+                end
+            end
         elseif strcmp(temp{1}(i),'g1')
             temp3=temp{2}(i);
             params.g1=str2double(temp3{1});
@@ -306,16 +347,20 @@ else
         if strcmp('do_amplitudeOffset',steps{order==i})
             disp(['  tstart = ',num2str(params.tstart),' ns'])
             disp(['  tend = ',num2str(params.tend),' ns'])
-        elseif strcmp('do_traceInterpolation',steps{order==i})
+        elseif strcmp('do_badTraceRemoval',steps{order==i})
             disp(['  minfactor = ',num2str(params.minfactor)])
             disp(['  maxfactor = ',num2str(params.maxfactor)])
+        elseif strcmp('do_traceInterpolation',steps{order==i})
+            disp(['  gap = ',num2str(params.gap)])
         elseif strcmp('do_t0CorrectionThreshold',steps{order==i})
             disp(['  threshhold = ',num2str(params.threshold)])
-        elseif strcmp('do_medianFilter',steps{order==i})
-            disp(['  m = ',num2str(params.m)])
+        elseif strcmp('do_medfilt',steps{order==i})
+            disp(['  numsamp = ',num2str(params.numsamp)])
+        elseif strcmp('do_medfilt_x',steps{order==i})
+            disp(['  numsamp_x = ',num2str(params.numsamp_x)])
+            disp(['  tstart_x = ',num2str(params.tstart_x)])
         elseif strcmp('do_constTraceDist',steps{order==i})
             disp(['  dist = ',num2str(params.dist)])
-            disp(['  gap = ',num2str(params.gap)])
         elseif strcmp('do_spectralWhitening',steps{order==i})
             disp(['  fmin_sw = ',num2str(params.fmin_sw)])
             disp(['  fmax_sw = ',num2str(params.fmax_sw)])
@@ -337,11 +382,11 @@ else
         elseif strcmp('do_khighpass',steps{order==i})
             disp(['  kcutoff = ',num2str(params.kcutoff),' 1/m'])
         elseif strcmp('do_migration2d_vz',steps{order==i})
-            disp(['  v-file[m/ns] = ',params.vfile])
-            disp(['  tv-file[ns] = ',params.tfile])
+            disp(['  v-file[m/ns] = ',params.vfilename])
+            disp(['  tv-file[ns] = ',params.tfilename])
             disp(['  aperture = ',num2str(params.aperture_m)])
         elseif strcmp('do_topomig2d',steps{order==i})
-            disp(['  v = ',num2str(params.v),' m/ns'])
+            disp(['  v = ',num2str(params.vname),' m/ns'])
             disp(['  flag = ',num2str(params.flagtopo)])
             disp(['  aperture = ',num2str(params.aperture_t)])
         elseif strcmp('do_t0shift',steps{order==i})
@@ -521,7 +566,15 @@ for i=1:length(numbers) % (is not working as parfor!)
     end
 end
 params.maxz=params.maxz+0.5;
-params.minz=params.maxz-info(7,1)*info(8,1)/2*params.v-0.5-(params.maxz-params.minz);
+% get mean v:
+if any(strcmp(steps,'do_migration2d_vz'))
+    meanv=mean(params.vfile);
+elseif any(strcmp(steps,'do_topomig2d'))
+    meanv=mean(params.v);
+else
+    meanv=0.1;
+end
+params.minz=params.maxz-info(7,1)*info(8,1)/2*meanv-0.5-(params.maxz-params.minz);
 
 % if do_crossprofileshift -> determine shiftsamples now!
 if any(strcmp(steps,'do_crossprofileshift')) && order(strcmp(steps,'do_crossprofileshift'))>0
@@ -701,8 +754,6 @@ for k=1:length(order(order>0))  % for all processing steps in right order
             info_temp(2:3,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[1:numtrch; zeros(1,numtrch)+ii]; % trace number per channel, channelnumber
             info_temp(7:8,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[zeros(1,numtrch)+info(7,1); zeros(1,numtrch)+info(8,1)]; % dt, ns
             info_temp(4:6,info_temp(3,:)==ii)=gc{ii}(1:numtrch,:)';
-            % interpolate missing traces
-            datatraces_temp(:,info_temp(3,:)==ii)=interpolation(temp{ii}(:,1:numtrch),params.gap);
         end
 
         % replace datatraces and info with shorter profiles:
@@ -723,9 +774,24 @@ for k=1:length(order(order>0))  % for all processing steps in right order
         end
     end
 
-    if strcmp(steps{order==k},'do_medianFilter')
-        disp('  ...medianFilter')
-        datatraces=medfilt(datatraces,params.m);
+    if strcmp(steps{order==k},'do_traceInterpolation')
+        disp('  ...Trace interpolation')
+        for ii=1:max(info(3,:))
+            datatraces(:,info(3,:)==ch)=interpolation(datatraces(:,info(3,:)==ch),params.gap);
+        end
+        if exist('fh','var')
+            subplot(4,3,k+1)
+            hold on
+            plot(t,datatraces(:,b))
+            grid on
+            xlabel('t [ns]')
+            title('Trace interpolation')
+        end
+    end
+
+    if strcmp(steps{order==k},'do_medfilt')
+        disp('  ...medfilt')
+        datatraces=medfilt(datatraces,params.numsamp);
         if exist('fh','var')
             subplot(4,3,k+1)
             hold on
@@ -733,6 +799,32 @@ for k=1:length(order(order>0))  % for all processing steps in right order
             grid on
             xlabel('t [ns]')
             title('Median Filter')
+        end
+    end
+
+    if strcmp(steps{order==k},'do_medfilt_x')
+        disp('  ...medfilt_x')
+        datatraces=medfilt_x(datatraces,t,params.numsamp_x,params.tstart_x);
+        if exist('fh','var')
+            subplot(4,3,k+1)
+            hold on
+            plot(t,datatraces(:,b))
+            grid on
+            xlabel('t [ns]')
+            title('x-wise Median Filter')
+        end
+    end
+
+    if strcmp(steps{order==k},'do_badTraceRemoval')
+        disp('  ...bad trace removal')
+        datatraces=traceInterpolation(datatraces,params.minfactor,params.maxfactor);
+        if exist('fh','var')
+            subplot(4,3,k+1)
+            hold on
+            plot(t,datatraces(:,b))
+            grid on
+            xlabel('t [ns]')
+            title('Bad Trace Removal')
         end
     end
 
@@ -766,45 +858,40 @@ for k=1:length(order(order>0))  % for all processing steps in right order
 
     if strcmp(steps{order==k},'do_topomig2d')
         disp('  ...Topomigration/correction')
-        for ch=1:max(info(3,:)) % for each channel
-            [datatemp(:,info(3,:)==ch),zmig]=topomig2d_varV(datatraces(:,info(3,:)==ch),[0:params.dx:params.dx*(length(datatraces(1,info(3,:)==ch))-1)],t,info(6,info(3,:)==ch),params.v,params.aperture_t,params.flagtopo,0,params.minz,params.maxz);
-        end
-        datatraces=single(datatemp);
-        ns=length(datatraces(:,1));
-        clear datatemp;
-        if exist('fh','var')
-            subplot(4,3,k+1)
-            hold on
-            plot(zmig,datatraces(:,b))
-            grid on
-            xlabel('z [m]')
-            title('Topomigration/correction')
+        % check for constant trace spacing:
+        xtemp=[0:params.dx:params.dx*(length(datatraces(1,info(3,:)==1))-1)];
+        dx=xtemp(2)-xtemp(1); %[m] Trace distance
+        if round(dx*1000)~=round(mean(diff(xtemp))*1000)
+            mode.Interpreter='tex';
+            mode.WindowStyle='non-modal';
+            msgbox('\fontsize{15}Constant trace spacing is neccessary before topomigration! Please add "constant trace distance" (and optionally "trace interpolation") before!','Error','warn',mode);
+        else
+            for ch=1:max(info(3,:)) % for each channel
+                [datatemp(:,info(3,:)==ch),zmig]=topomig2d_varV(datatraces(:,info(3,:)==ch),[0:params.dx:params.dx*(length(datatraces(1,info(3,:)==ch))-1)],t,info(6,info(3,:)==ch),mean(params.v),params.aperture_t,params.flagtopo,0,params.minz,params.maxz);
+            end
+            datatraces=single(datatemp);
+            ns=length(datatraces(:,1));
+            clear datatemp;
+            if exist('fh','var')
+                subplot(4,3,k+1)
+                hold on
+                plot(zmig,datatraces(:,b))
+                grid on
+                xlabel('z [m]')
+                title('Topomigration/correction')
+            end
         end
     end
 
     if strcmp(steps{order==k},'do_migration2d_vz')
         disp('  ...Isochrone migration')
-        % read v(t)
-        temp=load(params.vfile);
-        temp2=fieldnames(temp);
-        v=getfield(temp,temp2{1});
-        temp=load(params.tfile);
-        temp2=fieldnames(temp);
-        tv=getfield(temp,temp2{1});
-        % make column vectors
-        if length(v(:,1))<length(v(1,:))
-            v=v';
-        end
-        if length(tv(:,1))<length(tv(1,:))
-            tv=tv';
-        end
         tp=t;
         if length(tp(:,1))<length(tp(1,:))
             tp=tp';
         end
         for ch=1:max(info(3,:)) % for each channel
             % interpolate vgrid
-            vgrid=repmat(interp1(tv,v,tp),[1 length(datatraces(1,info(3,:)==ch))]);
+            vgrid=repmat(interp1(params.tfile,params.vfile,tp),[1 length(datatraces(1,info(3,:)==ch))]);
             disp(['      channel #',int2str(ch)])
             [datatemp(:,info(3,:)==ch),zmig]=isochrone_mig_2d_varV(datatraces(:,info(3,:)==ch),[0:params.dx:params.dx*(length(datatraces(1,info(3,:)==ch))-1)],tp,vgrid,params.aperture_m,0);
         end

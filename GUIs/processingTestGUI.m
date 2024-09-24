@@ -465,7 +465,7 @@ guidata(S.fh,S);
         if any(ismember(steps,'Isochrone migration'))
             fprintf(fid,['do_migration2d_vz ',int2str(order(ismember(steps,'Isochrone migration'))),'\nv-file[m/ns] ',S.v.String,'\ntv-file[ns] ',S.tv.String,'\naperture_m[degree] ',S.aperture.String,'\n\n']);
         else
-            fprintf(fid,['do_migration2d_vz 0\nv-file[m/ns] \ntv-file[ns] \naperture_m[degree] 30\n\n']);
+            fprintf(fid,['do_migration2d_vz 0\nv-file[m/ns] 0.1\ntv-file[ns] \naperture_m[degree] 30\n\n']);
         end
         if any(ismember(steps,'Topomigration/correction'))
             fprintf(fid,['do_topomig2d ',int2str(order(ismember(steps,'Topomigration/correction'))),'\nv[m/ns] ',S.v2.String,'\nflag ',S.flagtopo.String,'\naperture_t[degree] ',S.aperture2.String,'\n\n']);
