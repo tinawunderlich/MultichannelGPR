@@ -19,21 +19,47 @@ warning('off');
 
 % get folder name
 % get file name
-if exist('.stemp.temp') % read last opened folder from temp.temp
-    fid=fopen('.stemp.temp','r');
-    fn=textscan(fid,'%s');
-    fclose(fid);
-    if ~isempty(fn{1})
-        [file,folder]=uigetfile('*.shp','Choose *.shp file with lines',fn{1}{1});
+if ispc
+    if exist('stemp.temp') % read last opened folder from temp.temp
+        fid=fopen('stemp.temp','r');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
+        fclose(fid);
+        if ~isempty(fn{1})
+            [file,folder]=uigetfile('*.shp','Choose *.shp file with lines',fn{1}{1});
+        else
+            [file,folder]=uigetfile('*.shp','Choose *.shp file with lines');
+        end
     else
         [file,folder]=uigetfile('*.shp','Choose *.shp file with lines');
     end
+    fid=fopen('stemp.temp','wt');
+    fprintf(fid,'%s',fullfile(folder,file));
+    fclose(fid);
 else
-    [file,folder]=uigetfile('*.shp','Choose *.shp file with lines');
+    if exist('.stemp.temp') % read last opened folder from temp.temp
+        fid=fopen('.stemp.temp','r');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
+        fclose(fid);
+        if ~isempty(fn{1})
+            [file,folder]=uigetfile('*.shp','Choose *.shp file with lines',fn{1}{1});
+        else
+            [file,folder]=uigetfile('*.shp','Choose *.shp file with lines');
+        end
+    else
+        [file,folder]=uigetfile('*.shp','Choose *.shp file with lines');
+    end
+    fid=fopen('.stemp.temp','wt');
+    fprintf(fid,'%s',fullfile(folder,file));
+    fclose(fid);
 end
-fid=fopen('.stemp.temp','wt');
-fprintf(fid,'%s',fullfile(folder,file));
-fclose(fid);
 
 % read shape-file
 data=shaperead(fullfile(folder,file));

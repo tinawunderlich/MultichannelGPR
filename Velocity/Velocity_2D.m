@@ -19,23 +19,49 @@ clc
 warning off
 
 % get folder name
-if exist('.temp.temp') % read last opened folder from temp.temp
-    fid=fopen('.temp.temp','r');
-    fn=textscan(fid,'%s');
-    fclose(fid);
-    if ~isempty(fn{1})
-        foldername=uigetdir(fn{1}{1},'Choose rSlicer folder or folder with radargrams.mat');
+if ispc
+    if exist('temp.temp') % read last opened folder from temp.temp
+        fid=fopen('temp.temp','r');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
+        fclose(fid);
+        if ~isempty(fn{1})
+            foldername=uigetdir(fn{1}{1},'Choose rSlicer folder or folder with radargrams.mat');
+        else
+            foldername=uigetdir('Choose rSlicer folder or folder with radargrams.mat');
+        end
     else
-        foldername=uigetdir('Choose rSlicer folder or folder with radargrams.mat');
+        foldername=uigetdir('Choose rSlicer folder or folder with radargrams.mat'); % path to rSlicer_folder
     end
+    % save last selected folder in file
+    fid=fopen('temp.temp','w');
+    fprintf(fid,foldername);
+    fclose(fid);
 else
-    foldername=uigetdir('Choose rSlicer folder or folder with radargrams.mat'); % path to rSlicer_folder
+    if exist('.temp.temp') % read last opened folder from temp.temp
+        fid=fopen('.temp.temp','r');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
+        fclose(fid);
+        if ~isempty(fn{1})
+            foldername=uigetdir(fn{1}{1},'Choose rSlicer folder or folder with radargrams.mat');
+        else
+            foldername=uigetdir('Choose rSlicer folder or folder with radargrams.mat');
+        end
+    else
+        foldername=uigetdir('Choose rSlicer folder or folder with radargrams.mat'); % path to rSlicer_folder
+    end
+    % save last selected folder in file
+    fid=fopen('.temp.temp','w');
+    fprintf(fid,foldername);
+    fclose(fid);
 end
-
-% save last selected folder in file
-fid=fopen('.temp.temp','w');
-fprintf(fid,foldername);
-fclose(fid);
 
 % set path temporarily:
 oldpath=path;

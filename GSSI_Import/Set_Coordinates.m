@@ -42,25 +42,48 @@ currentFile = pwd;
 curFold=fileparts(currentFile);
 addpath(fullfile(curFold,'Export_Import'),fullfile(curFold,'Subfunctions'));
 
-
-% get file names
-if exist('.rad.temp') % read last opened folder from .rad.temp
-    fid=fopen('.rad.temp','r');
-    fn=textscan(fid,'%s');
-    fclose(fid);
-    if ~isempty(fn{1})
-        [pfad]=uigetdir(fn{1}{1},'Choose folder with mat-file(s)');
+if ~ispc; menu('Choose folder with mat-file(s)','OK'); end
+if ispc
+    if exist('radtemp') % read last opened folder from temp.temp
+        fid=fopen('rad.temp','r');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
+        fclose(fid);
+        if ~isempty(fn{1})
+            pfad=uigetdir(fn{1}{1},'Choose folder with mat-file(s)');
+        else
+            pfad=uigetdir([],'Choose folder with mat-file(s)');
+        end
+        fid=fopen('rad.temp','wt');
+        fprintf(fid,'%s',pfad);
+        fclose(fid);
     else
-        [pfad]=uigetdir('Choose folder with mat-file(s)');
+        pfad=uigetdir([],'Choose folder with mat-file(s)'); % path to radargram-folder
+        fid=fopen('rad.temp','wt');
+        fprintf(fid,'%s',pfad);
+        fclose(fid);
     end
 else
-    [pfad]=uigetdir('Choose folder with mat-file(s)');
-end
+    if exist('.rad.temp') % read last opened folder from temp.temp
+        fid=fopen('.rad.temp','r');
+        fn=textscan(fid,'%s');
+        fclose(fid);
+        if ~isempty(fn{1})
+            pfad=uigetdir(fn{1}{1},'Choose folder with mat-file(s)');
+        else
+            pfad=uigetdir([],'Choose folder with mat-file(s)');
+        end
+    else
+        pfad=uigetdir([],'Choose folder with mat-file(s)'); % path to radargram-folder
+    end
 
-% save last selected folder in file
-fid=fopen('.rad.temp','wt');
-fprintf(fid,pfad);
-fclose(fid);
+    fid=fopen('.rad.temp','wt');
+    fprintf(fid,'%s',pfad);
+    fclose(fid);
+end
 
 %% read data
 load(fullfile(pfad,'radargrams.mat'));

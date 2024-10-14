@@ -46,25 +46,26 @@ end
 if ispc
     if exist('dzg.temp') % read last opened folder from temp.temp
         fid=fopen('dzg.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             pfad=uigetdir(fn{1}{1},'Choose folder with DZG-file(s)');
         else
             pfad=uigetdir([],'Choose folder with DZG-file(s)');
         end
-        fileattrib('dzg.temp','-h');
         fid=fopen('dzg.temp','wt');
         fprintf(fid,'%s',pfad);
         fclose(fid);
-        fileattrib('dzg.temp','+h');
     else
         pfad=uigetdir([],'Choose folder with DZG-file(s)'); % path to radargram-folder
         
         fid=fopen('dzg.temp','wt');
         fprintf(fid,'%s',pfad);
         fclose(fid);
-        fileattrib('dzg.temp','+h');
     end
 else
     if exist('.dzg.temp') % read last opened folder from temp.temp

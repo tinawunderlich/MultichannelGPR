@@ -12,25 +12,26 @@ clc
 if ispc
     if exist('picks.temp') % read last opened folder from temp.temp
         fid=fopen('picks.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             [file,folder]=uigetfile('*.txt','Choose *.txt file with picks',fn{1}{1});
         else
             [file,folder]=uigetfile('*.txt','Choose *.txt file with picks');
         end
-        fileattrib('picks.temp','-h');
         fid=fopen('picks.temp','wt');
         fprintf(fid,'%s',foldername);
         fclose(fid);
-        fileattrib('picks.temp','+h');
     else
         [file,folder]=uigetfile('*.txt','Choose *.txt file with picks'); % path to radargram-folder
 
         fid=fopen('picks.temp','wt');
         fprintf(fid,'%s',fullfile(folder,file));
         fclose(fid);
-        fileattrib('picks.temp','+h');
     end
 else
     if exist('.picks.temp') % read last opened folder from temp.temp

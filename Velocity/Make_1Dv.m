@@ -14,23 +14,51 @@ ord=1;  % Order of polynom for fitting of 1D velocity function
 % DO NOT CHANGE FROM HERE ON!
 
 % get file name
-if exist('.v1d.temp') % read last opened folder from temp.temp
-    fid=fopen('.v1d.temp','r');
-    fn=textscan(fid,'%s');
-    fclose(fid);
-    if ~isempty(fn{1})
-        [file,folder]=uigetfile('*.txt','Choose *.txt file with picks',fn{1}{1});
+if ispc
+    if exist('v1d.temp') % read last opened folder from temp.temp
+        fid=fopen('v1d.temp','r');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
+        fclose(fid);
+        if ~isempty(fn{1})
+            [file,folder]=uigetfile('*.txt','Choose *.txt file with picks',fn{1}{1});
+        else
+            [file,folder]=uigetfile('*.txt','Choose *.txt file with picks');
+        end
     else
         [file,folder]=uigetfile('*.txt','Choose *.txt file with picks');
     end
+    % save last selected folder in file
+    fid=fopen('v1d.temp','wt');
+    fprintf(fid,fullfile(folder,file));
+    fclose(fid);
 else
-    [file,folder]=uigetfile('*.txt','Choose *.txt file with picks');
+    if exist('.v1d.temp') % read last opened folder from temp.temp
+        fid=fopen('.v1d.temp','r');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
+        fclose(fid);
+        if ~isempty(fn{1})
+            [file,folder]=uigetfile('*.txt','Choose *.txt file with picks',fn{1}{1});
+        else
+            [file,folder]=uigetfile('*.txt','Choose *.txt file with picks');
+        end
+    else
+        [file,folder]=uigetfile('*.txt','Choose *.txt file with picks');
+    end
+    % save last selected folder in file
+    fid=fopen('.v1d.temp','wt');
+    fprintf(fid,fullfile(folder,file));
+    fclose(fid);
 end
 
-% save last selected folder in file
-fid=fopen('.v1d.temp','wt');
-fprintf(fid,fullfile(folder,file));
-fclose(fid);
+
 
 fid=fopen(fullfile(folder,file),'r');
 temp=textscan(fid,'%f%f%f%f%f%f','Headerlines',1);

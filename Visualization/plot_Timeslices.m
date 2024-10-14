@@ -14,29 +14,30 @@ clc
 dsl = 1; % if =1: depthscices, if =0: timeslices
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
-
+if ~ispc; menu('Select folder with timeslices','OK'); end
 if ispc
     if exist('temp.temp') % read last opened folder from temp.temp
         fid=fopen('temp.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             pfad=uigetdir(fn{1}{1},'Select folder with timeslices');
         else
             pfad=uigetdir([],'Select folder with timeslices');
         end
-        fileattrib('temp.temp','-h');
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',pfad);
         fclose(fid);
-        fileattrib('temp.temp','+h');
     else
         pfad=uigetdir([],'Select folder with timeslices'); % path to radargram-folder
 
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',pfad);
         fclose(fid);
-        fileattrib('temp.temp','+h');
     end
 else
     if exist('.temp.temp') % read last opened folder from temp.temp

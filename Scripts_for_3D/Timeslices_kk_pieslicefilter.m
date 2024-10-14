@@ -43,25 +43,26 @@ warning('off');
 if ispc
     if exist('temp.temp','file') % read last opened folder from temp.temp
         fid=fopen('temp.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             folder=uigetdir(fn{1}{1},'Choose interpolated timeslices folder');
         else
             folder=uigetdir([],'Choose interpolated timeslices folder');
         end
-        fileattrib('temp.temp','-h');
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',folder);
         fclose(fid);
-        fileattrib('temp.temp','+h');
     else
         folder=uigetdir([],'Choose interpolated timeslices folder'); % path to timeslices-folder
 
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',folder);
         fclose(fid);
-        fileattrib('temp.temp','+h');
     end
 else
     if exist('.temp.temp','file') % read last opened folder from temp.temp

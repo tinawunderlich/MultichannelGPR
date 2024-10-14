@@ -42,25 +42,26 @@ addpath(fullfile(curFold,'Export_Import'),fullfile(curFold,'Subfunctions'),fullf
 if ispc
     if exist('spidar.temp') % read last opened folder from temp.temp
         fid=fopen('spidar.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             folder=uigetdir(fn{1}{1},'Choose folder with spidar-file(s)');
         else
             folder=uigetdir([],'Choose folder with spidar-file(s)');
         end
-        fileattrib('spidar.temp','-h');
         fid=fopen('spidar.temp','wt');
         fprintf(fid,'%s',folder);
         fclose(fid);
-        fileattrib('spidar.temp','+h');
     else
         folder=uigetdir([],'Choose folder with spidar-file(s)'); % path to radargram-folder
 
         fid=fopen('spidar.temp','wt');
         fprintf(fid,'%s',folder);
         fclose(fid);
-        fileattrib('spidar.temp','+h');
     end
 else
     if exist('.spidar.temp') % read last opened folder from temp.temp

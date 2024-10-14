@@ -18,25 +18,26 @@ if ~ispc; menu('Choose folder with *.pos-files','OK'); end
 if ispc
     if exist('radtemp.temp') % read last opened folder from temp.temp
         fid=fopen('radtemp.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             pfad_rad=uigetdir(fn{1}{1},'Choose folder with *.pos-files');
         else
             pfad_rad=uigetdir([],'Choose folder with *.pos-files');
         end
-        fileattrib('radtemp.temp','-h');
         fid=fopen('radtemp.temp','wt');
         fprintf(fid,'%s',pfad_rad);
         fclose(fid);
-        fileattrib('radtemp.temp','+h');
     else
         pfad_rad=uigetdir([],'Choose folder with *.pos-files'); % path to *.pos-files-folder
 
         fid=fopen('radtemp.temp','wt');
         fprintf(fid,'%s',pfad_rad);
         fclose(fid);
-        fileattrib('radtemp.temp','+h');
     end
 else
     if exist('.radtemp.temp') % read last opened folder from temp.temp

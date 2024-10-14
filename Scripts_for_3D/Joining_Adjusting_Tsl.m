@@ -26,48 +26,50 @@ warning('off');
 if ispc
     if exist('temp1.temp') % read last opened folder from temp.temp
         fid=fopen('temp1.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             pathname1=uigetdir(fn{1}{1},'Choose folder with timeslices of day 1');
         else
             pathname1=uigetdir([],'Choose folder with timeslices of day 1');
         end
-        fileattrib('temp1.temp','-h');
         fid=fopen('temp1.temp','wt');
         fprintf(fid,'%s',pathname1);
         fclose(fid);
-        fileattrib('temp1.temp','+h');
     else
         pathname1=uigetdir([],'Choose folder with timeslices of day 1'); % path to radargram-folder
 
         fid=fopen('temp1.temp','wt');
         fprintf(fid,'%s',pathname1);
         fclose(fid);
-        fileattrib('temp1.temp','+h');
     end
 
     if exist('temp2.temp') % read last opened folder from temp.temp
         fid=fopen('temp2.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             pathname2=uigetdir(fn{1}{1},'Choose folder with timeslices of day 2');
         else
             pathname2=uigetdir([],'Choose folder with timeslices of day 2');
         end
-        fileattrib('temp2.temp','-h');
         fid=fopen('temp2.temp','wt');
         fprintf(fid,'%s',pathname2);
         fclose(fid);
-        fileattrib('temp2.temp','+h');
     else
         pathname2=uigetdir([],'Choose folder with timeslices of day 2'); % path to radargram-folder
 
         fid=fopen('temp2.temp','wt');
         fprintf(fid,'%s',pathname2);
         fclose(fid);
-        fileattrib('temp2.temp','+h');
     end
 else
     if exist('.temp1.temp') % read last opened folder from temp.temp

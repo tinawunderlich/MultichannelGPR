@@ -61,25 +61,26 @@ end
 if ispc
     if exist('dzt.temp') % read last opened folder from temp.temp
         fid=fopen('dzt.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             pfad=uigetdir(fn{1}{1},'Choose folder with DZT-file(s)');
         else
             pfad=uigetdir([],'Choose folder with DZT-file(s)');
         end
-        fileattrib('dzt.temp','-h');
         fid=fopen('dzt.temp','wt');
         fprintf(fid,'%s',pfad);
         fclose(fid);
-        fileattrib('dzt.temp','+h');
     else
         pfad=uigetdir([],'Choose folder with DZT-file(s)'); % path to radargram-folder
 
         fid=fopen('dzt.temp','wt');
         fprintf(fid,'%s',pfad);
         fclose(fid);
-        fileattrib('dzt.temp','+h');
     end
 else
     if exist('.dzt.temp') % read last opened folder from temp.temp

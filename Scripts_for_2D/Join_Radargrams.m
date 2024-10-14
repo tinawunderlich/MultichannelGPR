@@ -21,25 +21,26 @@ timedepth=1; % time=1, depth=2
 if ispc
     if exist('temp1.temp') % read last opened folder from temp.temp
         fid=fopen('temp1.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             foldername1=uigetdir(fn{1}{1},'Choose folder with dataset 1');
         else
             foldername1=uigetdir([],'Choose folder with dataset 1');
         end
-        fileattrib('temp1.temp','-h');
         fid=fopen('temp1.temp','wt');
         fprintf(fid,'%s',foldername1);
         fclose(fid);
-        fileattrib('temp1.temp','+h');
     else
         foldername1=uigetdir([],'Choose folder with dataset 1'); % path to radargram-folder
         
         fid=fopen('temp1.temp','wt');
         fprintf(fid,'%s',foldername1);
         fclose(fid);
-        fileattrib('temp1.temp','+h');
     end
 else
     if exist('.temp1.temp') % read last opened folder from temp.temp
@@ -63,25 +64,26 @@ end
 if ispc
     if exist('temp2.temp') % read last opened folder from temp.temp
         fid=fopen('temp2.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             foldername2=uigetdir(fn{1}{1},'Choose folder with dataset 2');
         else
             foldername2=uigetdir([],'Choose folder with dataset 2');
         end
-        fileattrib('temp2.temp','-h');
         fid=fopen('temp2.temp','wt');
         fprintf(fid,'%s',foldername2);
         fclose(fid);
-        fileattrib('temp2.temp','+h');
     else
         foldername2=uigetdir([],'Choose folder with dataset 2'); % path to radargram-folder
         
         fid=fopen('temp2.temp','wt');
         fprintf(fid,'%s',foldername2);
         fclose(fid);
-        fileattrib('temp2.temp','+h');
     end
 else
     if exist('.temp2.temp') % read last opened folder from temp.temp

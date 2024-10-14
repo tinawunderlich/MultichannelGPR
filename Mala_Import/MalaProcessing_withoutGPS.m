@@ -55,25 +55,26 @@ warning('off');
 if ispc
     if exist('temp.temp') % read last opened folder from temp.temp
         fid=fopen('temp.temp','r');
-        fn=textscan(fid,'%s');
+        if fid~=-1
+            fn=textscan(fid,'%s');
+        else
+            fn{1}=[];
+        end
         fclose(fid);
         if ~isempty(fn{1})
             foldername=uigetdir(fn{1}{1},'Choose folder with data');
         else
             foldername=uigetdir([],'Choose folder with data');
         end
-        fileattrib('temp.temp','-h');
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',foldername);
         fclose(fid);
-        fileattrib('temp.temp','+h');
     else
         foldername=uigetdir([],'Choose folder with data'); % path to radargram-folder
 
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',foldername);
         fclose(fid);
-        fileattrib('temp.temp','+h');
     end
 else
     if exist('.temp.temp') % read last opened folder from temp.temp
