@@ -52,6 +52,6 @@ For experienced Matlab users, it is also possible (a) to use single processing f
 
 # Acknowledgements
 
-The Malå MIRA equipment initiating this work was funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) – Project-ID 290391021 – SFB 1266. I would like to thank S. Bäumler, E. Corradini, D. D'Antonio, A. Fediuk, S. Fischer, M. Harms, S. Hildebrandt, A. Hinterleitner, A. Lohrberg, H. Stümpel, L. Verdonck, J. Verhegge and D. Wilken for their support and extensive testing.
+The Malå MIRA equipment initiating this work was funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) – Project-ID 290391021 – SFB 1266. I would like to thank S. Bäumler, E. Corradini, D. D'Antonio, A. Fediuk, S. Fischer, M. Harms, S. Hildebrandt, A. Hinterleitner, A. Lohrberg, H. Stümpel, L. Verdonck, J. Verhegge and D. Wilken for their support and extensive testing. Also thanks for the reviewers of this article for their helpful comments!
 
 # References
