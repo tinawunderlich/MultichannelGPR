@@ -13,7 +13,7 @@ authors:
 affiliations:
  - name: Institute of Geosciences, Kiel University, Kiel, Germany
    index: 1
-date: 14 October 2024
+date: 21 October 2024
 bibliography: paper.bib
 
 
@@ -25,7 +25,7 @@ Ground Penetrating Radar (GPR) is a popular geophysical method for near surface 
 
 `MultichannelGPR` is a structured collection of MATLAB scripts and functions for processing, visualization and export of single- and multi-channel GPR data. Although it was originally intended and developed for the processing of multichannel Malå MIRA data, it evolved to a more general processing tool also for data from other systems, e.g. GSSI, and partially Sensors&Software and Radarteam. But as the needed input format is clearly defined, the user can input any GPR data from any system, if the data is converted into the required mat-format before usage of `MultichannelGPR`.
 It is structured into various folders containing MATLAB scripts for specific purposes that are mainly data import, processing in 2D and 3D (or cross-channel for multichannel data), visualization and velocity analysis. Some Graphical User Interfaces (GUIs) for processing and visualization are also provided as well as export functionalities for georeferenced radargrams and timeslices for easy import into a Geographical Information System (GIS).
-A first paper on `MultichannelGPR` was published initially in 2021 [@Wunderlich:2021] and the code was available on request from the author. It was used in some publications, mainly for archaeological prospection [@Corradini:2022; @Wunderlich:2022; @Corradini:2023; @Wunderlich:2023], but also for infrastructure mapping [@Karle:2022]. It is now available on GitHub [@fidgit] including a test data set and tutorial for easily getting started. The main changes since the first version are (a) 10 more processing functions, (b) restructuring of the folders for better orientation, (c) new import options for two other GPR systems (still not tested too well), (d) new helping functions for a smoother workflow, e.g. for preparing of parameter files, sorting or joining of datasets, exporting of georeferenced images for import into a GIS, (e) improved capabilities and bug fixes for depth-migrated data in processing and visualization scripts, and (f) general bug fixes and handling of some special cases that occured during application on different data sets.
+A first paper on `MultichannelGPR` was published initially in 2021 [@Wunderlich:2021] and the code was available on request from the author. It was used in some publications, mainly for archaeological prospection [@Corradini:2022; @Wunderlich:2022; @Corradini:2023; @Wunderlich:2023], but also for infrastructure mapping [@Karle:2022]. It is now available on GitHub including a test data set and tutorial for easily getting started. The main changes since the first version are (a) 10 more processing functions, (b) restructuring of the folders for better orientation, (c) new import options for two other GPR systems (still not tested too well), (d) new helping functions for a smoother workflow, e.g. for preparing of parameter files, sorting or joining of datasets, exporting of georeferenced images for import into a GIS, (e) improved capabilities and bug fixes for depth-migrated data in processing and visualization scripts, and (f) general bug fixes and handling of some special cases that occured during application on different data sets.
 
 
 # Statement of need
