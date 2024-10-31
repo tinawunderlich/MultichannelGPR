@@ -11,12 +11,12 @@ clear all
 close all
 clc
 
-app='SIR20';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet
+app='SIR4000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet
 
-dataplot=1; % plot radargram for controlling? 1=yes, 0=no
+dataplot=0; % plot radargram for controlling? 1=yes, 0=no
 
-convert2utm=0; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
-zone=32; % if convert2utm==1 -> give UTM-zone
+convert2utm=1; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
+zone=29; % if convert2utm==1 -> give UTM-zone
 
 offsetGPS_X=0; % [m] Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
 offsetGPS_Y=0; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
@@ -35,7 +35,7 @@ removeOutliers=0; % do you want to remove coordinate outliers?
 
 % Export to other formats
 export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
-export2segy=0; % export all radargrams as segy-files
+export2segy=1; % export all radargrams as segy-files
 constoff=0; % if=1: a constant coordinate offset will be subtracted and coordinates will be in mm accuracy in segy file (offsets will be saved in Inline3D (x) and Crossline3D (y))
 
 
@@ -853,9 +853,13 @@ if export2segy==1
             global_coords{i}(:,3)=zeros(size(global_coords{i}(:,1))); % if no topography present, set to zero
         end
         if chan(i)==2 && isfield(h,'dt2')
-            export2sgy2D(radargrams{i},headers{i}.dt2,global_coords{i}(:,1),global_coords{i}(:,2),fullfile(pfad,'SEGY',[listrad.name{i},'_Chan',int2str(listrad.chan(i)),'.sgy']),global_coords{i}(:,3),constoff);
+            export2sgy2D(radargrams{i},headers{i/2}.dt2,global_coords{i}(:,1),global_coords{i}(:,2),fullfile(pfad,'SEGY',[listrad.name{i},'_Chan',int2str(listrad.chan(i)),'.sgy']),global_coords{i}(:,3),constoff);
         else
-            export2sgy2D(radargrams{i},headers{i}.dt,global_coords{i}(:,1),global_coords{i}(:,2),fullfile(pfad,'SEGY',[listrad.name{i},'_Chan',int2str(listrad.chan(i)),'.sgy']),global_coords{i}(:,3),constoff);
+            if isfield(h,'dt2')
+                export2sgy2D(radargrams{i},headers{(i-1)/2+1}.dt,global_coords{i}(:,1),global_coords{i}(:,2),fullfile(pfad,'SEGY',[listrad.name{i},'_Chan',int2str(listrad.chan(i)),'.sgy']),global_coords{i}(:,3),constoff);
+            else
+                export2sgy2D(radargrams{i},headers{i}.dt,global_coords{i}(:,1),global_coords{i}(:,2),fullfile(pfad,'SEGY',[listrad.name{i},'_Chan',int2str(listrad.chan(i)),'.sgy']),global_coords{i}(:,3),constoff);
+            end
         end
     end
     
