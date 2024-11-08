@@ -17,7 +17,7 @@ clc
 numbers=[]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Processing options:
-settings='settings_khighpass.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
+settings='settings.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
 plotflag=0; % =1 plot and show all radargrams during processing, =0 do not plot
 
 % Plotting options
@@ -295,11 +295,16 @@ for kk=numbers % loop over radargrams
         amp_flag=0; % if amplitude spectrum
         z_flag=0; % if depth migrated data
         
+        if kk==1
+            tplot=t; % save t for plotting of raw data
+        else
+            t=tplot; % reset raw data t for new profile
+        end
         if plotflag==1
             % Plot raw data
             figure(kk)
             subplot(2,1,1)
-            imagesc(xx{kk},t,datatraces)
+            imagesc(xx{kk},tplot,datatraces)
             grid on
             xlabel('x [m]')
             ylabel('t [ns]')
@@ -604,6 +609,7 @@ for kk=numbers % loop over radargrams
                 end
             else
                 % plot amplitude spectrum
+                subplot(2,1,2)
                 if tcut_flag==0
                     plot(t,datatraces)
                     hold on

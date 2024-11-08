@@ -15,10 +15,10 @@ clc
 timedepth=1; % =1: time, =2: depth
 
 % Radargrams:
-rad_num=[1]; % give number of radagrams to plot (if =[] all radargrams are used, be careful with large datasets!)
+rad_num=[]; % give number of radagrams to plot (if =[] all radargrams are used, be careful with large datasets!)
 
 % Timeslices:
-tsl_num=[7]; % give number of timeslices to plot (or leave empty if no tsl)
+tsl_num=[]; % give number of timeslices to plot (or leave empty if no tsl)
 
 % plot settings:
 colorclip=5; % 0 is colorscale from min(data) to max(data), 1 is 1% clip value, 2 is 2% clip value and 3 is 3% clip value, ... (will not be saved, for plotting only!)

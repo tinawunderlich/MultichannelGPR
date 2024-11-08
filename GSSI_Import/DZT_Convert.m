@@ -11,12 +11,12 @@ clear all
 close all
 clc
 
-app='SIR4000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet
+app='UtilityScan';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
 
-dataplot=0; % plot radargram for controlling? 1=yes, 0=no
+dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
 convert2utm=1; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
-zone=29; % if convert2utm==1 -> give UTM-zone
+zone=32; % if convert2utm==1 -> give UTM-zone
 
 offsetGPS_X=0; % [m] Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
 offsetGPS_Y=0; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
@@ -35,7 +35,7 @@ removeOutliers=0; % do you want to remove coordinate outliers?
 
 % Export to other formats
 export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
-export2segy=1; % export all radargrams as segy-files
+export2segy=0; % export all radargrams as segy-files
 constoff=0; % if=1: a constant coordinate offset will be subtracted and coordinates will be in mm accuracy in segy file (offsets will be saved in Inline3D (x) and Crossline3D (y))
 
 
@@ -136,6 +136,8 @@ for i=1:length(list)
             [data,trh,h]=readdzt_4000(fullfile(pfad,[name{i},'.DZT']),dataplot,removeOutliers,zone);
         elseif strcmp(app,'Tablet')
             [data,trh,h]=readdzt_Tablet(fullfile(pfad,[name{i},'.DZT']),dataplot);
+        elseif strcmp(app,'UtilityScan')
+            [data,trh,h]=readdzt_UtilityScan(fullfile(pfad,[name{i},'.DZT']),dataplot);
         elseif strcmp(app,'SIR30')
             [data,trh,h]=readdzt_30(fullfile(pfad,[name{i},'.DZT']),dataplot);
         else
@@ -422,6 +424,10 @@ for i=1:length(list)
         % if readdzt_all was used no field time is created
         if ~isfield(trh,'time')
             trh.time = zeros(size(trh.x));
+            trh.quality = NaN(size(trh.x)); % NaN because zero has a definition: (0=Fix not valid)
+        end
+
+        if ~isfield(trh,'quality')
             trh.quality = NaN(size(trh.x)); % NaN because zero has a definition: (0=Fix not valid)
         end
         

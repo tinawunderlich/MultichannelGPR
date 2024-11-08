@@ -1,6 +1,7 @@
 %------------------------ EKKO_Convert -------------------------------------
 %
 % Converts Noggin HD- & DT1-files of Sensors&Software EKKO equipments to segy and mat (compatible with Multichannel-GPR)
+% measured with survey wheel and without GPS
 %
 % Dr. Tina Wunderlich, November 2023, tina.wunderlich@ifg.uni-kiel.de
 %
@@ -13,15 +14,9 @@ clc
 
 name='liney'; % name of data files
 
-dataplot=1; % plot radargram for controlling? 1=yes, 0=no
+line_spacing=1; % spacing between lines [m]
 
-offsetGPS_X=0; % Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
-offsetGPS_Y=0; % Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
-
-% Options for calculating inline coordinates for each trace:
-coords_opt=1;   % =1: trace coordinate is difference to beginning of profile (only use this for straight profiles!)
-                % =2: trace coordinates are calculated by taking the cumulative sum of the coordinate differences between subsequent traces (better for curvy profiles, but not useful for strong GPS-antenna movements)
-
+dataplot=0; % plot radargram for controlling? 1=yes, 0=no
 
 % Export to other formats
 export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
@@ -84,32 +79,6 @@ else
     fclose(fid);
 end
 
-% check if GEOMETRY.1 file existing
-if exist(fullfile(pfad,'GEOMETRY.1'),'file')
-    temp=readlines(fullfile(pfad,'GEOMETRY.1'));
-    % split lines
-    for i=1:length(temp)
-        test=strsplit(temp(i),' ');
-        if ~strcmp(test,'');
-            geo(i).name=test(1);
-            if strcmp(test(2),'y')
-                geo(i).ystart=str2num(test(4));
-                geo(i).yend=str2num(test(5));
-                geo(i).xstart=str2num(test(6));
-                geo(i).xend=str2num(test(7));
-                geo(i).constflag='x'; % const coords in x-direction
-            else
-                geo(i).xstart=str2num(test(4));
-                geo(i).xend=str2num(test(5));
-                geo(i).ystart=str2num(test(6));
-                geo(i).yend=str2num(test(7));
-                geo(i).constflag='y'; % const coords in y-direction
-            end
-        end
-    end
-end
-
-
 % get list of HD-files in this folder
 list_HD=dir(fullfile(pfad,'*.HD')); % header format
 % check for names starting with .
@@ -123,8 +92,8 @@ while ii<length(list_HD)
 end
 % get profile number
 for i=1:length(list_HD)
-    temp=extractBetween(list_HD(i).name,name,'.HD');
-    list_HD(i).number=str2num(temp{1});
+    a=isstrprop(list_HD(i).name,'digit'); % find numbers in string
+    list_HD(i).number=str2num(list_HD(i).name(a));
 end
 
 % get list of DT1-files in this folder
@@ -140,8 +109,9 @@ while ii<length(list_DT)
 end
 % get profile number
 for i=1:length(list_DT)
-    temp=extractBetween(list_DT(i).name,name,'.DT1');
-    list_DT(i).number=str2num(temp{1});
+    temp2=extractBefore(list_DT(i).name,'.DT1');
+    a=isstrprop(temp2,'digit'); % find numbers in string
+    list_DT(i).number=str2num(list_DT(i).name(a));
 end
 % sort list
 DT=struct2table(list_DT);
@@ -157,6 +127,7 @@ anz=1;
 listrad.name=[];
 listrad.chan=[];
 for i=1:length(list_DT)
+
     disp(['File ',int2str(i),' of ',int2str(length(list_DT))])
     
     % Read header file
@@ -167,15 +138,20 @@ for i=1:length(list_DT)
     end
     temp=readlines(fullfile(pfad,HDname));
     % number of traces
-    h.ntr=str2num(extractAfter(temp(7),'= '));
+    a=cellfun(@(x) contains(x,'NUMBER OF TRACES'),temp);
+    h.ntr=str2num(extractAfter(temp{a},'= '));
     % time window
-    h.tmax=str2num(extractAfter(temp(13),'= '));
+    a=cellfun(@(x) contains(x,'TOTAL TIME WINDOW'),temp);
+    h.tmax=str2num(extractAfter(temp{a},'= '));
     % starting pos
-    h.start_pos=str2num(extractAfter(temp(15),'= '));
+    a=cellfun(@(x) contains(x,'STARTING POSITION'),temp);
+    h.start_pos=str2num(extractAfter(temp{a},'= '));
     % ending pos
-    h.ending_pos=str2num(extractAfter(temp(17),'= '));
+    a=cellfun(@(x) contains(x,'FINAL POSITION'),temp);
+    h.ending_pos=str2num(extractAfter(temp{a},'= '));
     % step size
-    h.dx=str2num(extractAfter(temp(19),'= '));
+    a=cellfun(@(x) contains(x,'STEP SIZE USED'),temp);
+    h.dx=str2num(extractAfter(temp{a},'= '));
 
     % -----------------------------------------------------
     % Read data file:
@@ -213,6 +189,18 @@ for i=1:length(list_DT)
     trh=struct2table(trh);
     fclose(fid);
 
+    
+    % current line coordinate (x or y, will be determined automatically)
+    line_coord=line_spacing*(i-1);
+    % calculate trace coords:
+    if all(trh.xr==0)
+        trh.y=linspace(h.start_pos,h.ending_pos,h.ntr)';
+        trh.x=zeros(size(trh.x))+line_coord;
+    else
+        trh.x=linspace(h.start_pos,h.ending_pos,h.ntr)';
+        trh.y=zeros(size(trh.y))+line_coord;
+    end
+
     if dataplot==1
         figure
         imagesc(table2array(trh(:,2)),linspace(0,h.tmax,table2array(trh(1,3))),data)
@@ -221,71 +209,12 @@ for i=1:length(list_DT)
         ylabel('t [ns]')
     end
 
-    % if external geometry file present -> set coordinates
-    % search for correct geometry line
-    for j=1:length(geo)
-        if strcmp(ekkoname,geo(j).name)
-            w=j; % line number in geo
-            break;
-        end
-    end
-    if strcmp(geo(w).constflag,'x') % x const
-        trh(:,7)=array2table(zeros(size(trh(:,7)))+geo(w).xstart); % X
-        if geo(w).ystart<geo(w).yend
-            trh(:,8)=array2table(geo(w).ystart+table2array(trh(:,2)));
-        else
-            trh(:,8)=array2table(geo(w).ystart-table2array(trh(:,2)));
-        end
-    else % y const
-        trh(:,8)=array2table(zeros(size(trh(:,8)))+geo(w).ystart); % Y
-        if geo(w).xstart<geo(w).xend
-            trh(:,7)=array2table(geo(w).xstart+table2array(trh(:,2)));
-        else
-            trh(:,7)=array2table(geo(w).xstart-table2array(trh(:,2)));
-        end
-    end
-    trh=table2struct(trh);   
-        
-    % correct GPS-antenna offset:
-    if offsetGPS_X~=0 || offsetGPS_Y~=0
-        anz2=round(0.5/mean(sqrt(diff(trh.x).^2+diff(trh.y).^2))); % number of points for direction determination (using mean trace spacing for 0.5 m distance)
-        if anz2/2==round(anz2/2)
-            anz2=anz2+1; % make odd
-        end
-        for ii=1:length(trh.x)-anz2
-            dist=sqrt((trh.x(ii)-trh.x(ii+anz2))^2+(trh.y(ii)-trh.y(ii+anz2))^2);
-            temp=helmert([offsetGPS_X offsetGPS_Y],[0 0; 0 dist],[trh.x(ii) trh.y(ii); trh.x(ii+anz2) trh.y(ii+anz2)]);
-            trh.x(ii)=temp(1);
-            trh.y(ii)=temp(2);
-        end
-        anz1=anz2;
-        % calculation for the last few traces
-        anz2=anz2-1;
-        for ii=length(trh.x)-anz1+1:length(trh.x)-1
-            dist=sqrt((trh.x(ii)-trh.x(ii+anz2))^2+(trh.y(ii)-trh.y(ii+anz2))^2);
-            temp=helmert([offsetGPS_X offsetGPS_Y],[0 0; 0 dist],[trh.x(ii) trh.y(ii); trh.x(ii+anz2) trh.y(ii+anz2)]);
-            trh.x(ii)=temp(1);
-            trh.y(ii)=temp(2);
-            anz2=anz2-1;
-        end
-        % extrapolate for last trace
-        trh.x(end)=interp1([1 2],[trh.x(end-2) trh.x(end-1)],3,'linear','extrap');
-        trh.y(end)=interp1([1 2],[trh.y(end-2) trh.y(end-1)],3,'linear','extrap');
-    end
-
-    trh=struct2table(trh);
-
     if i==1
         radargrams=[{data}];
         global_coords=[{[trh.x trh.y trh.z]}];
         xtemp=trh.x;
         ytemp=trh.y;
-        if coords_opt==1 % difference to beginning
-            x=[{[sqrt((xtemp-xtemp(1)).^2+(ytemp-ytemp(1)).^2)']}];
-        elseif coords_opt==2 % cumulative sum
-            x=[{[0; cumsum(sqrt(diff(xtemp).^2+diff(ytemp).^2)')]}];
-        end
-
+        x=[{[0; cumsum(sqrt(diff(xtemp).^2+diff(ytemp).^2))]}];
 
         listrad.name=[{ekkoname}];
         listrad.chan=[1];
@@ -294,11 +223,7 @@ for i=1:length(list_DT)
         global_coords=[global_coords; {[trh.x trh.y trh.z]}];
         xtemp=trh.x;
         ytemp=trh.y;
-        if coords_opt==1 % difference to beginning
-            x=[x; {[sqrt((xtemp-xtemp(1)).^2+(ytemp-ytemp(1)).^2)']}];
-        elseif coords_opt==2 % cumulative sum
-            x=[x; {[0; cumsum(sqrt(diff(xtemp).^2+diff(ytemp).^2)')]}];
-        end
+        x=[x; {[0; cumsum(sqrt(diff(xtemp).^2+diff(ytemp).^2))]}];
 
 
         listrad.name=[listrad.name; {ekkoname}];
