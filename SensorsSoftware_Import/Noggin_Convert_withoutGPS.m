@@ -18,6 +18,12 @@ line_spacing=1; % spacing between lines [m]
 
 dataplot=0; % plot radargram for controlling? 1=yes, 0=no
 
+% if you find out that the survey wheel was not calibrated, use following
+% information to re-calibrate it (i.e. calculate new trace spacing for all
+% profiles)
+calibration=1; % do you want to recalibrate? 1=yes, 0=no
+profile1length=52.9; % length of first profile [m]
+
 % Export to other formats
 export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
 export2segy=0; % export all radargrams as segy-files
@@ -152,6 +158,26 @@ for i=1:length(list_DT)
     % step size
     a=cellfun(@(x) contains(x,'STEP SIZE USED'),temp);
     h.dx=str2num(extractAfter(temp{a},'= '));
+
+    % re-calibrate?
+    if calibration==1 && i==1
+        h.dx=profile1length/h.ntr; % determine dx for all profiles
+        dx_all=h.dx;
+        % adjust ending pos:
+        h.ending_pos=h.dx*(h.ntr-1);
+    end
+    if calibration==1 && i>1 % set this dx for all other profiles
+        if h.dx<0
+            % reverse line
+            h.dx=-dx_all; 
+            % also adjust starting_pos:
+            h.start_pos=dx_all*(h.ntr-1);
+        else
+            h.dx=dx_all;
+            % also adjust ending pos:
+            h.ending_pos=h.dx*(h.ntr-1);
+        end
+    end
 
     % -----------------------------------------------------
     % Read data file:

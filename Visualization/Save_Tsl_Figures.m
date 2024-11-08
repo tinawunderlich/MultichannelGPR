@@ -11,10 +11,10 @@ clc
 % make_Timeslices.m)
 
 
-colperc=2; % Colorscale clipping in percent (if =0: autoscale min-max)
+colperc=1; % Colorscale clipping in percent (if =0: autoscale min-max)
 
 removeBorder=1; % =1: remove border artifacts from interpolation, =0: leave as it is
-pix=2; % if removeBorder==1: how many pixels are removed from border around area
+pix=10; % if removeBorder==1: how many pixels are removed from border around area
 
 medianFilter=1; % do you want to apply a 2D-median filter (1=yes, 0=no)
 msize=3; % filter size in pixel

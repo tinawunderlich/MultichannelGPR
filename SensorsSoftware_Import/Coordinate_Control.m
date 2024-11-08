@@ -20,7 +20,7 @@ clc
 % Option 2: Read coordinates from txt-file and set into global_coords.mat.
 % Option 3: Manipulate coordinates with settings below (no text-file written/required).
 % Option 4: For skewed areas, when zigzag profile shift is linearly changing over the area
-option=2;
+option=1;
 
 % settings for option 3:
 x_offset=50; % offset in x-direction [m] (e.g. x_offset=1: all profiles will be shifted 1 m towards positive x-axis)
@@ -36,7 +36,7 @@ y_offset_start=[0 0];   % offset for small x [m], skalar or 2 numbers (see above
 y_offset_end=[1.2 -1.2];     % offset for maximum x [m], skalar or 2 numbers (see above) 
 
 
-txtname='coords_korr.txt'; % give name of coordinate text-file (saved in same folder as radargrams)
+txtname='coords.txt'; % give name of coordinate text-file (saved in same folder as radargrams)
 
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!

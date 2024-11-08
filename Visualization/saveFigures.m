@@ -16,7 +16,7 @@ clc
 numbers=[]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Plotting options for radargrams:
-colorclip=3; % 0 is colorscale from min(data) to max(data), 1 is 1% clip value, 2 is 2% clip value and 3 is 3% clip value, ... (will not be saved, for plotting only!)
+colorclip=1; % 0 is colorscale from min(data) to max(data), 1 is 1% clip value, 2 is 2% clip value and 3 is 3% clip value, ... (will not be saved, for plotting only!)
 aspectratio_t=7;    % for time plots: give aspectratio for y-axis. If you want to plot over whole screen, set =0. If you want to make the taxis larger, make this number smaller.
 aspectratio_z=0.3;    % for depth plots: give aspectratio for y-axis. If you want to plot over whole screen, set =0. If you want to make the zaxis larger, make this number smaller.
 wiggleplot=0;  % =1: make wiggle plot instead of grayscale picture (=0)
