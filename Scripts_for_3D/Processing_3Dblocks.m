@@ -24,7 +24,7 @@ clc
 
 
 % Number of rectangles with binned data
-rectangles=1:2; % e.g. 1:3
+rectangles=1; % e.g. 1:3
 
 % is it topography corrected/migrated data?
 dsl_topo=0; % =1: with topography correction/migration, =0: time or depth without topography (all sample slices have the same sample points)

@@ -666,15 +666,12 @@ end
 
 
 % Marker -> trh.mark
-b=1;
-for i=1:h.numtraces*rh_nchan
-    if b<=length(mark) && mark(b)==i
-        trh.mark(i)=1;
-        b=b+1;
-    else
-        trh.mark(i)=0;
-    end
+weg=cellfun(@(x) strcmp(x,'NA'),marktype);
+if ~isempty(weg)
+    mark(weg)=[];
 end
+trh.mark=zeros(1,h.numtraces*rh_nchan);
+trh.mark(mark)=1;
 
 
 if plotten==1
