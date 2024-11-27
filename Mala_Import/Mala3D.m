@@ -19,10 +19,10 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Select number of profiles:
-profile_min=1;  % minimum profile number
-profile_max=2;  % maximum profile number
+profile_min=16;  % minimum profile number
+profile_max=17;  % maximum profile number
 % number of channels for this dataset
-channels=16; % number of channels
+channels=22; % number of channels
 
 changeDir=0; % if =1: change the sign of the y-antenna-GPS-offset, if =0: use offsets as written in file
 
@@ -292,18 +292,23 @@ else
                 params.vfile=[str2num(params.vfile); str2num(params.vfile)];
                 params.tfile=[0; 100];
             else
-                temp4=load(fullfile(foldername,params.vfile));
-                temp2=fieldnames(temp4);
-                params.vfile=getfield(temp4,temp2{1});
-                temp4=load(fullfile(foldername,params.tfile));
-                temp2=fieldnames(temp4);
-                params.tfile=getfield(temp4,temp2{1});
-                % make column vectors
-                if length(params.vfile(:,1))<length(params.vfile(1,:))
-                    params.vfile=params.vfile';
-                end
-                if length(params.tfile(:,1))<length(params.tfile(1,:))
-                    params.tfile=params.tfile';
+                if exist(fullfile(foldername,params.vfile),'file')
+                    temp4=load(fullfile(foldername,params.vfile));
+                    temp2=fieldnames(temp4);
+                    params.vfile=getfield(temp4,temp2{1});
+                    temp4=load(fullfile(foldername,params.tfile));
+                    temp2=fieldnames(temp4);
+                    params.tfile=getfield(temp4,temp2{1});
+                    % make column vectors
+                    if length(params.vfile(:,1))<length(params.vfile(1,:))
+                        params.vfile=params.vfile';
+                    end
+                    if length(params.tfile(:,1))<length(params.tfile(1,:))
+                        params.tfile=params.tfile';
+                    end
+                else
+                    params.vfile=[NaN NaN];
+                    params.tfile=[0; 100];
                 end
             end
         elseif strcmp(temp{1}(i),'g1')
@@ -474,7 +479,11 @@ if userawdata==0  % first run of program -> read all profiles
     if pfw==0
         for i=1:lnum
             % load data and coordinates
-            [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset);
+            [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels,flag(i)]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset);
+            if flag(i)==0
+                disp(['File ',fullfile(foldername,[name,'_00',int2str(numbers(i)),'.rad']),' does not exist. Please check profile numbers.'])
+                return;
+            end
             % delete traces with NaN-coordinates
             del=find(isnan(tempx{i}));
             traces(:,del)=[];
@@ -504,7 +513,7 @@ if userawdata==0  % first run of program -> read all profiles
         WaitMessage = parfor_wait(lnum, 'Waitbar', false,'ReportInterval',1);
         parfor i=1:lnum   % parfor
             % load data and coordinates
-            [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset);
+            [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels,flag(i)]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset);
             % delete traces with NaN-coordinates
             del=find(isnan(tempx{i}));
             traces(:,del)=[];
@@ -530,6 +539,10 @@ if userawdata==0  % first run of program -> read all profiles
                 parsave(trname,traces);
             end
             WaitMessage.Send;
+        end
+        if any(flag)==0
+            disp(['There is a problem with finding the correct files. Please check profile numbers.'])
+            return;
         end
         WaitMessage.Destroy;
     end
@@ -1183,6 +1196,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
 
         numtrch=min(cellfun(@(x) length(x),x)); % minimum number of traces per channel
 
+        datatraces_temp=zeros(length(temp{1}(:,1)),numtrch*channels);
         info_temp=zeros(9,numtrch*channels);
         info_temp(1,:)=info(1,1); % profile number
         info_temp(9,:)=1:length(info_temp(9,:)); % overall trace number
@@ -1190,6 +1204,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
             info_temp(2:3,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[1:numtrch; zeros(1,numtrch)+ii]; % trace number per channel, channelnumber
             info_temp(7:8,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[zeros(1,numtrch)+info(7,1); zeros(1,numtrch)+info(8,1)]; % dt, ns
             info_temp(4:6,info_temp(3,:)==ii)=gc{ii}(1:numtrch,:)';
+            datatraces_temp(:,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=temp{ii}(:,1:numtrch);
         end
 
         % replace datatraces and info with shorter profiles:

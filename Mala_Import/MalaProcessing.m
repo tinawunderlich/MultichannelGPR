@@ -748,6 +748,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
 
         numtrch=min(cellfun(@(x) length(x),x)); % minimum number of traces per channel
 
+        datatraces_temp=zeros(length(temp{1}(:,1)),numtrch*channels);
         info_temp=zeros(9,numtrch*channels);
         info_temp(1,:)=info(1,1); % profile number
         info_temp(9,:)=1:length(info_temp(9,:)); % overall trace number
@@ -755,6 +756,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
             info_temp(2:3,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[1:numtrch; zeros(1,numtrch)+ii]; % trace number per channel, channelnumber
             info_temp(7:8,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[zeros(1,numtrch)+info(7,1); zeros(1,numtrch)+info(8,1)]; % dt, ns
             info_temp(4:6,info_temp(3,:)==ii)=gc{ii}(1:numtrch,:)';
+            datatraces_temp(:,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=temp{ii}(:,1:numtrch);
         end
 
         % replace datatraces and info with shorter profiles:

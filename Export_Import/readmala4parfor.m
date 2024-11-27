@@ -1,4 +1,4 @@
-function [traces,dt,ns,x,y,z,numchannels]=readmala4parfor(foldername,name,profile_num,changeDir,add_Yoffset)
+function [traces,dt,ns,x,y,z,numchannels,flag]=readmala4parfor(foldername,name,profile_num,changeDir,add_Yoffset)
 
 % Read Mala rd3-data (all channels in one file)
 % [traces,dt,ns,x,y,z,numchannels]=readmala4parfor(foldername,name,profile_num,changeDir,add_Yoffset)
@@ -41,6 +41,7 @@ else
     fid=fopen(fullfile(foldername,[name,'_',int2str(profile_num),'.rad']),'r');
 end
 
+flag=1;
 if fid==-1
     traces=[];
     dt=[];
@@ -49,6 +50,7 @@ if fid==-1
     y=[];
     z=[];
     numchannels=[];
+    flag=0; % -> bad file
     return;
 end
 
