@@ -285,7 +285,7 @@ save(fullfile(pfad,'split_markergroups','global_coords.mat'),'global_coords','-v
 save(fullfile(pfad,'split_markergroups','marker.mat'),'marker','-v7.3');
 
 % save txt-file
-fid=fopen(fullfile(pfad,'split_markergroups','radargrams_splitMarkergroups.txt'),'wt');
+fid=fopen(fullfile(pfad,'split_markergroups','radargrams.txt'),'wt');
 fprintf(fid,'Nr.\tName\tPart\n');
 c=1;
 for i=1:length(name)

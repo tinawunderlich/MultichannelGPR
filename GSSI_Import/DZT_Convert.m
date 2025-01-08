@@ -11,7 +11,7 @@ clear all
 close all
 clc
 
-app='Tablet';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
+app='SIR4000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
 
 dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
@@ -32,6 +32,10 @@ removeOutliers=0; % do you want to remove coordinate outliers?
     % 0= no, use raw coordinates
     % 1= in middle of profile
     % 2= at the end/beginning of profile
+
+% remove start/end traces of profiles
+removeStartEnd=1; % =1: yes, remove start and end traces of profiles (at same position)
+                    % =0: No. Keep all traces.
 
 % Export to other formats
 export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
@@ -166,6 +170,14 @@ for i=1:length(list)
             d1=[d1 d1(end)];
             d2=[d2 d2(end)];
             weg=(d1==0 & d2==0);
+            if removeStartEnd==1
+                diffe = sqrt(diff(trh.x).^2 + diff(trh.y).^2);
+                standstill = diffe < mean(diffe);
+                first = find(~standstill,1,'first')-1;
+                last = length(trh.x) - find(fliplr(~standstill),1,'first')-1;
+                weg(1:first) = 1;
+                weg(last:end) = 1;
+            end
             trh.x=trh.x(~weg);
             trh.y=trh.y(~weg);
             trh.z=trh.z(~weg);
