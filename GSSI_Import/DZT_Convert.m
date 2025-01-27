@@ -15,12 +15,16 @@ app='SIR4000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / Util
 
 dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
-convert2utm=0; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
+convert2utm=1; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
 zone=32; % if convert2utm==1 -> give UTM-zone
 
 offsetGPS_X=0; % [m] Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
-offsetGPS_Y=0; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
-h_GPS=0; % [m] height of GPS/prism above ground
+offsetGPS_Y=0.15; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
+h_GPS=0.665; % [m] height of GPS/prism above ground
+
+% smoothing of GPS-coordinates before applying antenna-offsets:
+smooth_coords=1; % yes=1, no=0
+numsamp_smooth=5; % number of samples for moving median smoothing
 
 % Options for calculating inline coordinates for each trace:
 coords_opt=1;   % =1: trace coordinate is difference to beginning of profile (only use this for straight profiles!)
@@ -34,7 +38,7 @@ removeOutliers=0; % do you want to remove coordinate outliers?
     % 2= at the end/beginning of profile
 
 % remove start/end traces of profiles
-removeStartEnd=1; % =1: yes, remove start and end traces of profiles (at same position)
+removeStartEnd=0; % =1: yes, remove start and end traces of profiles (at same position)
                     % =0: No. Keep all traces.
 
 % Export to other formats
@@ -190,6 +194,12 @@ for i=1:length(list)
             % adjust header
             h.numtraces=size(data,2)/h.nchan;
 
+            if smooth_coords==1
+                trh.x=movmean(trh.x,numsamp_smooth);
+                trh.y=movmean(trh.y,numsamp_smooth);
+                trh.z=movmean(trh.z,numsamp_smooth);
+            end
+
             % now correct for offsets:
             anz2=round(0.5/mean(sqrt(diff(trh.x).^2+diff(trh.y).^2))); % number of points for direction determination (using mean trace spacing for 0.5 m distance)
             if anz2/2==round(anz2/2)
@@ -299,42 +309,47 @@ for i=1:length(list)
                     % coordinate transformation
                     temp=helmert([offsetGPS_X offsetGPS_Y],[0 0; 0 dist],[trh.x(ii)+d_xx trh.y(ii)+d_xy; trh.x(ii+anz2)+d_xx trh.y(ii+anz2)+d_xy]);
 
-                    trh.x(ii)=temp(1);
-                    trh.y(ii)=temp(2);
-                    trh.z(ii)=trh.z(ii)-hnew+d_z; % correct height
+                    trh.xn(ii)=temp(1);
+                    trh.yn(ii)=temp(2);
+                    trh.zn(ii)=trh.z(ii)-hnew+d_z; % correct height
                 else % no topography present
                     temp=helmert([offsetGPS_X offsetGPS_Y],[0 0; 0 dist],[trh.x(ii) trh.y(ii); trh.x(ii+anz2) trh.y(ii+anz2)]);
-                    trh.x(ii)=temp(1);
-                    trh.y(ii)=temp(2);
+                    trh.xn(ii)=temp(1);
+                    trh.yn(ii)=temp(2);
                 end
             end
-            anz1=anz2;
-            % calculation for the last few traces
-            anz2=anz2-1;
-            for ii=length(trh.x)-anz1+1:length(trh.x)-1
-                dist=sqrt((trh.x(ii)-trh.x(ii+anz2))^2+(trh.y(ii)-trh.y(ii+anz2))^2); % distance between two points anz2-traces away
-                dist_xy=[trh.x(ii+anz2)-trh.x(ii) trh.y(ii+anz2)-trh.y(ii)]; % differences in x and y direction
+            % calculation for the last (anz2) few traces -> flip
+            % coordinates and start profile from back
+            n=length(trh.x);
+            tempx_flip=fliplr(trh.x);
+            tempy_flip=fliplr(trh.y);
+            tempz_flip=fliplr(trh.z);
+            tempdx=-offsetGPS_X;
+            tempdy=-offsetGPS_Y;
+            for ii=1:anz2
+                dist=sqrt((tempx_flip(ii)-tempx_flip(ii+anz2))^2+(tempy_flip(ii)-tempy_flip(ii+anz2))^2); % distance between two points anz2-traces away
+                dist_xy=[tempx_flip(ii+anz2)-tempx_flip(ii) tempy_flip(ii+anz2)-tempy_flip(ii)]; % differences in x and y direction
                 % correct for GPS height and associated xy-shift if
                 % topography is present
-                if any(trh.z~=0)
-                    alpha=atand(abs(trh.z(ii+anz2)-trh.z(ii))/dist); % slope angle in degree
+                if any(tempz_flip~=0)
+                    alpha=atand(abs(tempz_flip(ii+anz2)-tempz_flip(ii))/dist); % slope angle in degree
                     hnew=h_GPS/cosd(alpha); % new height of GPS above ground at measured point
                     b=hnew*sind(alpha); % shift along surface to correct point
                     d_x=b*cosd(alpha); % horizontal shift of point in profile direction
                     d_z=b*sind(alpha); % vertical shift of point in profile direction
 
                     % angle of profile direction towards north
-                    if trh.x(ii)==trh.x(ii+anz2) % north/south
+                    if tempx_flip(ii)==tempx_flip(ii+anz2) % north/south
                         beta=0;
-                    elseif trh.y(ii)==trh.y(ii+anz2) % west/east
+                    elseif tempy_flip(ii)==tempy_flip(ii+anz2) % west/east
                         beta=90;
                     else
-                        beta=atand(abs(trh.x(ii+anz2)-trh.x(ii))/abs(trh.y(ii+anz2)-trh.y(ii)));
+                        beta=atand(abs(tempx_flip(ii+anz2)-tempx_flip(ii))/abs(tempy_flip(ii+anz2)-tempy_flip(ii)));
                     end
                     % split horizontal shift into x and y component:
                     d=[d_x*cosd(beta) d_x*sind(beta)];
                     % differentiate between different cases
-                    updownflag=trh.z(ii)<trh.z(ii+anz2); % up=1, down=0
+                    updownflag=tempz_flip(ii)<tempz_flip(ii+anz2); % up=1, down=0
                     if all(dist_xy>0) && abs(dist_xy(1))<abs(dist_xy(2)) && updownflag==1 % up, towards NNE
                         d_xx=min(d);
                         d_xy=max(d);
@@ -413,23 +428,23 @@ for i=1:length(list)
                     end
 
                     % coordinate transformation
-                    temp=helmert([offsetGPS_X offsetGPS_Y],[0 0; 0 dist],[trh.x(ii)+d_xx trh.y(ii)+d_xy; trh.x(ii+anz2)+d_xx trh.y(ii+anz2)+d_xy]);
+                    temp=helmert([tempdx tempdy],[0 0; 0 dist],[tempx_flip(ii)+d_xx tempy_flip(ii)+d_xy; tempx_flip(ii+anz2)+d_xx tempy_flip(ii+anz2)+d_xy]);
 
-                    trh.x(ii)=temp(1);
-                    trh.y(ii)=temp(2);
-                    trh.z(ii)=trh.z(ii)-hnew+d_z; % correct height
+                    trh.xn(n-ii+1)=temp(1);
+                    trh.yn(n-ii+1)=temp(2);
+                    trh.zn(n-ii+1)=trh.z(n-ii+1)-hnew+d_z; % correct height
                 else % no topography present
-                    temp=helmert([offsetGPS_X offsetGPS_Y],[0 0; 0 dist],[trh.x(ii) trh.y(ii); trh.x(ii+anz2) trh.y(ii+anz2)]);
-                    trh.x(ii)=temp(1);
-                    trh.y(ii)=temp(2);
+                    temp=helmert([tempdx tempdy],[0 0; 0 dist],[tempx_flip(ii) tempy_flip(ii); tempx_flip(ii+anz2) tempy_flip(ii+anz2)]);
+                    trh.xn(n-ii+1)=temp(1);
+                    trh.yn(n-ii+1)=temp(2);
                 end
-
-                anz2=anz2-1;
             end
-            % extrapolate for last trace
-            trh.x(end)=interp1([1 2],[trh.x(end-2) trh.x(end-1)],3,'linear','extrap');
-            trh.y(end)=interp1([1 2],[trh.y(end-2) trh.y(end-1)],3,'linear','extrap');
-            trh.z(end)=interp1([1 2],[trh.z(end-2) trh.z(end-1)],3,'linear','extrap');
+
+            % set new/corrected coordinates in original fields in trace
+            % header
+            trh.x=trh.xn;
+            trh.y=trh.yn;
+            trh.z=trh.zn;
         end
         
         
@@ -883,6 +898,51 @@ if export2segy==1
     
     disp('   Finished!')
 end
+
+% Exporting settings:
+disp('Exported settings_DZTconvert.txt!')
+
+fid=fopen(fullfile(pfad,'mat','settings_DZTconvert.txt'),'wt');
+fprintf(fid,'Equipment:\n');
+fprintf(fid,'  app=%s\n\n',app);    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
+
+fprintf(fid,'Options for GNSS:\n');
+fprintf(fid,'  convert2utm=%d\n',convert2utm); % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
+fprintf(fid,'  zone=%d\n',zone); % if convert2utm==1 -> give UTM-zone
+fprintf(fid,'  offsetGPS_X=%f\n',offsetGPS_X); % [m] Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
+fprintf(fid,'  offsetGPS_Y=%f\n',offsetGPS_Y); % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
+fprintf(fid,'  h_GPS=%f\n\n',h_GPS); % [m] height of GPS/prism above ground
+
+% smoothing of GPS-coordinates before applying antenna-offsets:
+fprintf(fid,'Smoothing of coordinates:\n');
+fprintf(fid,'  smooth_coords=%d\n',smooth_coords); % yes=1, no=0
+fprintf(fid,'  numsamp_smooth=%d\n\n',numsamp_smooth); % number of samples for moving median smoothing
+
+% Options for calculating inline coordinates for each trace:
+fprintf(fid,'Profile coordinate calculation:\n');
+fprintf(fid,'  coords_opt=%d\n\n',coords_opt);   % =1: trace coordinate is difference to beginning of profile (only use this for straight profiles!)
+                % =2: trace coordinates are calculated by taking the cumulative sum of the coordinate differences between subsequent traces (better for curvy profiles, but not useful for strong GPS-antenna movements)
+
+% Attention: still experimental! If you think that the output radargrams
+% are wrong, set to 0!
+fprintf(fid,'Remove outliers (still experimental):\n');
+fprintf(fid,'  removeOutliers=%d\n\n',removeOutliers); % do you want to remove coordinate outliers? 
+    % 0= no, use raw coordinates
+    % 1= in middle of profile
+    % 2= at the end/beginning of profile
+
+% remove start/end traces of profiles
+fprintf(fid,'Remove start/end of profiles:\n');
+fprintf(fid,'  removeStartEnd=%d\n\n',removeStartEnd); % =1: yes, remove start and end traces of profiles (at same position)
+                    % =0: No. Keep all traces.
+
+% Export to other formats
+fprintf(fid,'Export to other formats:\n');
+fprintf(fid,'  export2mat=%d\n',export2mat); % export to Multichannel-GPR format for radargrams (mat-files)
+fprintf(fid,'  export2segy=%d\n',export2segy); % export all radargrams as segy-files
+fprintf(fid,'  constoff=%d\n\n',constoff); % if=1: a constant coordinate offset will be subtracted and coordinates will be in mm accuracy in segy file (offsets will be saved in Inline3D (x) and Crossline3D (y))
+fclose(fid);
+
 
 % set original path
 path(oldpath);
