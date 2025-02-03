@@ -65,17 +65,19 @@ filtermask=ones(size(data_f));
 mina=angle-opening/2;
 maxa=angle+opening/2;
 if mina<90 && maxa>90
-     filtermask(mina<=atan2d(kx2g,ky2g) & maxa>=atan2d(kx2g,ky2g))=0;
-     filtermask=[fliplr(flipud(filtermask(:,nfftx/2+1:end))) filtermask(:,nfftx/2+1:end)];
-     cosmask=0.5+0.5*cosd(360/(maxa-mina)*(atan2d(kx2g,ky2g)-mina));
+    filtermask(mina<=atan2d(kx2g,ky2g) & maxa>=atan2d(kx2g,ky2g))=0;
+    filtermask=[fliplr(flipud(filtermask(:,nfftx/2+1:end))) filtermask(:,nfftx/2+1:end)];
+    cosmask=0.5+0.5*cosd(360/(maxa-mina)*(atan2d(kx2g,ky2g)-mina));
+    cosmask=[fliplr(flipud( cosmask(:,nfftx/2+1:end)))  cosmask(:,nfftx/2+1:end)]; %neu
 elseif mina<-90 && maxa>-90
     filtermask(mina<=atan2d(kx2g,ky2g) & maxa>=atan2d(kx2g,ky2g))=0;
     filtermask=[filtermask(:,1:nfftx/2) fliplr(flipud(filtermask(:,1:nfftx/2)))];
     cosmask=0.5+0.5*cosd(360/(maxa-mina)*(atan2d(kx2g,ky2g)-mina));
+    cosmask=[cosmask(:,1:nfftx/2) fliplr(flipud(cosmask(:,1:nfftx/2)))]; %neu
 else
     filtermask(mina<=atand(kx2g./ky2g) & maxa>=atand(kx2g./ky2g))=0;
     cosmask=0.5+0.5*cosd(360/(maxa-mina)*(atand(kx2g./ky2g)-mina));
-end
+end 
 filtermask(filtermask==0)=cosmask(filtermask==0);
 
 % apply filtermask
