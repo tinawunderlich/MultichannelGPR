@@ -710,11 +710,25 @@ guidata(S.fh,S);
             % make new colorscale-image
             S.cmap=[[linspace(1,0,S.nn/2)'; zeros(S.nn/2,1)] [ones(S.nn/2,1); linspace(1,0,S.nn/2)'] [zeros(S.nn/2,1); linspace(0,1,S.nn/2)']];
             S.scale=linspace(0,1,S.nbw); % scaling factor for black-white
-            cmap_all=[];
-            for i=1:S.nbw
-                cmap_all=[cmap_all; S.cmap.*S.scale(i)];
+%             cmap_all=[];
+%             for i=1:S.nbw
+%                 cmap_all=[cmap_all; S.cmap.*S.scale(i)];
+%             end
+%             S.imcb=reshape(linspace(0,1,length(cmap_all(:,1))),[S.nn S.nbw]); % image of colorscale
+%             
+            for i=1:S.nn
+                S.cim(:,:,i)=zeros(S.nn,S.nn/2);
+                S.cim(i,:,i)=linspace(0,1,S.nn/2);
             end
-            S.imcb=reshape(linspace(0,1,length(cmap_all(:,1))),[S.nn S.nbw]); % image of colorscale
+            S.cimm=zeros(S.nn,S.nn/2,3)-repmat(S.cim(:,:,S.nn),[1 1 3]);
+            S.cimm=S.cimm+repmat(S.cim(:,:,S.nn),[1 1 3]).*repmat(permute(S.cmap(S.nn,:),[3 1 2]),[S.nn,S.nn/2,1]);
+            for i=S.nn-1:-1:1
+                S.cimm = (ones(S.nn,S.nn/2,3)-repmat(S.cim(:,:,i),[1 1 3])).*S.cimm;
+                S.cimm=S.cimm + repmat(S.cim(:,:,i),[1 1 3]).*repmat(permute(S.cmap(i,:),[3 1 2]),[S.nn,S.nn/2,1]);
+            end
+            S.cimm(isnan(S.cimm))=1;
+            imwrite(S.cimm,S.cmap,fullfile(S.pfad,folder,'Colorscale.png'));
+
 
             % fuse images
             S.imm=(ones(size(S.mask2))-repmat(S.ampl(:,:,S.nn),[1 1 3])).*S.mask2;

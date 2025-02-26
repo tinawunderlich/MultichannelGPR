@@ -11,9 +11,9 @@ clc
 
 
 % time or depth domain?
-tz_flag=1; % =1: time, =2: depth
+tz_flag=2; % =1: time, =2: depth
 
-rectangles=[1:2]; % number of rectangles
+rectangles=[1]; % number of rectangles
 
 radius=0.3; % radius in m for valid interpolation
 
