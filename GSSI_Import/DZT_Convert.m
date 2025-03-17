@@ -194,11 +194,15 @@ for i=1:length(list)
             % adjust header
             h.numtraces=size(data,2)/h.nchan;
 
+            
             if smooth_coords==1
-                trh.x=movmean(trh.x,numsamp_smooth);
-                trh.y=movmean(trh.y,numsamp_smooth);
-                trh.z=movmean(trh.z,numsamp_smooth);
+                for ii=unique(trh.channum)
+                    trh.x(trh.channum==ii)=movmean(trh.x(trh.channum==ii),numsamp_smooth);
+                    trh.y(trh.channum==ii)=movmean(trh.y(trh.channum==ii),numsamp_smooth);
+                    trh.z(trh.channum==ii)=movmean(trh.z(trh.channum==ii),numsamp_smooth);
+                end
             end
+
 
             % now correct for offsets:
             anz2=round(0.5/mean(sqrt(diff(trh.x).^2+diff(trh.y).^2))); % number of points for direction determination (using mean trace spacing for 0.5 m distance)
