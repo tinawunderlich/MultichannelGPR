@@ -20,7 +20,7 @@ clc
 % Option 2: Read coordinates from txt-file and set into global_coords.mat.
 % Option 3: Manipulate coordinates with settings below (no text-file written/required).
 % Option 4: For skewed areas, when zigzag profile shift is linearly changing over the area
-option=1;
+option=2;
 
 % settings for option 3:
 x_offset=50; % offset in x-direction [m] (e.g. x_offset=1: all profiles will be shifted 1 m towards positive x-axis)
