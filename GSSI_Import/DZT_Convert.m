@@ -11,16 +11,16 @@ clear all
 close all
 clc
 
-app='SIR4000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
+app='Tablet';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
 
-dataplot=1; % plot radargram for controlling? 1=yes, 0=no
+dataplot=0; % plot radargram for controlling? 1=yes, 0=no
 
 convert2utm=1; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
-zone=32; % if convert2utm==1 -> give UTM-zone
+zone=33; % if convert2utm==1 -> give UTM-zone
 
 offsetGPS_X=0; % [m] Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
-offsetGPS_Y=0.15; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
-h_GPS=0.665; % [m] height of GPS/prism above ground
+offsetGPS_Y=0; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
+h_GPS=2.0; % [m] height of GPS/prism above ground
 
 % smoothing of GPS-coordinates before applying antenna-offsets:
 smooth_coords=1; % yes=1, no=0
@@ -42,8 +42,8 @@ removeStartEnd=0; % =1: yes, remove start and end traces of profiles (at same po
                     % =0: No. Keep all traces.
 
 % Export to other formats
-export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
-export2segy=0; % export all radargrams as segy-files
+export2mat=0; % export to Multichannel-GPR format for radargrams (mat-files)
+export2segy=1; % export all radargrams as segy-files
 constoff=0; % if=1: a constant coordinate offset will be subtracted and coordinates will be in mm accuracy in segy file (offsets will be saved in Inline3D (x) and Crossline3D (y))
 
 
@@ -164,6 +164,7 @@ for i=1:length(list)
             [xneu,yneu]=wgs2utm(lat,lon,zone,'N');
             trh.x=xneu;
             trh.y=yneu;
+            clear lat lon;
         end
         
         % correct GPS-antenna offset:
@@ -186,7 +187,9 @@ for i=1:length(list)
             trh.y=trh.y(~weg);
             trh.z=trh.z(~weg);
             trh.time=trh.time(~weg);
-            trh.quality=trh.quality(~weg);
+            if isfield(trh,'quality')
+                trh.quality=trh.quality(~weg);
+            end
             trh.mark=trh.mark(~weg);
             trh.channum=trh.channum(~weg);
             trh.tracenum=1:length(trh.mark);
@@ -588,6 +591,8 @@ for i=1:length(list)
         end
        % collect headers in cell
        headers{i} = h;
+
+       clear trh;
 
 end
 %------------------------------ WRITE DATA --------------------------------

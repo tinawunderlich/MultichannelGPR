@@ -219,7 +219,7 @@ else
     xyz(:,1)=mark';
 end
 if ~exist('marktype','var')
-    marktype='NA';
+    marktype={'NA'};
 end
 
 % PART 4: read radar data (DZT)
@@ -671,7 +671,9 @@ if ~isempty(weg)
     mark(weg)=[];
 end
 trh.mark=zeros(1,h.numtraces*rh_nchan);
-trh.mark(mark)=1;
+if h.anzmark~=0
+    trh.mark(mark)=1;
+end
 
 
 if plotten==1
