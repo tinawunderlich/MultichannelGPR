@@ -13,14 +13,14 @@ clc
 
 app='Tablet';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
 
-dataplot=0; % plot radargram for controlling? 1=yes, 0=no
+dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
-convert2utm=1; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
+convert2utm=0; % convert WGS Lat/Long to UTM (=1 if measured with Stonex-GPS)
 zone=33; % if convert2utm==1 -> give UTM-zone
 
 offsetGPS_X=0; % [m] Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
 offsetGPS_Y=0; % [m] Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
-h_GPS=2.0; % [m] height of GPS/prism above ground
+h_GPS=0.0; % [m] height of GPS/prism above ground
 
 % smoothing of GPS-coordinates before applying antenna-offsets:
 smooth_coords=1; % yes=1, no=0
@@ -42,8 +42,8 @@ removeStartEnd=0; % =1: yes, remove start and end traces of profiles (at same po
                     % =0: No. Keep all traces.
 
 % Export to other formats
-export2mat=0; % export to Multichannel-GPR format for radargrams (mat-files)
-export2segy=1; % export all radargrams as segy-files
+export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
+export2segy=0; % export all radargrams as segy-files
 constoff=0; % if=1: a constant coordinate offset will be subtracted and coordinates will be in mm accuracy in segy file (offsets will be saved in Inline3D (x) and Crossline3D (y))
 
 
@@ -491,7 +491,7 @@ for i=1:length(list)
                 quality = [quality; {trh.quality(trh.channum==2)}];
                 if ~all(trh.mark==0) % marker present
                     marker=[{trh.mark(trh.channum==1)}];
-                    marker=[marker; {trh.mark(trh.channum==2)}];
+                    marker=[marker; {trh.mark(trh.channum==1)}]; % marker are only present in first channel
                 end
                 listrad.name=[{name{i}}; {name{i}}];
                 listrad.chan=[1; 2];
@@ -520,7 +520,7 @@ for i=1:length(list)
                 quality = [quality; {trh.quality(trh.channum==2)}];
                 if ~all(trh.mark==0) % marker present
                     marker=[marker; {trh.mark(trh.channum==1)}];
-                    marker=[marker; {trh.mark(trh.channum==2)}];
+                    marker=[marker; {trh.mark(trh.channum==1)}];
                 end
                 listrad.name=[listrad.name; {name{i}}; {name{i}}];
                 listrad.chan=[listrad.chan; 1; 2];
@@ -657,11 +657,13 @@ if export2mat==1
             end
             fid=fopen(fullfile(pfad,'mat_ch1','radargrams.txt'),'wt');
             fprintf(fid,'Nr.\tName\tChannel\n');
+            n=1;
             for i=1:length(listrad.name)
                 if chan(i)==1
-                    fprintf(fid,'%d\t',i);
+                    fprintf(fid,'%d\t',n);
                     fprintf(fid,'%s\t',listrad.name{i});
                     fprintf(fid,'%d\n',listrad.chan(i));
+                    n=n+1;
                 end
             end
             fclose(fid);
@@ -694,11 +696,13 @@ if export2mat==1
             end
             fid=fopen(fullfile(pfad,'mat_ch2','radargrams.txt'),'wt');
             fprintf(fid,'Nr.\tName\tChannel\n');
+            n=1;
             for i=1:length(listrad.name)
                 if chan(i)==2
-                    fprintf(fid,'%d\t',i);
+                    fprintf(fid,'%d\t',n);
                     fprintf(fid,'%s\t',listrad.name{i});
                     fprintf(fid,'%d\n',listrad.chan(i));
+                    n=n+1;
                 end
             end
             fclose(fid);
@@ -912,6 +916,9 @@ end
 disp('Exported settings_DZTconvert.txt!')
 
 fid=fopen(fullfile(pfad,'mat','settings_DZTconvert.txt'),'wt');
+if fid==-1
+    fid=fopen(fullfile(pfad,'mat_ch1','settings_DZTconvert.txt'),'wt');
+end
 fprintf(fid,'Equipment:\n');
 fprintf(fid,'  app=%s\n\n',app);    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
 
