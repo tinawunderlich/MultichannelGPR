@@ -13,11 +13,11 @@ clc
 
 
 % Mode of usage:
-mode=1; % 1: plot profiles with markers and get marker numbers, export table
+mode=3; % 1: plot profiles with markers and get marker numbers, export table
         % 2: set/delete markers (you can skip this step if not necessary)
         % 3: read table and set coordinates
 
-mode2_options=[1 -1]; % for mode==2: list of profilenum and marker (+ means add marker, - means delete marker)
+mode2_options=[4 3]; % for mode==2: list of profilenum and marker (+ means add marker, - means delete marker)
 
 dx=0.02;    % make constant trace spacing in m (if not, then =0)
 
@@ -156,7 +156,7 @@ elseif mode==2
             end   
         else
             % add
-            marks{prof}=sort([marks{prof} xpick]);
+            marks{prof}=sort([marks{prof} xpick']);
         end
         % update marker
         marker{prof}=zeros(size(marker{prof}));

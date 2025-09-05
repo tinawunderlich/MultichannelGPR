@@ -1,4 +1,4 @@
-function [zm,xgrid,ygrid] = bindata2_oneTracePerBin(z,x,y,xrg,yrg)
+function [zm,xgrid,ygrid,ind,vals] = bindata2_oneTracePerBin(z,x,y,xrg,yrg)
 
 % [zm] = bindata2_oneTracePerBin(z,x,y,xrg,yrg)
 % Bins data onto a regular grid, but just puts the first occuring trace per
@@ -45,4 +45,7 @@ function [zm,xgrid,ygrid] = bindata2_oneTracePerBin(z,x,y,xrg,yrg)
     
     zm = reshape(zm,length(xrg)-1,length(yrg)-1)';  % output matrix
     [xgrid,ygrid]=meshgrid([xrg(1)+dx/2:dx:xrg(end)-dx/2],[yrg(1)+dy/2:dy:yrg(end)-dy/2]);
+
+    ind = ~isnan(zm); % indices of bin values
+    vals = zm(ind); % bin values vector
 end

@@ -13,21 +13,25 @@ clc
 % time or depth domain?
 tz_flag=2; % =1: time, =2: depth
 
-rectangles=[1]; % number of rectangles
+rectangles=[1]; % number of rectangles (only for creation of new slices)
 
 radius=0.3; % radius in m for valid interpolation
 
-use_slices=1;   % if =0: make new slices and save them,
-% if =1: use already created slices in fold
-% PondViewSlices (but nevertheless select folder containing
-% the 3D_Grid... and PondViewSlices folders)
+use_slices=0;   % if =0: make new slices and save them -> select folder containing the rectangles,
+% if =1: use already created slices in folder
+% PondViewSlices or SampleSlices -> select the folder containing the slices
 
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
 warning off
 
 % path for slices/3D_Grids
-if ~ispc; menu('Choose folder containing 3D_Grid_R*-folders','OK'); end
+if use_slices==1
+    message='Choose folder containing the slices';
+else
+    message='Choose folder containing 3D_Grid_R*-folders';
+end
+if ~ispc; menu(message,'OK'); end
 if ispc
     if exist('temp.temp') % read last opened folder from temp.temp
         fid=fopen('temp.temp','r');
@@ -38,15 +42,15 @@ if ispc
         end
         fclose(fid);
         if ~isempty(fn{1})
-            pfad=uigetdir(fn{1}{1},'Select folder containing 3D_Grid_R*-folders');
+            pfad=uigetdir(fn{1}{1},message);
         else
-            pfad=uigetdir([],'Select folder containing 3D_Grid_R*-folders');
+            pfad=uigetdir([],message);
         end
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',pfad);
         fclose(fid);
     else
-        pfad=uigetdir([],'Select folder containing 3D_Grid_R*-folders');
+        pfad=uigetdir([],message);
 
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',pfad);
@@ -58,12 +62,12 @@ else
         fn=textscan(fid,'%s');
         fclose(fid);
         if ~isempty(fn{1})
-            pfad=uigetdir(fn{1}{1},'Select folder containing 3D_Grid_R*-folders');
+            pfad=uigetdir(fn{1}{1},message);
         else
-            pfad=uigetdir([],'Select folder containing 3D_Grid_R*-folders');
+            pfad=uigetdir([],message);
         end
     else
-        pfad=uigetdir([],'Select folder containing 3D_Grid_R*-folders');
+        pfad=uigetdir([],message);
     end
 
     fid=fopen('.temp.temp','wt');
@@ -122,6 +126,10 @@ curFold=fileparts(currentFile);
 addpath(fullfile(curFold,'GUIs'),fullfile(curFold,'Subfunctions'));
 
 %% Radargrams
+if ~exist(fullfile(pfad_rad,'radargrams.mat'),'file')
+    disp('No radargrams.mat found. Please start again.')
+    return;
+end
 temp=load(fullfile(pfad_rad,'global_coords.mat'));
 coords=temp.global_coords;
 temp=load(fullfile(pfad_rad,'radargrams.mat'));
@@ -166,6 +174,12 @@ if use_slices==0 % load new data and create slices
         temp=load(fullfile(pfad,p,'mask.mat'));
         mask{i}=temp.mask;
 
+        if exist(fullfile(pfad,p,'coordtrans.mat'),'file')
+            load(fullfile(pfad,p,'coordtrans.mat'));
+        else
+            coordtrans=[1 1 1 1; 2 2 2 2];
+        end
+
         if i==1
             dx=x{i}(1,2)-x{i}(1,1);   % dx of 3D-block
         end
@@ -192,7 +206,7 @@ if use_slices==0 % load new data and create slices
         for j=1:length(rectangles)  % in each rectangle...
             % open matfile
             p=['3D_Grid_R',int2str(rectangles(j)),'/data.mat'];
-            matFileObj=matfile(fullfile(pfad,p));
+            load(fullfile(pfad,p));
 
             if i==1 % for first slice only
                 % determine location in big area (find lower left corner)
@@ -200,7 +214,7 @@ if use_slices==0 % load new data and create slices
                 col_ind(j)=find(abs(xgrid(1,:)-xmin(j))==min(abs(xmin(j)-xgrid(1,:))));
             end
 
-            datatemp=abs(matFileObj.data(:,:,i)); % abs(data) in this sample slice
+            datatemp=abs(data(:,:,i)); % abs(data) in this sample slice
 
             % put tsl_temp together in big tsl
             slice(row_ind(j):row_ind(j)+length(datatemp(:,1))-1,col_ind(j):col_ind(j)+length(datatemp(1,:))-1)=datatemp;
@@ -232,7 +246,7 @@ if use_slices==0 % load new data and create slices
 
 
         % Interpolation
-        if length(slice(~isnan(slice(:))))>= 3 % at least 3 values are necessary for triangulation
+        if length(slice(~isnan(slice(:))))>= 5 % at least 5 values are necessary for triangulation
             F=scatteredInterpolant(xgrid(mask>0),ygrid(mask>0),slice(mask>0));
             slice=reshape(F(xgrid(:),ygrid(:)),size(xgrid));
             if isempty(slice) % problem if only some points and are in line (e.g. on one x value)
@@ -260,6 +274,7 @@ if use_slices==0 % load new data and create slices
     save(fullfile(pfad,'PondViewSlices','maxElevation.mat'),'maxElevation','-v7.3');
     save(fullfile(pfad,'PondViewSlices','xgrid.mat'),'xgrid','-v7.3');
     save(fullfile(pfad,'PondViewSlices','ygrid.mat'),'ygrid','-v7.3');
+    save(fullfile(pfad,'PondViewSlices','coordtrans.mat'),'coordtrans','-v7.3');
 
     % write info file:
     fid=fopen(fullfile(pfad,'PondViewSlices','PondView_info.txt'),'wt');
@@ -269,25 +284,48 @@ if use_slices==0 % load new data and create slices
     fprintf(fid,'Radius for valid interpolation: %.1f m',radius);
     fclose(fid);
 
+    % Read info on slices:
+    list=dir(fullfile(pfad,'PondViewSlices','slice_*.mat'));
+    load(fullfile(pfad,'PondViewSlices','t.mat'));
+    load(fullfile(pfad,'PondViewSlices','mask_interp.mat'));
+    load(fullfile(pfad,'PondViewSlices','maxElevation.mat'));
+    load(fullfile(pfad,'PondViewSlices','xgrid.mat'));
+    load(fullfile(pfad,'PondViewSlices','ygrid.mat'));
+    if exist(fullfile(pfad,'PondViewSlices','coordtrans.mat'),'file')
+        load(fullfile(pfad,'PondViewSlices','coordtrans.mat'));
+    else
+        coordtrans=[1 1 1 1; 2 2 2 2];
+    end
+
 else % if slices can be read
-    if ~exist(fullfile(pfad,'PondViewSlices','slice_1.mat'),'file')
+    if ~exist(fullfile(pfad,'slice_1.mat'),'file')
         disp('No slices found. Please check path and settings.')
         return
     else
         disp('Slices found.')
+        % Read info on slices:
+        list=dir(fullfile(pfad,'slice_*.mat'));
+        weg=cellfun(@(x) contains(x,'num'),{list.name});
+        list=list(~weg);
+        load(fullfile(pfad,'t.mat'));
+        load(fullfile(pfad,'mask_interp.mat'));
+        if exist(fullfile(pfad,'maxElevation.mat'),'file')
+            load(fullfile(pfad,'maxElevation.mat'));
+        else
+            maxElevation=0;
+        end
+        load(fullfile(pfad,'xgrid.mat'));
+        load(fullfile(pfad,'ygrid.mat'));
+        if exist(fullfile(pfad,'coordtrans.mat'),'file')
+            load(fullfile(pfad,'coordtrans.mat'));
+        else
+            coordtrans=[1 1 1 1; 2 2 2 2];
+        end
     end
 end
 
-% Read info on slices:
-list=dir(fullfile(pfad,'PondViewSlices','slice_*.mat'));
-load(fullfile(pfad,'PondViewSlices','t.mat'));
-load(fullfile(pfad,'PondViewSlices','mask_interp.mat'));
-load(fullfile(pfad,'PondViewSlices','maxElevation.mat'));
-load(fullfile(pfad,'PondViewSlices','xgrid.mat'));
-load(fullfile(pfad,'PondViewSlices','ygrid.mat'));
 
-
-PondView_GUI(xgrid,ygrid,list,mask_interp,t,tz_flag,maxElevation,tr,radar,coords,fullfile(pfad,'PondViewSlices'));
+PondView_GUI(xgrid,ygrid,list,mask_interp,t,tz_flag,maxElevation,tr,radar,coords,fullfile(pfad,'PondViewSlices'),coordtrans);
 
 waitfor(gcf);
 

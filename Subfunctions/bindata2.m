@@ -1,4 +1,4 @@
-function [zm,xgrid,ygrid] = bindata2(z,x,y,xrg,yrg)
+function [zm,xgrid,ygrid,ind,vals] = bindata2(z,x,y,xrg,yrg)
 
 % [zm] = bindata2(z,x,y,xrg,yrg)
 %
@@ -55,7 +55,10 @@ function [zm,xgrid,ygrid] = bindata2(z,x,y,xrg,yrg)
     ysum = sparse(bins,xpos,z,(length(xrg)-1)*(length(yrg)-1),1);   % sparse matrix with sum of z values in each bin
     zm = full(ysum)./(full(ns));    % vector with mean values (sum/number) for each bin in vector bins (if no hit, then NaN)
     
-    zm = reshape(zm,length(xrg)-1,length(yrg)-1)';  % output matrix
+    zm = reshape(zm,length(xrg)-1,length(yrg)-1)';  % output matrix with bin values
+
+    ind = ~isnan(zm); % indices of bin values
+    vals = zm(ind); % bin values vector
    
 end
 

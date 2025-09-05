@@ -955,6 +955,7 @@ guidata(S.fh,S);
         guidata(gcbf,S); % Update
         % plotting
         plot_call();
+        asp_call();
         set(findobj('Type','Figure','Name','Processing test'), 'pointer', 'arrow');
         guidata(gcbf,S); % Update
     end
@@ -1062,7 +1063,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     end
 
     if strcmp(steps{order==k},'X-wise median filter')
-        [datatraces]=medfilt_x(datatraces,t,params.numsamp_x,params.tstart_x);
+        [datatraces]=medfilt_x(datatraces,tproc,params.numsamp_x,params.tstart_x);
     end
     
     if strcmp(steps{order==k},'Turn profiles')
@@ -1074,11 +1075,12 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     end
 
     if strcmp(steps{order==k},'Reduce number of samples')
-        [datatraces,tproc]=reduceNumberOfSamples(datatraces,t,params.rednum);
+        [datatraces,tproc]=reduceNumberOfSamples(datatraces,tproc,params.rednum);
+        params.dt=abs(tproc(2)-tproc(1));
     end
 
     if strcmp(steps{order==k},'Amplitude spectrum')
-        [f,ampl]=makeAmpspec(t,datatraces);
+        [f,ampl]=makeAmpspec(tproc,datatraces);
     end
     
     if strcmp(steps{order==k},'Topomigration/correction')
@@ -1117,7 +1119,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     end
     
     if strcmp(steps{order==k},'Cut TWT')
-        [datatraces,tproc,ns]=cutTWT(datatraces,t,params.tmax);
+        [datatraces,tproc,ns]=cutTWT(datatraces,tproc,params.tmax);
     end
     
     if strcmp(steps{order==k},'Remove mean trace')

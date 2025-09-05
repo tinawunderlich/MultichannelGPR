@@ -19,6 +19,9 @@ pix=6; % if removeBorder==1: how many pixels are removed from border around area
 medianFilter=1; % do you want to apply a 2D-median filter (1=yes, 0=no)
 msize=3; % filter size in pixel
 
+% use squareroot of amplitudes for visualization?
+sq=1; % 1=yes, 0=no
+
 %% -------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
 warning('off');
@@ -169,9 +172,9 @@ end
 
 if exist(fullfile(pfad,'coordtrans.mat'),'file')
     load(fullfile(pfad,'coordtrans.mat'));
-    savealltsl(xgrid,ygrid,tsl,topo,t_startende,fullfile(pfad),colperc,dsl,maxElevation,coordtrans);
+    savealltsl(xgrid,ygrid,tsl,topo,t_startende,fullfile(pfad),colperc,dsl,maxElevation,coordtrans,sq);
 else
-    savealltsl(xgrid,ygrid,tsl,topo,t_startende,fullfile(pfad),colperc,dsl,maxElevation,[1 1 1 1; 2 2 2 2]);
+    savealltsl(xgrid,ygrid,tsl,topo,t_startende,fullfile(pfad),colperc,dsl,maxElevation,[1 1 1 1; 2 2 2 2],sq);
 end
 
 
@@ -182,13 +185,17 @@ path(oldpath);
 
 
 %%
-function savealltsl(xgrid,ygrid,tsl,topo,t_startende,pfad,colperc,dsl,maxElevation,coordtrans)
+function savealltsl(xgrid,ygrid,tsl,topo,t_startende,pfad,colperc,dsl,maxElevation,coordtrans,sq)
 dx=abs(xgrid(1,1)-xgrid(1,2));
 for numtsl=1:length(tsl)
     disp(['   ',int2str(numtsl),'/',int2str(length(tsl))])
 
     % Georeferenced png:
-    cdata=tsl{numtsl};
+    if sq==1
+        cdata=sqrt(tsl{numtsl});
+    else
+        cdata=tsl{numtsl};
+    end
     cmin=min(cdata(:));
     cmax=max(cdata(:));
 

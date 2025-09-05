@@ -22,16 +22,16 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Select number of profiles:
-profile_min=1;  % minimum profile number
-profile_max=2;  % maximum profile number
+profile_min=2;  % minimum profile number
+profile_max=4;  % maximum profile number
 % number of channels for this dataset
 channels=16; % number of channels
 
-changeDir=0; % if =1: change the sign of the y-antenna-GPS-offset, if =0: use offsets as written in file
+changeDir=0; % if =1: change the sign of the y-antenna-GNSS-offset, if =0: use offsets as written in file
 
-add_Yoffset=0;    % add a constant offset to the y-antenna-GPS-offset (e.g. due to non-vertical GPS-stick), set =0 if not applicable
-% negative if GPS is tilted towards front, positive if
-% tilted towards back
+add_Yoffset=0;    % add a constant offset to the y-antenna-GNSS-offset (e.g. due to non-vertical GNSS-stick), set =0 if not applicable
+% negative if GNSS is tilted towards front, positive if tilted towards back
+GNSS_height=2.05; % Height of GNSS antenna above ground [m]
 
 %%% Processing steps before binning in txt-file (a default file with this
 %%% name is created, if not existing)
@@ -436,7 +436,7 @@ if userawdata==0  % first run of program -> read all profiles
     tempz=cell(lnum,1);
     for i=1:lnum
         % load data and coordinates
-        [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset);
+        [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset,GNSS_height);
         traces=single(traces); % convert to single for saving memory
         % delete traces with NaN-coordinates
         del=find(isnan(tempx{i}));
@@ -464,7 +464,7 @@ if userawdata==0  % first run of program -> read all profiles
             disp(['   ',int2str(numbers(i))])
         end
     end
-
+    disp('All raw data read and saved in folder: profiles2mat.')
 end
 disp('--------------------------------------')
 

@@ -1035,6 +1035,7 @@ guidata(S.fh,S);
                 S.flag_cs=3;
             end
         end
+        asp_call();
         guidata(gcbf,S); % Update
         set(findobj('Type','Figure','Name','Processing test'), 'pointer', 'arrow');
     end
@@ -1286,7 +1287,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     end
 
     if strcmp(steps{order==k},'X-wise median filter')
-        [datatraces]=medfilt_x(datatraces,t,params.numsamp_x,params.tstart_x);
+        [datatraces]=medfilt_x(datatraces,tproc,params.numsamp_x,params.tstart_x);
     end
 
     if strcmp(steps{order==k},'Spectral Whitening')
@@ -1336,7 +1337,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     end
     
     if strcmp(steps{order==k},'Cut TWT')
-        [datatraces,tproc,ns]=cutTWT(datatraces,t,params.tmax);
+        [datatraces,tproc,ns]=cutTWT(datatraces,tproc,params.tmax);
     end
     
     if strcmp(steps{order==k},'Remove mean trace')

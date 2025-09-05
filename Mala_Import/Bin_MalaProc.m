@@ -15,7 +15,7 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Bin size of grid
-dx=0.05; % [m]
+dx=0.04; % [m]
 
 % Automatic rotation of measurement area for minimum memory size
 rotate_area=1;  % 1=yes, 0=no

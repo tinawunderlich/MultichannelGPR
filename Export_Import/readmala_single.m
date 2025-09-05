@@ -1,7 +1,7 @@
 function [traces,dt,ns,x,y,z]=readmala_single(foldername,name,use_GPS)
 
 %
-% Read Mala rd3-data (all channels in one file)
+% Read Mala rd3-data
 % [traces,dt,ns,x,y,z,numchannels]=readmala(foldername,name,use_GPS)
 %
 % Dr. Tina Wunderlich, CAU Kiel, June 2025, tina.wunderlich@ifg.uni-kiel.de
@@ -56,43 +56,40 @@ fclose(fid);
 %%% Coordinates
 if use_GPS==1
     fid=fopen(fullfile(foldername,[name,'.cor']),'r');
-
-fclose(fid);
+    temp=textscan(fid,'%f%s%s%f%s%f%s%f%s%f');
+    fclose(fid);
+    trnum=temp{1}; % Trace number
+    for i=1:length(temp)
+        if strcmp(temp{i}(1),'N')
+            y=temp{i-1};
+        end
+        if strcmp(temp{i}(1),'E')
+            x=temp{i-1};
+        end
+    end
+    z=temp{8};
 else
-    fid=fopen(fullfile(foldername,[name,'.corc']),'r');
-    
-fclose(fid);
+    fid=fopen(fullfile(foldername,[name,'.corc']),'r'); 
+    temp=textscan(fid,'%f%s%s%f%s%f%s%f%s%f');
+    fclose(fid);
+    trnum=temp{1}; % Trace number
+    for i=1:length(temp)
+        if strcmp(temp{i}(1),'Y')
+            y=temp{i-1};
+        end
+        if strcmp(temp{i}(1),'X')
+            x=temp{i-1};
+        end
+    end
+    z=temp{8};
 end
 
 %%% Read radar data file
-if profile_num<10
-    fid=fopen(fullfile(foldername,[name,'_00',int2str(profile_num),'.rd3']),'r');
-elseif profile_num>=10 && profile_num<100
-    fid=fopen(fullfile(foldername,[name,'_0',int2str(profile_num),'.rd3']),'r');
-else
-    fid=fopen(fullfile(foldername,[name,'_',int2str(profile_num),'.rd3']),'r');
-end
-
-traces=cell(numchannels,1); % initialize cell array (one cell for each channel)
-
-for i=1:numchannels
-    traces{i}=zeros(ns,num_traces/numchannels);
-end
-anz=1;
+fid=fopen(fullfile(foldername,[name,'.rd3']),'r');
+traces=zeros(ns,num_traces);
 for ii=1:num_traces    % for all traces in this file (also without coords)
-    temp1=fread(fid,ns,'int16','l');    % read trace
-    currChan=mod(ii-1,numchannels)+1;  % current channel number
-    traces{currChan}(:,anz)=temp1;
-    if currChan==numchannels
-        anz=anz+1;
-    end
+    traces(:,ii)=fread(fid,ns,'int16','l');    % read trace
 end
 fclose(fid);
-
-% delete traces without coords:
-in=pos_new(:,1); % valid trace numbers with coordinates
-for i=1:numchannels
-    traces{i}=traces{i}(:,in);
-end
 
 dt=range/ns;

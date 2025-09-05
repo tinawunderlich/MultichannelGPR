@@ -1,6 +1,6 @@
-function []=PondView_GUI(xgrid,ygrid,list,mask_interp,t,tz_flag,maxElevation,tr,radar,coords,pfad)
+function []=PondView_GUI(xgrid,ygrid,list,mask_interp,t,tz_flag,maxElevation,tr,radar,coords,pfad,coordtrans)
 
-% function [] = PondView_GUI(xgrid,ygrid,list,mask_interp,t,tz_flag,maxElevation,tr,radar,coords,pfad)
+% function [] = PondView_GUI(xgrid,ygrid,list,mask_interp,t,tz_flag,maxElevation,tr,radar,coords,pfad,coordtrans)
 %
 % Plot thickslices in PondView (Grasmuek & Viggiano 2018)
 %
@@ -95,32 +95,7 @@ S.rdgnum='1'; % current radargram number
 
 S.factor=1; % zoom factor for tsl plot
 
-
-% get path to coordtrans:
-if ~ispc; menu('Choose folder with coordtrans.mat (e.g. 3D_Grid_R*)','OK'); end
-if exist('.cttemp.temp') % read last opened folder from temp.temp
-    fid=fopen('.cttemp.temp','r');
-    fn=textscan(fid,'%s');
-    fclose(fid);
-    if ~isempty(fn{1})
-        pfad_ct=uigetdir(fn{1}{1},'Choose folder with coordtrans.mat (e.g. 3D_Grid_R*)');
-    else
-        pfad_ct=uigetdir([],'Choose folder with coordtrans.mat (e.g. 3D_Grid_R*)');
-    end
-else
-    pfad_ct=uigetdir([],'Choose folder with coordtrans.mat (e.g. 3D_Grid_R*)'); % path to tsl-folder
-end
-fid=fopen('.cttemp.temp','w');
-fprintf(fid,pfad_ct);
-fclose(fid);
-
-if exist(fullfile(pfad_ct,'coordtrans.mat'),'file')
-    temp=load(fullfile(pfad_ct,'coordtrans.mat')); % lokal/global
-    S.coordtrans=temp.coordtrans;
-else
-    S.coordtrans=[1 1 1 1; 2 2 2 2];
-end
-
+S.coordtrans=coordtrans;
 
 % apply coordtrans to radargram (global->lokal)
 for i=1:length(S.xprof)

@@ -1,9 +1,9 @@
-function [traces,dt,ns,x,y,z,numchannels,flag]=readmala4parfor(foldername,name,profile_num,changeDir,add_Yoffset)
+function [traces,dt,ns,x,y,z,numchannels,flag]=readmala4parfor(foldername,name,profile_num,changeDir,add_Yoffset,GNSS_height)
 
 % Read Mala rd3-data (all channels in one file)
-% [traces,dt,ns,x,y,z,numchannels]=readmala4parfor(foldername,name,profile_num,changeDir,add_Yoffset)
+% [traces,dt,ns,x,y,z,numchannels]=readmala4parfor(foldername,name,profile_num,changeDir,add_Yoffset,GNSS_height)
 %
-% Dr. Tina Wunderlich, CAU Kiel 2020, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2020-2025, tina.wunderlich@ifg.uni-kiel.de
 %
 % Input: 
 % foldername: complete rSlicer-foldername and path
@@ -12,6 +12,7 @@ function [traces,dt,ns,x,y,z,numchannels,flag]=readmala4parfor(foldername,name,p
 % changeDir: flag if you want to change the +/- of the
 % y-antenna-GPS-offset, yes=1, no=0
 % add_Yoffset: additional offset for y-antenna-GPS-offset
+% GNSS_height: height of GNSS antenna above ground (for tilting correction)
 %
 % Output:
 % traces is matrix of size [ns,numchannels*numtraces_per_channel] 
@@ -27,8 +28,12 @@ function [traces,dt,ns,x,y,z,numchannels,flag]=readmala4parfor(foldername,name,p
 if nargin==3
     changeDir=0;
     add_Yoffset=0;
+    GNSS_height=0;
 elseif nargin==4
     add_Yoffset=0;
+    GNSS_height=0;
+elseif nargin==5
+    GNSS_height=0;
 end
 
 
@@ -106,7 +111,7 @@ if fid~=-1
     if ~isempty(pos_orig) && num_traces/numchannels>=15  % if number of traces in file is too small -> omit file (=do not save in position-matrix)
         % interpolate between traces
         pos_new=[[pos_orig(1,1):pos_orig(end,1)]' interp1(pos_orig(:,1),pos_orig(:,3),[pos_orig(1,1):pos_orig(end,1)]') interp1(pos_orig(:,1),pos_orig(:,2),[pos_orig(1,1):pos_orig(end,1)]') interp1(pos_orig(:,1),pos_orig(:,4),[pos_orig(1,1):pos_orig(end,1)]')];  % trace number, x(now Rw!), y(now Hw!), z
-        num_traces2=length(pos_new(:,1))*numchannels; % update number of traces, if less valid coordinates are present
+        num_traces2=length(pos_new(:,1))*numchannels; % update number of traces (for all channels), if less valid coordinates are present
 
         % create positioning file
         pos=zeros(num_traces2,8);   % profile number, trace number, channel number, x, y, z, ns, dt
@@ -115,32 +120,43 @@ if fid~=-1
         tr=pos_new(1,1);
         for i=1:numchannels:num_traces2
             pos(i:i+numchannels-1,2)=tr;   % fill in trace number
-            pos(i:i+numchannels-1,6)=pos_new(tr-pos_new(1,1)+1,4);     % fill in z
             tr=tr+1;
         end
         
-        % apply channel offsets
+        % apply channel offsets and correct for tilted GNSS antenna due to topography
         for jj=1:numchannels   % for each channel
-            anz=15; % number of points for direction determination
-            for ii=1:num_traces2/numchannels-anz
-                dist=sqrt((pos_new(ii,2)-pos_new(ii+anz,2))^2+(pos_new(ii,3)-pos_new(ii+anz,3))^2);
-                pos(jj+(ii-1)*numchannels,4:5)=helmert([ch_x(jj) ch_y(jj)],[0 0; 0 dist],[pos_new(ii,2) pos_new(ii,3); pos_new(ii+anz,2) pos_new(ii+anz,3)]);
-                pos(jj+(ii-1)*numchannels,3)=jj;  % channel number
-            end
-            anz1=anz;
-            % calculation for the last few traces
-            anz=anz-1;
-            for ii=num_traces2/numchannels-anz1+1:num_traces2/numchannels-1
-                dist=sqrt((pos_new(ii,2)-pos_new(ii+anz,2))^2+(pos_new(ii,3)-pos_new(ii+anz,3))^2);
-                pos(jj+(ii-1)*numchannels,4:5)=helmert([ch_x(jj) ch_y(jj)],[0 0; 0 dist],[pos_new(ii,2) pos_new(ii,3); pos_new(ii+anz,2) pos_new(ii+anz,3)]);
-                pos(jj+(ii-1)*numchannels,3)=jj;  % channel number
-                anz=anz-1;
-            end
-            % extrapolate for last trace
-            pos(jj+(ii-1)*numchannels+numchannels,4)=interp1([1 2],[pos(jj+(ii-1)*numchannels-numchannels,4) pos(jj+(ii-1)*numchannels,4)],3,'linear','extrap');
-            pos(jj+(ii-1)*numchannels+numchannels,5)=interp1([1 2],[pos(jj+(ii-1)*numchannels-numchannels,5) pos(jj+(ii-1)*numchannels,5)],3,'linear','extrap');
-            pos(jj+(ii-1)*numchannels+numchannels,3)=jj;  % channel number
+            trh(jj).x=pos_new(:,2);
+            trh(jj).y=pos_new(:,3);
+            trh(jj).z=pos_new(:,4);
+            [~,trh(jj),deltra(:,jj)]=correctCoordinates(zeros(2,length(trh(jj).x)),trh(jj),GNSS_height,ch_x(jj),ch_y(jj),1,1,3);
         end
+        % determine traces that are valid in all channels:
+        deltraces=~all(deltra==0,2); % valid=0, delete trace=1
+
+        % set channel number
+        for i=1:numchannels:sum(deltraces==0)*numchannels
+            pos(i:i+numchannels-1,3)=1:numchannels; % fill in channel number
+        end
+
+        ind_all=find(deltraces==0);
+        for jj=1:numchannels   % for each channel
+            % only take those traces given by general deltraces
+            ind_chan=find(deltra(:,jj)==0);
+            ind_chan(:,2)=0;
+            for ii=1:length(ind_chan)
+                if any(ind_chan(ii,1)==ind_all) % if channel-index is also in general index list -> ok
+                    ind_chan(ii,2)=1;
+                else
+                    ind_chan(ii,2)=0; % not in both lists -> delete this trace later
+                end
+            end
+            % set corrected coordinates in pos-variable:
+            pos(pos(:,3)==jj,4)=trh(jj).x(ind_chan(:,2)==1);
+            pos(pos(:,3)==jj,5)=trh(jj).y(ind_chan(:,2)==1);
+            pos(pos(:,3)==jj,6)=trh(jj).z(ind_chan(:,2)==1);
+        end
+        % delete empty traces in pos:
+        pos=pos(pos(:,4)~=0,:);
         
         num_rows=length(pos(:,1));
         
@@ -155,11 +171,6 @@ if fid~=-1
         numchannels=[];
         return;
     end
-end
-for i=1:numchannels
-    x1{i}=pos(pos(:,3)==i,4);
-    y1{i}=pos(pos(:,3)==i,5);
-    z1{i}=pos(pos(:,3)==i,6);
 end
     
 
@@ -187,18 +198,25 @@ for ii=1:num_traces    % for all traces in this file
 end
 fclose(fid);
 
+% delete traces if invalid coordinates:
+for jj=1:numchannels
+    traces1{jj}=traces1{jj}(:,~deltraces);
+end
+
+% adjust num_traces2:
+num_traces2=size(traces1{1},2)*numchannels;
+
 % sort in one matrix
 numtr2=num_traces2/numchannels; % number of traces per channel without filtered traces (end and beginning of profile when measured with PPS)
-in=pos_new(:,1); % valid trace numbers with coordinates
 traces=zeros(ns,num_traces2);
 x=zeros(1,num_traces2);
 y=zeros(1,num_traces2);
 z=zeros(1,num_traces2);
 for i=1:numchannels
-    traces(:,(i-1)*numtr2+i-(i-1):i*numtr2)=traces1{i}(:,in);
-    x(1,(i-1)*numtr2+i-(i-1):i*numtr2)=x1{i};
-    y(1,(i-1)*numtr2+i-(i-1):i*numtr2)=y1{i};
-    z(1,(i-1)*numtr2+i-(i-1):i*numtr2)=z1{i};
+    traces(:,(i-1)*numtr2+i-(i-1):i*numtr2)=traces1{i};
+    x(1,(i-1)*numtr2+i-(i-1):i*numtr2)=pos(pos(:,3)==i,4);
+    y(1,(i-1)*numtr2+i-(i-1):i*numtr2)=pos(pos(:,3)==i,5);
+    z(1,(i-1)*numtr2+i-(i-1):i*numtr2)=pos(pos(:,3)==i,6);
 end
 
 dt=range/ns;

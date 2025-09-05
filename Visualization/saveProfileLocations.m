@@ -8,7 +8,7 @@ clc
 % Dr. Tina Wunderlich, CAU Kiel 2023, tina.wunderlich@ifg.uni-kiel.de
 
 
-shapename='GPR_Profiles_alle.shp'; % give name for shape file
+shapename='GPR_Profiles_Borgsumburg.shp'; % give name for shape file
 
 % -------------------------------------------------------------------------
 % Do not change the following part!
