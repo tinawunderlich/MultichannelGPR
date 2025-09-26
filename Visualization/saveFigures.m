@@ -35,9 +35,10 @@ markersize=5; % markersize of points
 % save as georeferenced png?
 save_georef=1; % yes=1, no=0
 
-% save profile coordinates as shape file?
-save_shape=1; % yes=1, no=0
-shapename='GPR_Profiles.shp'; % give name for shape file
+% save profile coordinates as geoJSON file? (-> profile lines for QGIS)
+save_geoJSON=1; % yes=1, no=0
+jsonname='GPR_Profiles.json'; % give name for geoJSON file
+epsg=32631; % EPGS code for CRS
 
 % Plotting options for map:
 plot_map=1; % plot map? yes=1, no=0
@@ -341,19 +342,25 @@ if plot_map==1
 end
 
 %% save as shape file
-if save_shape==1
-    disp('Saving shape file...')
-    
+if save_geoJSON==1
+    disp('Saving geoJSON file...')
+
+    s.type='FeatureCollection';
+    s.features=[];
+    s.crs=[];
+    s.crs.type='name';
+    s.crs.properties.name=['EPSG:',num2str(epsg)];
+
     for kk=1:length(numbers) % loop over radargrams
-        S(kk).Geometry='Line';
-        S(kk).BoundingBox=[min(global_coords{numbers(kk)}(:,1)) min(global_coords{numbers(kk)}(:,2)); max(global_coords{numbers(kk)}(:,1)) max(global_coords{numbers(kk)}(:,2))];
-        S(kk).X=global_coords{numbers(kk)}(:,1);
-        S(kk).Y=global_coords{numbers(kk)}(:,2);
-        S(kk).id=numbers(kk);
+        s.features(kk).type='Feature';
+        s.features(kk).geometry.type='LineString';
+        s.features(kk).geometry.coordinates=global_coords{numbers(kk)}(:,1:2);
+        s.features(kk).ids=numbers(kk); % line number
     end
-    
-    % write shapefile with profile lines
-    shapewrite(S,fullfile(pfad_rad,'Figures',shapename));
+
+    fid=fopen(fullfile(pfad_rad,'Figures',jsonname),'w');
+    fwrite(fid,jsonencode(s));
+    fclose(fid);
 end
 
 

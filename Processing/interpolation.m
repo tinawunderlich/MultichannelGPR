@@ -14,9 +14,9 @@ function [traces]=interpolation(traces,gap)
 % Output:
 % traces: Matrix with traces using mean of neighboring traces
 
-x=find(~isnan(traces(1,:))); % ~isnan in first sample row = value
 trnum=1:length(traces(1,:)); % all trace numbers
-miss=find(isnan(traces(1,:))); % number of missing traces
+x=trnum(~isnan(traces(1,:))); % ~isnan in first sample row = value
+miss=trnum(isnan(traces(1,:))); % number of missing traces
 
 % interpolate everything
 ns=length(traces(:,1));

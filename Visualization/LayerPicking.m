@@ -10,7 +10,7 @@ clc
 % requires radargrams.mat, x.mat, global_coords.mat and t.mat/z.mat
 
 % time or depth?
-tzflag=2;   % time=1, depth=2 (only important for ylabel of radargrams and label for saving of picks)
+tzflag=1;   % time=1, depth=2 (only important for ylabel of radargrams and label for saving of picks)
 
 % -------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!

@@ -1,14 +1,14 @@
-% Script for reading Mala-datafiles (prepared for rSlicer = all channels in one file)
+% Script for reading ImpulseRadar-datafiles (*.iprb, *.iprh, *.cor, ...)
 % and processing them (no binning!)
-% If you measured with PPS/GPS-mouse for triggering, run convert_PPS2pos.m
-% first!
 %
-% Dr. Tina Wunderlich, CAU Kiel 2024, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2025, tina.wunderlich@ifg.uni-kiel.de
 %
 % requires following files:
-% *.rd3: Radar data
-% *.rad: header file
-% *.pos: position data files
+% *.iprb: Profile data file
+% *.iprh: header file
+% *.cor: coordinate file
+% *.time: timing file
+% *.mkr: marker file
 %
 % requires MATLAB-files in following folders (path will be temporarily
 % set): Processing, Export_Import, Subfunctions, Migration
@@ -22,16 +22,16 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Select number of profiles:
-profile_min=2;  % minimum profile number
-profile_max=4;  % maximum profile number
-% number of channels for this dataset
-channels=16; % number of channels
+profile_min=1;  % minimum profile number
+profile_max=2;  % maximum profile number
 
-changeDir=0; % if =1: change the sign of the y-antenna-GNSS-offset, if =0: use offsets as written in file
-
+% Coordinate settings:
 add_Yoffset=0;    % add a constant offset to the y-antenna-GNSS-offset (e.g. due to non-vertical GNSS-stick), set =0 if not applicable
 % negative if GNSS is tilted towards front, positive if tilted towards back
-GNSS_height=2.05; % Height of GNSS antenna above ground [m]
+GNSS_height=0; % Height of GNSS antenna above ground [m]
+utmzone=0; % set UTM Zone for measurements with GNSS, set =0 for measurements with total station
+filter_coords=1; % =1 if you want to delete coordinates at the same position, =0 no filtering
+smooth_coords=25; % width of moving median window. No smoothing if =0. It is recommended to smooth the GNSS coordinates before applying the offsets for each channel
 
 %%% Processing steps before binning in txt-file (a default file with this
 %%% name is created, if not existing)
@@ -43,7 +43,7 @@ userawdata=0;  % if =1: use aready read in raw data and apply new processing ste
 
 % save radargrams.mat of processed profile data in one variable (requires large memory -> probably not
 % working for every data set)?
-rad=0; % if =0, processed data will be saved in folder proc, but not all radargrams in one file radargrams.mat
+rad=1; % if =0, processed data will be saved in folder proc, but not all radargrams in one file radargrams.mat
 % if =1, processed data will be saved in radargrams.mat...
 
 
@@ -62,15 +62,15 @@ if ispc
         end
         fclose(fid);
         if ~isempty(fn{1})
-            foldername=uigetdir(fn{1}{1},'Choose rSlicer folder');
+            foldername=uigetdir(fn{1}{1},'Choose data folder');
         else
-            foldername=uigetdir([],'Choose rSlicer folder');
+            foldername=uigetdir([],'Choose data folder');
         end
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',foldername);
         fclose(fid);
     else
-        foldername=uigetdir([],'Choose rSlicer folder'); % path to radargram-folder
+        foldername=uigetdir([],'Choose data folder'); % path to radargram-folder
 
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',foldername);
@@ -82,12 +82,12 @@ else
         fn=textscan(fid,'%s');
         fclose(fid);
         if ~isempty(fn{1})
-            foldername=uigetdir(fn{1}{1},'Choose rSlicer folder');
+            foldername=uigetdir(fn{1}{1},'Choose data folder');
         else
-            foldername=uigetdir([],'Choose rSlicer folder');
+            foldername=uigetdir([],'Choose data folder');
         end
     else
-        foldername=uigetdir([],'Choose rSlicer folder'); % path to radargram-folder
+        foldername=uigetdir([],'Choose data folder'); % path to radargram-folder
     end
 
     fid=fopen('.temp.temp','wt');
@@ -97,8 +97,18 @@ end
 
 
 % get name
-temp=dir(fullfile(foldername,'/*.rad'));
-tempname=strsplit(temp(end).name,'_'); % Name of data files without '_???.rd3'
+temp=dir(fullfile(foldername,'/*.cor')); % GNSS file
+if isempty(temp)
+    temp=dir(fullfile(foldername,'/*.tsp')); % total station file
+    utmzone=0;
+else
+    % GNSS: check if utmzone set
+    if utmzone==0
+        disp('Please set correct UTM Zone and start again.')
+        return;
+    end
+end
+tempname=strsplit(temp(end).name,'_'); % Name of data files without '_???.cor/tsp
 name=[tempname{1}];
 for i=2:length(tempname)-1
     name=[name,'_',tempname{i}];
@@ -436,7 +446,7 @@ if userawdata==0  % first run of program -> read all profiles
     tempz=cell(lnum,1);
     for i=1:lnum
         % load data and coordinates
-        [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset,GNSS_height);
+        [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readImpulseRadar(foldername,name,numbers(i),add_Yoffset,GNSS_height,utmzone,filter_coords,smooth_coords);
         traces=single(traces); % convert to single for saving memory
         % delete traces with NaN-coordinates
         del=find(isnan(tempx{i}));
@@ -649,7 +659,7 @@ for i=1:length(numbers)
             % write all profiles in one variable
             for ii=1:max(info(3,:)) % for each channel
                 radargrams{anz}=traces(:,info(3,:)==ii);
-                global_coords{anz}=[info(4,info(3,:)==ii)' info(5,info(3,:)==ii)'];
+                global_coords{anz}=[info(4,info(3,:)==ii)' info(5,info(3,:)==ii)' info(6,info(3,:)==ii)'];
                 x{anz}=[0; cumsum(sqrt(diff(global_coords{anz}(:,1)).^2+diff(global_coords{anz}(:,2)).^2))];
                 anz=anz+1;
             end
@@ -683,7 +693,7 @@ if rad==1
 
     fid=fopen(fullfile(foldername,'profiles2mat','proc','radargrams.txt'),'wt');
     fprintf(fid,'Radargrams.mat contains channels\n');
-    fprintf(fid,' %d\t',unique(info(3,:)));
+    fprintf(fid,' %d\t',channels);
     fprintf(fid,'\nof profiles\n');
     fprintf(fid,' %d\n',numbers);
     fclose(fid);
@@ -780,7 +790,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     if strcmp(steps{order==k},'do_traceInterpolation')
         disp('  ...Trace interpolation')
         for ii=1:max(info(3,:))
-            datatraces(:,info(3,:)==ch)=interpolation(datatraces(:,info(3,:)==ch),params.gap);
+            datatraces(:,info(3,:)==ii)=interpolation(datatraces(:,info(3,:)==ii),params.gap);
         end
         if exist('fh','var')
             subplot(4,3,k+1)

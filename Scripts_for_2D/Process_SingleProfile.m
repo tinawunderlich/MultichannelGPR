@@ -3,14 +3,19 @@ close all
 clc
 
 
-% Read single profile of Mala Mira data (prepared for rSlicer), Spidar raw data or
+% Read single profile of Mala Mira data (prepared for rSlicer), Spidar raw data, ImpulseRadar raw data or
 % radargrams.mat (=import into MultichannelGPR from various systems) and do processing individually
 % Only for testing of processing options, no saving of data, just saving of settings-file!
 %
-% Dr. Tina Wunderlich, CAU Kiel 2020-2024, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2020-2025, tina.wunderlich@ifg.uni-kiel.de
 %
 % requires folders Export_Import, Processing, Subfunctions, Migration,
 % Plotting
+
+
+
+% Only for Spidar and ImpulseRadar-data with GNSS:
+utmzone=32;
 
 
 % -------------------------------------------------------------------------
@@ -84,7 +89,7 @@ if (~isempty(temp)) % if Mala mira data available
         name=[name,'_',tempname{i}];
     end
 
-    processingTestGUI(folder,name,profilelist,[]);
+    processingTestGUI(folder,name,profilelist,[],1,0);
 end
 
 %% SPIDAR
@@ -108,7 +113,46 @@ if (~isempty(temp)) % if spidar data available
     profilelist=unique(pnum);
     channellist=unique(chnum);
 
-    processingTestGUI(folder,name,profilelist,channellist);
+    processingTestGUI(folder,name,profilelist,channellist,2,utmzone);
+end
+
+%% Impulse Radar (Raptor)
+temp=dir(fullfile(folder,'/*.iprb')); % get list of all Impulse Radar files
+if (~isempty(temp)) % if Impulse radar data available
+    disp('Impulse Radar data found. Please wait!')
+    % get name
+    temp1=dir(fullfile(folder,'/*.cor')); % GNSS file
+    if isempty(temp1)
+        temp1=dir(fullfile(folder,'/*.tsp')); % total station file
+        utmzone=0;
+    else
+        % GNSS: check if utmzone set
+        if utmzone==0
+            disp('Please set correct UTM Zone and start again.')
+            return;
+        end
+    end
+    tempname=strsplit(temp1(end).name,'_'); % Name of data files without '_???.cor/tsp
+    name=[tempname{1}];
+    for i=2:length(tempname)-1
+        name=[name,'_',tempname{i}];
+    end
+
+    chnum=[];
+    pnum=[];
+    for i=1:length(temp)
+        if ~startsWith(temp(i).name,'.')
+            % remove name from file name:
+            temp1=extractAfter(temp(i).name,name); % => _001_A01.iprb
+            temp2=strsplit(temp1,'_'); % split in three parts (e.g.  '' and 001 and A01.iprb)
+            chnum=[chnum; str2double(temp2{3}(end-6:end-5))]; % channelNumber
+            pnum=[pnum; str2double(temp2{2})]; % profile number
+        end
+    end
+    profilelist=unique(pnum);
+    channellist=unique(chnum);
+
+    processingTestGUI(folder,name,profilelist,channellist,3,utmzone);
 end
 
 

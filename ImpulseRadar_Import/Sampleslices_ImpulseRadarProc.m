@@ -1,4 +1,4 @@
-% Script for reading processed Mala-datafiles in profiles2mat/proc and
+% Script for reading processed ImpulseRadar-datafiles in profiles2mat/proc and
 % binning them onto a rectangular grid (for each channel individually to
 % get balanced channel energies and less stripes in timeslices)
 %
@@ -15,10 +15,10 @@ clc
 % Bin size of grid
 dx=0.05; % [m]
 
-radius=0.1; % radius in m for valid interpolation (-> mask)
+radius=0.2; % radius in m for valid interpolation (-> mask)
 
 % virtual channels for interpolation:
-virt_chan_num=1; % if =0: only virtual channels between real channels,
+virt_chan_num=0; % if =0: only virtual channels between real channels,
                     % if e.g. =3: extrapolate also to 3 channels before and
                     % after last real channel to the sides
 
@@ -53,15 +53,15 @@ if ispc
         end
         fclose(fid);
         if ~isempty(fn{1})
-            foldername=uigetdir(fn{1}{1},'Choose rSlicer folder');
+            foldername=uigetdir(fn{1}{1},'Choose original data folder (with *.iprb-files)');
         else
-            foldername=uigetdir([],'Choose rSlicer folder');
+            foldername=uigetdir([],'Choose original data folder (with *.iprb-files)');
         end
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',foldername);
         fclose(fid);
     else
-        foldername=uigetdir([],'Choose rSlicer folder'); % path to radargram-folder
+        foldername=uigetdir([],'Choose original data folder (with *.iprb-files)'); % path to radargram-folder
 
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',foldername);
@@ -73,12 +73,12 @@ else
         fn=textscan(fid,'%s');
         fclose(fid);
         if ~isempty(fn{1})
-            foldername=uigetdir(fn{1}{1},'Choose rSlicer folder');
+            foldername=uigetdir(fn{1}{1},'Choose original data folder (with *.iprb-files)');
         else
-            foldername=uigetdir([],'Choose rSlicer folder');
+            foldername=uigetdir([],'Choose original data folder (with *.iprb-files)');
         end
     else
-        foldername=uigetdir([],'Choose rSlicer folder'); % path to radargram-folder
+        foldername=uigetdir([],'Choose original data folder (with *.iprb-files)'); % path to radargram-folder
     end
 
     fid=fopen('.temp.temp','wt');
@@ -88,14 +88,22 @@ end
 
 
 % get name
-temp=dir(fullfile(foldername,'/*.rad'));
-tempname=strsplit(temp(end).name,'_'); % Name of data files without '_???.rd3'
+temp=dir(fullfile(foldername,'/*.cor')); % GNSS file
+if isempty(temp)
+    temp=dir(fullfile(foldername,'/*.tsp')); % total station file
+    utmzone=0;
+else
+    % GNSS: check if utmzone set
+    if utmzone==0
+        disp('Please set correct UTM Zone and start again.')
+        return;
+    end
+end
+tempname=strsplit(temp(end).name,'_'); % Name of data files without '_???.cor/tsp
 name=[tempname{1}];
-name_withoutGPS=name; % name of files when not using GPS
 for i=2:length(tempname)-1
     name=[name,'_',tempname{i}];
 end
-
 
 % set path temporarily:
 oldpath=path;
@@ -437,7 +445,7 @@ coordtrans=[new(new(:,1)==min(new(:,1)),:) xy(new(:,1)==min(new(:,1)),:);...
     new(new(:,2)==max(new(:,2)),:) xy(new(:,2)==max(new(:,2)),:)]; % [local x, local y, global x, global y]
 % overwrite coordinates in position
 xy=new;
-disp(['Area size is now ',int2str(round(max(new(:,1))-min(new(:,1)))),' x ',int2str(round(max(new(:,2))-min(new(:,2)))),' m (x/y).'])
+disp(['Area size is now ',int2str(round(max(new(:,1))-min(new(:,1)))),' x ',int2str(max(new(:,2)-min(new(:,2)))),' m (x/y).'])
 end
 
 function [xy]=apply_rotatearea(xy,rot,shiftx,shifty)

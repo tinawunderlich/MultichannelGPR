@@ -35,13 +35,13 @@ topoopt=1;
 % area, but not directly on the profiles. The topofile contains 3 columns:
 % Easting, Northing and height
 topofile='topofile.txt'; % file for topoopt==2 or topoopt==3
-smooth_topo=55; % n>0: smooth topography over n samples, if no smoothing=0
+smooth_topo=0; % n>0: smooth topography over n samples, if no smoothing=0
 
 removeOutliers=0; % if =1: remove outliers in topo data (is done before smoothing)
 num=101; % odd(!) number of points for median calculation if removeOutliers==1
 thresh=0.1; % threshold in m for difference between median and raw topography if removeOutliers==1
 
-plottopo=1; % if =1: topo is plotted (raw and smoothed), if =0: no figures
+plottopo=0; % if =1: topo is plotted (raw and smoothed), if =0: no figures
 
 %% -------------------------------------------------------------------------
 % Do not change the following part!

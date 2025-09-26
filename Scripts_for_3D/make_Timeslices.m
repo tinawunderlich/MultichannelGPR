@@ -32,7 +32,7 @@ overlap = 0; % in ns (or m if dsl=1)
 t_end=50; % in ns (or m if dsl=1, meters below top of data, positive!)
 
 % dx of timeslices (<=dx of bins)
-dx_tsl=0.02;    % in m
+dx_tsl=0.05;    % in m
 
 % use 3D processed data (if =1, then use data in /processed folder in 3Dbins)
 proc=0;
@@ -47,7 +47,7 @@ method=1;   % 1: sum absolute amplitudes,
             % 4: no summing, just absolute amplitudes at certain times
 
 % masking options
-nn_radius=6;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
+nn_radius=1;    % radius to nearest neighbor (in bins) should be less than nn_radius to be valid
 
 % Interpolation
 griding=1;  % 1: Griddata (linear interpolation)

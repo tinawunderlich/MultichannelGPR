@@ -1,18 +1,18 @@
-function []=processingTestGUI(folder,name,profilelist,ch_list)
+function []=processingTestGUI(folder,name,profilelist,ch_list,equipmentflag,utmzone)
 
 % GUI for plotting of profiles and interactive testing of processing steps
-% Mala MIRA and Spidar data
+% Mala MIRA and Spidar data and Impulse Radar data
 %
-% Dr. Tina Wunderlich, CAU Kiel 2020-2024, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2020-2025, tina.wunderlich@ifg.uni-kiel.de
 %
 % Input:
 % folder: path and name of rSlicer-folder
 % name: name of data
 % profilelist: number of profiles
 
-if isempty(ch_list)
+if equipmentflag==1
     S.equipmentflag=1; % Mala Mira
-else
+elseif equipmentflag==2
     S.equipmentflag=2; % Spidar
     S.ch_list=ch_list;
 
@@ -25,20 +25,36 @@ else
             break;
         end
     end
+elseif equipmentflag==3 % Impulse Radar
+    S.equipmentflag=3;
+    S.ch_list=ch_list;
 end
 
 S.folder=folder;
 S.name=name;
 S.profilelist=profilelist;
+S.utmzone=utmzone;
 
 % load first profile
 if S.equipmentflag==1
+    % Mala
     [S.traces,S.dt,S.ns,S.x,S.y,S.z]=readmala(S.folder,S.name,S.profilelist(1));
     S.ch_list=1:length(S.traces);
-else
-    [temptraces,S.dt,S.ns,tempx,tempy,tempz]=readspidar(S.folder,S.name,S.profilelist(1),ch_list,zeros(length(ch_list),1),zeros(length(ch_list),1),S.gps_channel,32,0);
+elseif S.equipmentflag==2
+    %Spidar
+    [temptraces,S.dt,S.ns,tempx,tempy,tempz]=readspidar(S.folder,S.name,S.profilelist(1),ch_list,zeros(length(ch_list),1),zeros(length(ch_list),1),S.gps_channel,S.utmzone,0);
     trPerChan=length(temptraces(1,:))/length(ch_list);
     for i=1:length(ch_list)
+        S.traces{i}=temptraces(:,(i-1)*trPerChan+1:i*trPerChan);
+        S.x{i}=tempx(:,(i-1)*trPerChan+1:i*trPerChan)';
+        S.y{i}=tempy(:,(i-1)*trPerChan+1:i*trPerChan)';
+        S.z{i}=tempz(:,(i-1)*trPerChan+1:i*trPerChan)';
+    end
+elseif S.equipmentflag==3
+    % Impulse Radar
+    [temptraces,S.dt,S.ns,tempx,tempy,tempz,numchannels]=readImpulseRadar(S.folder,S.name,S.profilelist(1),0,0,S.utmzone,1,5);
+    trPerChan=size(temptraces,2)/numchannels;
+    for i=1:numchannels
         S.traces{i}=temptraces(:,(i-1)*trPerChan+1:i*trPerChan);
         S.x{i}=tempx(:,(i-1)*trPerChan+1:i*trPerChan)';
         S.y{i}=tempy(:,(i-1)*trPerChan+1:i*trPerChan)';
@@ -60,7 +76,7 @@ for i=1:length(S.traces)
     S.zz=[S.zz; S.z{i}];
     S.xprof{i}(weg)=[];
     S.raw=[S.raw S.traces{i}];
-    if S.equipmentflag==1
+    if S.equipmentflag==1 || S.equipmentflag==3 % Mala or impulseRadar
         S.channellist=[S.channellist; {int2str(i)}];
         S.info=[S.info zeros(1,length(S.xprof{i}))+i]; % channelnumber
     else % spidar
@@ -907,11 +923,23 @@ guidata(S.fh,S);
         
         % load new data
         if S.equipmentflag==1
+            % Mala
             [S.traces,S.dt,S.ns,S.x,S.y,S.z]=readmala(S.folder,S.name,S.profnum);
-        else
-            [temptraces,S.dt,S.ns,tempx,tempy,tempz]=readspidar(S.folder,S.name,S.profnum,S.ch_list,zeros(length(S.ch_list),1),zeros(length(S.ch_list),1),S.gps_channel,32,0);
+        elseif S.equipmentflag==2
+            % SPidar
+            [temptraces,S.dt,S.ns,tempx,tempy,tempz]=readspidar(S.folder,S.name,S.profnum,S.ch_list,zeros(length(S.ch_list),1),zeros(length(S.ch_list),1),S.gps_channel,S.utmzone,0);
             trPerChan=length(temptraces(1,:))/length(S.ch_list);
             for i=1:length(S.ch_list)
+                S.traces{i}=temptraces(:,(i-1)*trPerChan+1:i*trPerChan);
+                S.x{i}=tempx(:,(i-1)*trPerChan+1:i*trPerChan)';
+                S.y{i}=tempy(:,(i-1)*trPerChan+1:i*trPerChan)';
+                S.z{i}=tempz(:,(i-1)*trPerChan+1:i*trPerChan)';
+            end
+        elseif S.equipmentflag==3
+            % Impulse Radar
+            [temptraces,S.dt,S.ns,tempx,tempy,tempz,numchannels]=readImpulseRadar(S.folder,S.name,S.profnum,0,0,S.utmzone,1,5);
+            trPerChan=size(temptraces,2)/numchannels;
+            for i=1:numchannels
                 S.traces{i}=temptraces(:,(i-1)*trPerChan+1:i*trPerChan);
                 S.x{i}=tempx(:,(i-1)*trPerChan+1:i*trPerChan)';
                 S.y{i}=tempy(:,(i-1)*trPerChan+1:i*trPerChan)';
@@ -924,9 +952,9 @@ guidata(S.fh,S);
         for i=1:length(S.traces)
             S.raw=[S.raw S.traces{i}];
             S.xprof{i}=[0; cumsum(sqrt(diff(S.x{i}).^2+diff(S.y{i}).^2))];
-            if S.equipmentflag==1
+            if S.equipmentflag==1 || S.equipmentflag==3
                 S.info=[S.info zeros(1,length(S.xprof{i}))+i];
-            else
+            elseif S.equipmentflag==2
                 S.info=[S.info zeros(1,length(S.xprof{i}))+S.ch_list(i)];
             end
             S.zz=[S.zz; S.z{i}];
@@ -1068,14 +1096,27 @@ guidata(S.fh,S);
             % prepare reference trace/profile
             % load reference trace
             if S.equipmentflag==1
+                % Mala
                 [temptraces,~,~,~,~,ztemp]=readmala(S.folder,S.name,str2num(S.refprof.String));
-            else
-                [temtraces,S.dt,S.ns,tempx,tempy,tempz]=readspidar(S.folder,S.name,str2num(S.refprof.String),S.ch_list,zeros(length(S.ch_list),1),zeros(length(S.ch_list),1),S.gps_channel,32,0);
+            elseif S.equipmentflag==2
+                % Spidar
+                [temtraces,S.dt,S.ns,tempx,tempy,tempz]=readspidar(S.folder,S.name,str2num(S.refprof.String),S.ch_list,zeros(length(S.ch_list),1),zeros(length(S.ch_list),1),S.gps_channel,S.utmzone,0);
                 trPerChan=length(temtraces(1,:))/length(S.ch_list);
                 if exist('temptraces','var')
                     clear temptraces;
                 end
                 for i=1:length(S.ch_list)
+                    temptraces{i}=temtraces(:,(i-1)*trPerChan+1:i*trPerChan);
+                    ztemp{i}=tempz(:,(i-1)*trPerChan+1:i*trPerChan)';
+                end
+            elseif S.equipmentflag==3
+                % Impulse Radar
+                [temtraces,S.dt,S.ns,tempx,tempy,tempz,numchannels]=readImpulseRadar(S.folder,S.name,str2num(S.refprof.String),0,0,S.utmzone,1,5);
+                trPerChan=size(temtraces,2)/numchannels;
+                if exist('temptraces','var')
+                    clear temptraces;
+                end
+                for i=1:numchannels
                     temptraces{i}=temtraces(:,(i-1)*trPerChan+1:i*trPerChan);
                     ztemp{i}=tempz(:,(i-1)*trPerChan+1:i*trPerChan)';
                 end
@@ -1221,7 +1262,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     end
 
     if strcmp(steps{order==k},'Constant trace distance')
-        if S.equipmentflag==1
+        if S.equipmentflag==1 || S.equipmentflag==3 % Mala or impulse Radar
             channels=max(info); % number of channels
 
             temp=cell(channels,1);
@@ -1241,9 +1282,9 @@ for k=1:length(order(order>0))  % for all processing steps in right order
             datatraces=zeros(length(t),channels*numtrch);
             xproc=zeros(1,channels*numtrch);
             for ii=1:channels
-                info((ii-1)*numtrch+ii-(ii-1):ii*numtrch)=ii;
-                xproc((ii-1)*numtrch+ii-(ii-1):ii*numtrch)=xx{ii}(1:numtrch)+minx(ii); % add offset again for having coordinates along all channels
-                datatraces(:,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=temp{ii}(:,1:numtrch);
+                info((ii-1)*numtrch+1:ii*numtrch)=ii;
+                xproc((ii-1)*numtrch+1:ii*numtrch)=xx{ii}(1:numtrch)+minx(ii); % add offset again for having coordinates along all channels
+                datatraces(:,(ii-1)*numtrch+1:ii*numtrch)=temp{ii}(:,1:numtrch);
             end
             clear temp;
             clear xx;
@@ -1373,7 +1414,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
             % Channelshift same for all
             % sort traces into channels
             tempch=cell(length(unique(info)),1);
-            if S.equipmentflag==1
+            if S.equipmentflag==1 || S.equipmentflag==3
                 for ch=1:length(tempch)
                     tempch{ch}=datatraces(:,info==ch);
                 end
@@ -1388,7 +1429,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
                 tempch=channelshift(tempch,params.maxshift);
             end
             % sort traces back
-            if S.equipmentflag==1
+            if S.equipmentflag==1 || S.equipmentflag==3
                 for ch=1:length(tempch)
                     datatraces(:,info==ch)=tempch{ch};
                 end

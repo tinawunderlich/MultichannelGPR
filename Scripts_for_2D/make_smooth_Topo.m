@@ -14,8 +14,8 @@ clc
 %
 % requires profile data in radargrams.mat format
 
-num_folders=16; % how many folders with radargrams.mat do you want to combine? 
-% (e.g. 16 means that you can choose 16 different folders with data)
+num_folders=1; % how many folders with radargrams.mat do you want to combine? 
+% (e.g. 4 means that you can choose 4 different folders with data)
 
 plot_flag=1; % if =1: plot some figures for checking
 
@@ -32,8 +32,8 @@ power=10;    % Power of IDW
 msize=15; % filter size in pixel
 
 % smooth extracted profile heights with 'smooth'
-mprof=75; % filter size in pixel
-prof_num=[1:10:80]; % show these profile numbers for checking correctness (only if plot_flag==1)
+mprof=55; % filter size in pixel
+prof_num=[1:10:40]; % show these profile numbers for checking correctness (only if plot_flag==1)
 
 %% -------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
@@ -131,7 +131,7 @@ end
 
 % smoothing
 disp('Smoothing with 2D median filter...')
-topo=medfilt2(topo,[msize msize]);
+topo=medianfilt2(topo,[msize msize]);
 
 if plot_flag==1
     figure

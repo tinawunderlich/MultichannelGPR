@@ -11,16 +11,16 @@ clc
 % make_Timeslices.m)
 
 
-colperc=1; % Colorscale clipping in percent (if =0: autoscale min-max)
+colperc=3; % Colorscale clipping in percent (if =0: autoscale min-max)
 
 removeBorder=1; % =1: remove border artifacts from interpolation, =0: leave as it is
 pix=6; % if removeBorder==1: how many pixels are removed from border around area
 
 medianFilter=1; % do you want to apply a 2D-median filter (1=yes, 0=no)
-msize=3; % filter size in pixel
+msize=5; % filter size in pixel
 
 % use squareroot of amplitudes for visualization?
-sq=1; % 1=yes, 0=no
+sq=0; % 1=yes, 0=no
 
 %% -------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
@@ -151,7 +151,7 @@ for i=1:length(tsl)
 
     tsl{i}=tsl{i}.*maske;
     if medianFilter==1
-        tsl{i}=medfilt2(tsl{i},[msize msize]);
+        tsl{i}=medianfilt2(tsl{i},[msize msize]);
     end
 
     if removeBorder==1 % remove interpolation artifacts around area

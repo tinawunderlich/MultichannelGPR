@@ -20,22 +20,17 @@ function [traces]=traceInterpolation(traces,minfactor,maxfactor)
 
 if nargin==1
     % use default values
-    minfactor=3;
-    maxfactor=3;
+    minfactor=2;
+    maxfactor=2;
 end
 
 
-%mittel=mean(abs(traces(:))); % mean of abs(all traces)
-
 mitteltrace=mean(abs(traces),1); % mean of abs(traces) for each trace
+mittel=mean(mitteltrace); % mean of abs(all traces)
 
-[~,ispikes] = hampel(mitteltrace);
-%fprintf("- Number of bad traces found and removed: %04d\n",sum(ispikes));
+chunks=findchunks(mitteltrace>=mittel*maxfactor | mitteltrace<=mittel/minfactor);
 
-
-%chunks=findchunks(mitteltrace>=mittel*maxfactor | mitteltrace<=mittel/minfactor);
-chunks=findchunks(ispikes);
-
+%
 if ~isempty(chunks)
     for i=1:length(chunks(:,1))
         if chunks(i,1)==chunks(i,2) % only one trace

@@ -1,7 +1,9 @@
-% Script for reading processed Mala-datafiles in profiles2mat/proc and
+% Script for reading processed ImpulseRadar-datafiles in profiles2mat/proc and
 % binning them onto a rectangular grid
+% When asked, select folder containing the original Impulse Radar data
+% files!
 %
-% Dr. Tina Wunderlich, CAU Kiel 2024, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2025, tina.wunderlich@ifg.uni-kiel.de
 %
 % requires MATLAB-files in following folders (path will be temporarily
 % set):  Subfunctions
@@ -15,7 +17,7 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Bin size of grid
-dx=0.04; % [m]
+dx=0.05; % [m]
 
 % Automatic rotation of measurement area for minimum memory size
 rotate_area=1;  % 1=yes, 0=no
@@ -45,15 +47,15 @@ if ispc
         end
         fclose(fid);
         if ~isempty(fn{1})
-            foldername=uigetdir(fn{1}{1},'Choose rSlicer folder');
+            foldername=uigetdir(fn{1}{1},'Choose data folder');
         else
-            foldername=uigetdir([],'Choose rSlicer folder');
+            foldername=uigetdir([],'Choose data folder');
         end
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',foldername);
         fclose(fid);
     else
-        foldername=uigetdir([],'Choose rSlicer folder'); % path to radargram-folder
+        foldername=uigetdir([],'Choose data folder'); % path to radargram-folder
 
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',foldername);
@@ -65,12 +67,12 @@ else
         fn=textscan(fid,'%s');
         fclose(fid);
         if ~isempty(fn{1})
-            foldername=uigetdir(fn{1}{1},'Choose rSlicer folder');
+            foldername=uigetdir(fn{1}{1},'Choose data folder');
         else
-            foldername=uigetdir([],'Choose rSlicer folder');
+            foldername=uigetdir([],'Choose data folder');
         end
     else
-        foldername=uigetdir([],'Choose rSlicer folder'); % path to radargram-folder
+        foldername=uigetdir([],'Choose data folder'); % path to radargram-folder
     end
 
     fid=fopen('.temp.temp','wt');
@@ -80,10 +82,19 @@ end
 
 
 % get name
-temp=dir(fullfile(foldername,'/*.rad'));
-tempname=strsplit(temp(end).name,'_'); % Name of data files without '_???.rd3'
+temp=dir(fullfile(foldername,'/*.cor')); % GNSS file
+if isempty(temp)
+    temp=dir(fullfile(foldername,'/*.tsp')); % total station file
+    utmzone=0;
+else
+    % GNSS: check if utmzone set
+    if utmzone==0
+        disp('Please set correct UTM Zone and start again.')
+        return;
+    end
+end
+tempname=strsplit(temp(end).name,'_'); % Name of data files without '_???.cor/tsp
 name=[tempname{1}];
-name_withoutGPS=name; % name of files when not using GPS
 for i=2:length(tempname)-1
     name=[name,'_',tempname{i}];
 end
