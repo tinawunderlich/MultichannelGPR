@@ -38,7 +38,7 @@ save_georef=1; % yes=1, no=0
 % save profile coordinates as geoJSON file? (-> profile lines for QGIS)
 save_geoJSON=1; % yes=1, no=0
 jsonname='GPR_Profiles.json'; % give name for geoJSON file
-epsg=32631; % EPGS code for CRS
+epsg=32633; % EPGS code for CRS
 
 % Plotting options for map:
 plot_map=1; % plot map? yes=1, no=0

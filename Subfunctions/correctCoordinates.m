@@ -219,13 +219,20 @@ for ch=channels
     ende=length(trh.x);
     for ii=length(trh.x)-anz2+1:ende
         dist=sqrt((trh.x(ii)-trh.x(ende))^2+(trh.y(ii)-trh.y(ende))^2);
-        % coordinate transformation
-        temp=helmert([offsetGNSS_X offsetGNSS_Y],[0 0; 0 dist],[trh.x(ii)+d_xx trh.y(ii)+d_xy; trh.x(ende)+d_xx trh.y(ende)+d_xy]);
 
-        xn(ii)=temp(1);
-        yn(ii)=temp(2);
-        if any(trh.z~=0)
-            zn(ii)=trh.z(ii)-hnew+d_z;
+        if dist>0
+            % coordinate transformation
+            temp=helmert([offsetGNSS_X offsetGNSS_Y],[0 0; 0 dist],[trh.x(ii)+d_xx trh.y(ii)+d_xy; trh.x(ende)+d_xx trh.y(ende)+d_xy]);
+    
+            xn(ii)=temp(1);
+            yn(ii)=temp(2);
+            if any(trh.z~=0)
+                zn(ii)=trh.z(ii)-hnew+d_z;
+            end
+        else
+            xn(ii)=xn(ii-1);
+            yn(ii)=yn(ii-1);
+            zn(ii)=zn(ii-1);
         end
     end
 

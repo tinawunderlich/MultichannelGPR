@@ -13,10 +13,10 @@ clc
 
 app='Tablet';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
 
-dataplot=0; % plot radargram for controlling? 1=yes, 0=no
+dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
-convert2utm=0; % convert WGS84 Lat/Long to UTM (=1 if measured with Stonex-GPS)
-zone=31; % if convert2utm==1 -> give UTM-zone
+convert2utm=1; % convert WGS84 Lat/Long to UTM (=1 if measured with Stonex-GPS)
+zone=33; % if convert2utm==1 -> give UTM-zone
 
 offsetGNSS_X=0; % [m] Offset between GNSS and antenna midpoint crossline (in profile direction GNSS left of antenna -> positive)
 offsetGNSS_Y=0.12; % [m] Offset between GNSS and antenna midpoint in profile direction (if GNSS behind antenna midpoint -> positive)
@@ -27,12 +27,12 @@ smooth_coords=1; % yes=1, no=0
 numsamp_smooth=5; % number of samples for moving median smoothing
 
 % Options for calculating inline coordinates for each trace:
-coords_opt=1;   % =1: trace coordinate is difference to beginning of profile (only use this for straight profiles!)
+coords_opt=2;   % =1: trace coordinate is difference to beginning of profile (only use this for straight profiles!)
                 % =2: trace coordinates are calculated by taking the cumulative sum of the coordinate differences between subsequent traces (better for curvy profiles, but not useful for strong GPS-antenna movements)
 
 % Attention: still experimental! If you think that the output radargrams
 % are wrong, set to 0!
-removeOutliers=0; % do you want to remove coordinate outliers? 
+removeOutliers=1; % do you want to remove coordinate outliers? 
     % 0= no, use raw coordinates
     % 1= in middle of profile
     % 2= at the end/beginning of profile
@@ -43,7 +43,7 @@ removeStartEnd=1; % =1: yes, remove start and end traces of profiles (at same po
 
 % Export to other formats
 export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
-export2segy=0; % export all radargrams as segy-files
+export2segy=1; % export all radargrams as segy-files
 constoff=0; % if=1: a constant coordinate offset will be subtracted and coordinates will be in mm accuracy in segy file (offsets will be saved in Inline3D (x) and Crossline3D (y))
 
 
@@ -159,7 +159,12 @@ for i=1:length(list)
                 temp=strsplit(lattemp(j,:),'.');
                 lat(j)=str2num(temp{1}(1:end-2))+str2num([temp{1}(end-1:end),'.',temp{2}])/60;
                 temp=strsplit(lontemp(j,:),'.');
-                lon(j)=str2num(temp{1}(1:end-2))+str2num([temp{1}(end-1:end),'.',temp{2}])/60;
+                if abs(str2num(temp{1}(1:end-2)))==str2num(temp{1}(1:end-2)) % positive longitude
+                    lon(j)=str2num(temp{1}(1:end-2))+str2num([temp{1}(end-1:end),'.',temp{2}])/60;
+                else
+                    % negative longitude (W)
+                    lon(j)=-1*(abs(str2num(temp{1}(1:end-2)))+str2num([temp{1}(end-1:end),'.',temp{2}])/60);
+                end
             end
             [xneu,yneu]=wgs2utm(lat,lon,zone,'N');
             trh.x=xneu;
@@ -605,11 +610,13 @@ if export2segy==1
     end
 
     if isfield(h,'dt2') % is DF antenna
-        h.dt=h.dt*1e9; % convert to ns
-        h.dt2=h.dt2*1e9;
-        for i=1:length(headers)
-            headers{i}.dt=headers{i}.dt*1e9;
-            headers{i}.dt2=headers{i}.dt2*1e9;
+        if h.dt*1e9<1
+            h.dt=h.dt*1e9; % convert to ns
+            h.dt2=h.dt2*1e9;
+            for i=1:length(headers)
+                headers{i}.dt=headers{i}.dt*1e9;
+                headers{i}.dt2=headers{i}.dt2*1e9;
+            end
         end
     end
     

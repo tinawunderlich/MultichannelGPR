@@ -3,12 +3,15 @@ close all
 clc
 
 
-% Read *.pos-files and save a shape-file with the profile location for GIS.
+% Read Mala Multichannel *.pos-files and save a geoJSON-file with the profile location for GIS.
 %
-% Dr. Tina Wunderlich, CAU Kiel 2023, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2023-2025, tina.wunderlich@ifg.uni-kiel.de
 
 
-shapename='GPR_Profiles_Borgsumburg.shp'; % give name for shape file
+% save profile coordinates as geoJSON file (-> profile lines for QGIS)
+save_geoJSON=1; % yes=1, no=0
+jsonname='GPR_Profiles.json'; % give name for geoJSON file
+epsg=32631; % EPGS code for CRS
 
 % -------------------------------------------------------------------------
 % Do not change the following part!
@@ -79,17 +82,19 @@ end
 %% save as shape file
 disp('Saving shape file...')
 
-anz=1;
+s.type='FeatureCollection';
+s.features=[];
+s.crs=[];
+s.crs.type='name';
+s.crs.properties.name=['EPSG:',num2str(epsg)];
+
 for kk=1:length(numbers) % loop over radargrams
-    if ~isempty(data{kk})
-        S(anz).Geometry='Line';
-        S(anz).BoundingBox=[min(data{kk}(:,2)) min(data{kk}(:,3)); max(data{kk}(:,2)) max(data{kk}(:,3))];
-        S(anz).X=data{kk}(:,2);
-        S(anz).Y=data{kk}(:,3);
-        S(anz).id=numbers(kk);
-        anz=anz+1;
-    end
+    s.features(kk).type='Feature';
+    s.features(kk).geometry.type='LineString';
+    s.features(kk).geometry.coordinates=[data{kk}(:,2) data{kk}(:,3)];
+    s.features(kk).ids=numbers(kk); % line number
 end
 
-% write shapefile with profile lines
-shapewrite(S,fullfile(pfad_rad,shapename));
+fid=fopen(fullfile(pfad_rad,'Figures',jsonname),'w');
+fwrite(fid,jsonencode(s));
+fclose(fid);
