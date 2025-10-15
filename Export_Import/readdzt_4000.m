@@ -519,7 +519,8 @@ if ~isempty(xyz) && ~all(xyz(:,2)==0)
         % them:
         weg=(diffx>distx(min(i,10)) | diffy>disty(min(i,10)));
         xyz(weg,:)=[];
-        
+
+
 %         subplot(2,2,[1 3])
 %         plot(xyz(:,2),xyz(:,3),'*')
 %         legend('original','filtered')
@@ -587,11 +588,17 @@ if ~isempty(xyz) && ~all(xyz(:,2)==0)
 %         subplot(2,2,4)
 %         plot(xyz(:,1),xyz(:,3),'*')
     end
-    
+
+    if size(quality,2) ~= size(xyz,1) && exist("weg",'var')
+        quality(weg) = [];
+    end
+
     trnum1=1:length(data(1,:))/rh_nchan;
     [a,b]=unique(xyz(:,1));
     xyz=xyz(b,:); % delete non-unique points
-    
+    quality=quality(b);
+
+
     % remove outliers 3
     if removeOutliers==3
         % window size of median filter: 2 percent of all traces

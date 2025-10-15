@@ -11,9 +11,9 @@ clear all
 close all
 clc
 
-app='Tablet';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
+app='SIR4000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
 
-dataplot=1; % plot radargram for controlling? 1=yes, 0=no
+dataplot=0; % plot radargram for controlling? 1=yes, 0=no
 
 convert2utm=1; % convert WGS84 Lat/Long to UTM (=1 if measured with Stonex-GPS)
 zone=33; % if convert2utm==1 -> give UTM-zone
@@ -42,7 +42,7 @@ removeStartEnd=1; % =1: yes, remove start and end traces of profiles (at same po
                     % =0: No. Keep all traces.
 
 % Export to other formats
-export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
+export2mat=0; % export to Multichannel-GPR format for radargrams (mat-files)
 export2segy=1; % export all radargrams as segy-files
 constoff=0; % if=1: a constant coordinate offset will be subtracted and coordinates will be in mm accuracy in segy file (offsets will be saved in Inline3D (x) and Crossline3D (y))
 
@@ -640,6 +640,16 @@ end
 
 % Exporting settings:
 disp('Exported settings_DZTconvert.txt!')
+
+if isfield(h,'dt2')
+    if ~exist(fullfile(pfad,'mat'),'dir')
+        mkdir(fullfile(pfad,'mat'));
+    end
+else
+    if ~exist(fullfile(pfad,'mat_ch1'),'dir')
+        mkdir(fullfile(pfad,'mat_ch1'));
+    end
+end
 
 fid=fopen(fullfile(pfad,'mat','settings_DZTconvert.txt'),'wt');
 if fid==-1
