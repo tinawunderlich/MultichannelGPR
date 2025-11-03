@@ -15,7 +15,7 @@ dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
 use_GPS=1; % if =1: GPS was used, if =0: local coordinates
 convert2utm=1; % convert WGS84 Lat/Long to UTM
-zone=36; % if convert2utm==1 -> give UTM-zone
+zone=32; % if convert2utm==1 -> give UTM-zone
 offsetGPS_X=0; % Offset between GPS and antenna midpoint crossline (in profile direction GPS left of antenna -> positive)
 offsetGPS_Y=0; % Offset between GPS and antenna midpoint in profile direction (if GPS behind antenna midpoint -> positive)
 
@@ -25,7 +25,7 @@ coords_opt=1;   % =1: trace coordinate is difference to beginning of profile (on
 
 % Export to other formats
 export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
-export2segy=0; % export all radargrams as segy-files
+export2segy=1; % export all radargrams as segy-files
 constoff=0; % for sgy: if=1: a constant coordinate offset will be subtracted and coordinates will be in mm accuracy in segy file (offsets will be saved in Inline3D (x) and Crossline3D (y))
 
 
@@ -183,9 +183,9 @@ for i=1:length(list)
 
     if i==1
         radargrams=[{traces}];
-        global_coords=[{[xx yy zz]}];
-        xtemp=xx;
-        ytemp=yy;
+        global_coords=[{[xx(:) yy(:) zz(:)]}];
+        xtemp=xx(:);
+        ytemp=yy(:);
         if coords_opt==1 % difference to beginning
             x=[{[sqrt((xtemp-xtemp(1)).^2+(ytemp-ytemp(1)).^2)']}];
         elseif coords_opt==2 % cumulative sum
@@ -195,7 +195,7 @@ for i=1:length(list)
         listrad.name=[{list(i).name}];
     else
         radargrams=[radargrams; {traces}];
-        global_coords=[global_coords; {[xx yy zz]}];
+        global_coords=[global_coords; {[xx(:) yy(:) zz(:)]}];
         xtemp=xx;
         ytemp=yy;
         if coords_opt==1 % difference to beginning

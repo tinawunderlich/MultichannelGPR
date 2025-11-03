@@ -92,4 +92,16 @@ for ii=1:num_traces    % for all traces in this file (also without coords)
 end
 fclose(fid);
 
+%%% interpolate coords for each trace:
+x=interp1(trnum,x,1:size(traces,2));
+y=interp1(trnum,y,1:size(traces,2));
+z=interp1(trnum,z,1:size(traces,2));
+
+% delete nans:
+weg=isnan(x);
+x=x(~weg);
+y=y(~weg);
+z=z(~weg);
+traces=traces(:,~weg);
+
 dt=range/ns;
