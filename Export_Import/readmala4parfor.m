@@ -128,7 +128,13 @@ if fid~=-1
             trh(jj).x=pos_new(:,2);
             trh(jj).y=pos_new(:,3);
             trh(jj).z=pos_new(:,4);
-            [~,trh(jj),deltra(:,jj)]=correctCoordinates(zeros(2,length(trh(jj).x)),trh(jj),GNSS_height,ch_x(jj),ch_y(jj),1,1,3);
+            [~,b,deltra(:,jj)]=correctCoordinates(zeros(2,length(trh(jj).x)),trh(jj),GNSS_height,ch_x(jj),ch_y(jj),1,1,3);
+
+
+            fn = {'x','y','z'};
+            for k = 1:numel(fn)
+                trh(jj).(fn{k}) = b.(fn{k});   % nur vorhandene/gewünschte Felder überschreiben
+            end
         end
         % determine traces that are valid in all channels:
         deltraces=~all(deltra==0,2); % valid=0, delete trace=1
@@ -200,7 +206,14 @@ fclose(fid);
 
 % delete traces if invalid coordinates:
 for jj=1:numchannels
-    traces1{jj}=traces1{jj}(:,~deltraces);
+    traces1{jj}=traces1{jj}(:,unique(pos(:,2))); % only take valid trace numbers (from pos)
+    % if numel(deltraces)>size(traces1{jj},2)
+    %     deltraces=deltraces(1:size(traces1{jj},2)); % shorted deltraces
+    % else
+    %     temp2=ones(size(traces1{jj},2),1);
+    %     temp2(1:numel(deltraces))=deltraces; % elongate
+    % end
+    % traces1{jj}=traces1{jj}(:,~deltraces);
 end
 
 % adjust num_traces2:
@@ -212,11 +225,22 @@ traces=zeros(ns,num_traces2);
 x=zeros(1,num_traces2);
 y=zeros(1,num_traces2);
 z=zeros(1,num_traces2);
-for i=1:numchannels
+for i=1:numchannels   
+    xtemp=pos(pos(:,3)==i,4);
+    ytemp=pos(pos(:,3)==i,5);
+    ztemp=pos(pos(:,3)==i,6);
+    if numel(xtemp)>numel((i-1)*numtr2+i-(i-1):i*numtr2)
+        xtemp=xtemp(1:numel((i-1)*numtr2+i-(i-1):i*numtr2));
+        ytemp=ytemp(1:numel((i-1)*numtr2+i-(i-1):i*numtr2));
+        ztemp=ztemp(1:numel((i-1)*numtr2+i-(i-1):i*numtr2));
+    else
+        numtr2=numel(xtemp);
+    end
+    x(1,(i-1)*numtr2+i-(i-1):i*numtr2)=xtemp;
+    y(1,(i-1)*numtr2+i-(i-1):i*numtr2)=ytemp;
+    z(1,(i-1)*numtr2+i-(i-1):i*numtr2)=ztemp;
+
     traces(:,(i-1)*numtr2+i-(i-1):i*numtr2)=traces1{i};
-    x(1,(i-1)*numtr2+i-(i-1):i*numtr2)=pos(pos(:,3)==i,4);
-    y(1,(i-1)*numtr2+i-(i-1):i*numtr2)=pos(pos(:,3)==i,5);
-    z(1,(i-1)*numtr2+i-(i-1):i*numtr2)=pos(pos(:,3)==i,6);
 end
 
 dt=range/ns;

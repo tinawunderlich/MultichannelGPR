@@ -6,13 +6,13 @@ clc
 %% Script for reading the PPS-related-files outside the rSlicer folder and converting them to *.pos-files (For measurements with GPS mouse/PPS only!)
 % (1) Reads the utm, cpdt and cpss-files outside the rSlicer-folder, (2) filters the coordinates for
 % removing traces at the same location, (3) determines a time offset by
-% comparing PPS signals and applies it to teh coordinates
+% comparing PPS signals and applies it to the coordinates
 % and (4) writes *.pos-files with global coordinates (UTM).
 % The already available *.pos-files with local coordinates are moved to an
 % extra folder named 'local_coords'.
 % When asked, select the rSlicer-folder of your data.
 %
-% Dr. Tina Wunderlich, CAU Kiel, tina.wunderlich@ifg.uni-kiel.de, 2023
+% Dr. Tina Wunderlich, CAU Kiel, tina.wunderlich@ifg.uni-kiel.de, 2023-2026
 %%-------------------------------------------------------------------------
 
 % The settings made in MIRAsoft are not correctly set in the *.rad-files!
@@ -437,11 +437,12 @@ log_cpdt(:,2)=[0; 20; cumsum(diff(log_cpdt(2:end,2)))+20];
 
 
 %% PPS signal filtering:
-% find places where abs(diff(wpos))==1 -> PPS signal comes here
-wo=find(abs(diff(log_cpdt(:,4)))==1)+1;
+ind=find(trn==0)+1;
+wo=trn(ind(ind<=numel(trn)));
+wof=ind(ind<=numel(trn))-1;
 
 % calculate trace and time differences between PPS signals:
-tr_diff=diff(wo);
+tr_diff=diff(wof);
 cu_time_diff=diff(log_cpdt(wo,2));
 pps=[wo [0;tr_diff] [0;cu_time_diff]]; % tracenum tracediff timediff
 
@@ -449,21 +450,12 @@ pps=[wo [0;tr_diff] [0;cu_time_diff]]; % tracenum tracediff timediff
 pps(log_cpdt(wo,2)<=5e3,:)=[];
 
 % delete pps signals with very small number of trace differences
-pps(pps(:,2)<=10,:)=[];
+pps(pps(:,2)<=1,:)=[]; % OLD: pps(pps(:,2)<=10,:)=[];
 
 % calculate trace and time differences for remaining PPS signals
 pps=[pps(:,1) [0;diff(pps(:,1))] [0;diff(log_cpdt(pps(:,1),2))]];
 
 % if pss was missing inbetween -> tr_diff large -> divide
-%%% OLD:
-% if median(pps(:,2))>40 && median(pps(:,2))<60
-%     thresh=55; % should be around 50 for 50 Hz (time dist 0.02s) GPR data (=50 traces per second)
-% elseif median(pps(:,2))>70 && median(pps(:,2))<130
-%     thresh=110; % should be around 100 for 100 Hz (time dist 0.01s) GPR data (=100 traces per second)
-% else
-%     thresh=median(pps(:,2));
-% end
-%%% NEW:
 thresh=(1/tr_interval)/100*110;
 for i=1:length(pps(:,1))
     temp=pps(i,2);
@@ -476,11 +468,7 @@ for i=1:length(pps(:,1))
     pps(i,2)=temp;
 end
 % also divide time differences by this factor
-pps(:,3)=pps(:,3)./factor;
-
-% time diff should be around 1 s -> delete other points
-f=pps(:,3)<=900 | pps(:,3)>=1100; % bad points (time diff too small/large) % original: 990/1010
-pps(f,:)=[];
+pps(:,3)=double(pps(:,3))./factor;
 
 % only take the lines where utm and pps have the same trace number
 b=1;
@@ -496,7 +484,6 @@ for i=1:length(log_cpss(:,1))
 end
 log_cpss(logical(weg),:)=[]; % delete these lines with no match in utm file
 utm=utmnew;
-%clear utmnew;
 
 wo=pps(:,1); % trace number were PPS signal is ok and utm coordinates are present
 

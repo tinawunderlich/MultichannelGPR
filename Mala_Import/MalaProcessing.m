@@ -22,8 +22,8 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Select number of profiles:
-profile_min=2;  % minimum profile number
-profile_max=4;  % maximum profile number
+profile_min=58;  % minimum profile number
+profile_max=81;  % maximum profile number
 % number of channels for this dataset
 channels=16; % number of channels
 
@@ -680,13 +680,15 @@ if rad==1
     if ~isempty(zmig)
         save(fullfile(foldername,'profiles2mat','proc','zmig.mat'),'zmig','-v7.3');
     end
-
-    fid=fopen(fullfile(foldername,'profiles2mat','proc','radargrams.txt'),'wt');
-    fprintf(fid,'Radargrams.mat contains channels\n');
-    fprintf(fid,' %d\t',unique(info(3,:)));
-    fprintf(fid,'\nof profiles\n');
-    fprintf(fid,' %d\n',numbers);
-    fclose(fid);
+    try
+        fid=fopen(fullfile(foldername,'profiles2mat','proc','radargrams.txt'),'wt');
+        fprintf(fid,'Radargrams.mat contains channels\n');
+        fprintf(fid,' %d\t',unique(info(3,:)));
+        fprintf(fid,'\nof profiles\n');
+        fprintf(fid,' %d\n',numbers);
+        fclose(fid);
+    catch
+    end
 end
 
 % save settings in proc-folder
@@ -780,7 +782,7 @@ for k=1:length(order(order>0))  % for all processing steps in right order
     if strcmp(steps{order==k},'do_traceInterpolation')
         disp('  ...Trace interpolation')
         for ii=1:max(info(3,:))
-            datatraces(:,info(3,:)==ch)=interpolation(datatraces(:,info(3,:)==ch),params.gap);
+            datatraces(:,info(3,:)==ii)=interpolation(datatraces(:,info(3,:)==ii),params.gap);
         end
         if exist('fh','var')
             subplot(4,3,k+1)

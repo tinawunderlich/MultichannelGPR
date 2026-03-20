@@ -15,9 +15,9 @@ tz_flag=1; % =1: time, =2: depth
 
 rectangles=[1]; % number of rectangles (only for creation of new slices)
 
-radius=0.3; % radius in m for valid interpolation
+radius=0.2; % radius in m for valid interpolation
 
-use_slices=0;   % if =0: make new slices and save them -> select folder containing the rectangles,
+use_slices=1;   % if =0: make new slices and save them -> select folder containing the rectangles,
 % if =1: use already created slices in folder
 % PondViewSlices or SampleSlices -> select the folder containing the slices
 

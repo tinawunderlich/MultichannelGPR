@@ -15,8 +15,8 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Filename (without folder!) (folder is selected later)
-name='Borgsumburg'; % Name of datafiles without '_number.mat'
-profiles=47:87;  % profile numbers
+name='Duisburg260309'; % Name of datafiles without '_number.mat'
+profiles=58:81;  % profile numbers
 
 channels=[1]; % choose channels (one or several)
 

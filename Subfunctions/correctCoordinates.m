@@ -4,7 +4,7 @@ function [data_out,trh_out,deltraces]=correctCoordinates(data,trh,h_GNSS,offsetG
 % GNSS antenna and GPR antenna and GPS height also taking the topography
 % into account
 %
-% Dr. Tina Wunderlich, CAU Kiel, 2020-2025
+% Dr. Tina Wunderlich, CAU Kiel, 2020-2026
 %
 % Input:
 % data: traces as matrix (or if no traces shall be removed =[])
@@ -105,10 +105,13 @@ for ch=channels
     for ii=1:length(trh.x)-anz2
         dist=sqrt((trh.x(ii)-trh.x(ii+anz2))^2+(trh.y(ii)-trh.y(ii+anz2))^2); % distance between two points anz2-traces away
         dist_xy=[trh.x(ii+anz2)-trh.x(ii) trh.y(ii+anz2)-trh.y(ii)]; % differences in x and y direction
+        dist_all=sqrt((trh.x(ii)-trh.x(ii:ii+anz2)).^2+(trh.y(ii)-trh.y(ii:ii+anz2)).^2); % distance to following points until anz2-traces away
         % correct for GPS height and associated xy-shift if
         % topography is present
         if any(trh.z~=0)
-            alpha=atand(abs(trh.z(ii+anz2)-trh.z(ii))/dist); % slope angle in degree
+            % fit line to height of following points:
+            p=polyfit(dist_all,trh.z(ii:ii+anz2),1);
+            alpha=atand(abs(polyval(p,0)-polyval(p,dist))/dist); % mean slope angle in degree
             hnew=h_GNSS/cosd(alpha); % new height of GPS above ground at measured point
             b=hnew*sind(alpha); % shift along surface to correct point
             d_x=b*cosd(alpha); % horizontal shift of point in profile direction
@@ -204,160 +207,40 @@ for ch=channels
             end
 
             % coordinate transformation
-            temp=helmert([offsetGNSS_X offsetGNSS_Y],[0 0; 0 dist],[trh.x(ii)+d_xx trh.y(ii)+d_xy; trh.x(ii+anz2)+d_xx trh.y(ii+anz2)+d_xy]);
+            localC=[zeros(numel(dist_all),1) dist_all(:)];
+            globalC=[trh.x(ii:ii+anz2)+d_xx trh.y(ii:ii+anz2)+d_xy];
+            temp=helmert([offsetGNSS_X offsetGNSS_Y],localC,globalC);
 
             xn(ii)=temp(1);
             yn(ii)=temp(2);
             zn(ii)=trh.z(ii)-hnew+d_z; % correct height
         else % no topography present
-            temp=helmert([offsetGNSS_X offsetGNSS_Y],[0 0; 0 dist],[trh.x(ii) trh.y(ii); trh.x(ii+anz2) trh.y(ii+anz2)]);
+            localC=[zeros(numel(dist_all),1) dist_all(:)];
+            globalC=[trh.x(ii:ii+anz2) trh.y(ii:ii+anz2)];
+            temp=helmert([offsetGNSS_X offsetGNSS_Y],localC,globalC);
             xn(ii)=temp(1);
             yn(ii)=temp(2);
         end
     end
     % extrapolate for the last few traces:
     ende=length(trh.x);
-    for ii=length(trh.x)-anz2+1:ende
-        dist=sqrt((trh.x(ii)-trh.x(ende))^2+(trh.y(ii)-trh.y(ende))^2);
+    dist=sqrt((trh.x(length(trh.x)-anz2+1)-trh.x(ende))^2+(trh.y(length(trh.x)-anz2+1)-trh.y(ende))^2);
+    for ii=length(trh.x)-anz2+1:ende-1
+        interdist(ii,1)=sqrt((trh.x(ii)-trh.x(ii+1))^2+(trh.y(ii)-trh.y(ii+1))^2);
+    end
+    interdist=interdist(length(trh.x)-anz2+1:ende-1);
+    transdata=[repmat(offsetGNSS_X,[numel(interdist)+1,1]) repmat(offsetGNSS_Y,[numel(interdist)+1,1])+[0; interdist]];
 
-        if dist>0
-            % coordinate transformation
-            temp=helmert([offsetGNSS_X offsetGNSS_Y],[0 0; 0 dist],[trh.x(ii)+d_xx trh.y(ii)+d_xy; trh.x(ende)+d_xx trh.y(ende)+d_xy]);
-    
-            xn(ii)=temp(1);
-            yn(ii)=temp(2);
-            if any(trh.z~=0)
-                zn(ii)=trh.z(ii)-hnew+d_z;
-            end
-        else
-            xn(ii)=xn(ii-1);
-            yn(ii)=yn(ii-1);
-            zn(ii)=zn(ii-1);
-        end
+    % coordinate transformation
+    temp=helmert(transdata,[0 0; 0 dist],[trh.x(length(trh.x)-anz2+1)+d_xx trh.y(length(trh.x)-anz2+1)+d_xy; trh.x(ende)+d_xx trh.y(ende)+d_xy]);
+
+    xn(length(trh.x)-anz2+1:ende)=temp(:,1);
+    yn(length(trh.x)-anz2+1:ende)=temp(:,2);
+    if any(trh.z~=0)
+        zn(length(trh.x)-anz2+1:ende)=trh.z(length(trh.x)-anz2+1:ende)-hnew+d_z;
     end
 
 
-%     % calculation for the last (anz2) few traces -> flip
-%     % coordinates and start profile from back
-%     n=length(trh.x);
-%     tempx_flip=fliplr(trh.x);
-%     tempy_flip=fliplr(trh.y);
-%     tempz_flip=fliplr(trh.z);
-%     tempdx=-offsetGNSS_X;
-%     tempdy=-offsetGNSS_Y;
-%     for ii=1:anz2
-%         dist=sqrt((tempx_flip(ii)-tempx_flip(ii+anz2))^2+(tempy_flip(ii)-tempy_flip(ii+anz2))^2); % distance between two points anz2-traces away
-%         dist_xy=[tempx_flip(ii+anz2)-tempx_flip(ii) tempy_flip(ii+anz2)-tempy_flip(ii)]; % differences in x and y direction
-%         % correct for GPS height and associated xy-shift if
-%         % topography is present
-%         if any(tempz_flip~=0)
-%             alpha=atand(abs(tempz_flip(ii+anz2)-tempz_flip(ii))/dist); % slope angle in degree
-%             hnew=h_GNSS/cosd(alpha); % new height of GPS above ground at measured point
-%             b=hnew*sind(alpha); % shift along surface to correct point
-%             d_x=b*cosd(alpha); % horizontal shift of point in profile direction
-%             d_z=b*sind(alpha); % vertical shift of point in profile direction
-% 
-%             % angle of profile direction towards north
-%             if tempx_flip(ii)==tempx_flip(ii+anz2) % north/south
-%                 beta=0;
-%             elseif tempy_flip(ii)==tempy_flip(ii+anz2) % west/east
-%                 beta=90;
-%             else
-%                 beta=atand(abs(tempx_flip(ii+anz2)-tempx_flip(ii))/abs(tempy_flip(ii+anz2)-tempy_flip(ii)));
-%             end
-%             % split horizontal shift into x and y component:
-%             d=[d_x*cosd(beta) d_x*sind(beta)];
-%             % differentiate between different cases
-%             updownflag=tempz_flip(ii)<tempz_flip(ii+anz2); % up=1, down=0
-%             if all(dist_xy>0) && abs(dist_xy(1))<abs(dist_xy(2)) && updownflag==1 % up, towards NNE
-%                 d_xx=min(d);
-%                 d_xy=max(d);
-%             elseif all(dist_xy>0) && abs(dist_xy(1))<abs(dist_xy(2)) && updownflag==0 % down, towards NNE
-%                 d_xx=-min(d);
-%                 d_xy=-max(d);
-%             elseif all(dist_xy>0) && abs(dist_xy(1))>=abs(dist_xy(2)) && updownflag==1 % up, towards NEE
-%                 d_xx=max(d);
-%                 d_xy=min(d);
-%             elseif all(dist_xy>0) && abs(dist_xy(1))>=abs(dist_xy(2)) && updownflag==0 % down, towards NEE
-%                 d_xx=-max(d);
-%                 d_xy=-min(d);
-%             elseif dist_xy(1)>0 && dist_xy(2)<0 && abs(dist_xy(1))>abs(dist_xy(2)) && updownflag==1 % up, towards SEE
-%                 d_xx=max(d);
-%                 d_xy=-min(d);
-%             elseif dist_xy(1)>0 && dist_xy(2)<0 && abs(dist_xy(1))>abs(dist_xy(2)) && updownflag==0 % down, towards SEE
-%                 d_xx=-max(d);
-%                 d_xy=min(d);
-%             elseif dist_xy(1)>0 && dist_xy(2)<0 && abs(dist_xy(1))<=abs(dist_xy(2)) && updownflag==1 % up, towards SSE
-%                 d_xx=min(d);
-%                 d_xy=-max(d);
-%             elseif dist_xy(1)>0 && dist_xy(2)<0 && abs(dist_xy(1))<=abs(dist_xy(2)) && updownflag==0 % down, towards SSE
-%                 d_xx=-min(d);
-%                 d_xy=max(d);
-%             elseif dist_xy(1)<0 && dist_xy(2)<0 && abs(dist_xy(1))<abs(dist_xy(2)) && updownflag==1 % up, towards SSW
-%                 d_xx=-min(d);
-%                 d_xy=-max(d);
-%             elseif dist_xy(1)<0 && dist_xy(2)<0 && abs(dist_xy(1))<abs(dist_xy(2)) && updownflag==0 % down, towards SSW
-%                 d_xx=min(d);
-%                 d_xy=max(d);
-%             elseif dist_xy(1)<0 && dist_xy(2)<0 && abs(dist_xy(1))>=abs(dist_xy(2)) && updownflag==1 % up, towards SWW
-%                 d_xx=-max(d);
-%                 d_xy=-min(d);
-%             elseif dist_xy(1)<0 && dist_xy(2)<0 && abs(dist_xy(1))>=abs(dist_xy(2)) && updownflag==0 % down, towards SWW
-%                 d_xx=max(d);
-%                 d_xy=min(d);
-%             elseif dist_xy(1)<0 && dist_xy(2)>0 && abs(dist_xy(1))>abs(dist_xy(2)) && updownflag==1 % up, towards NWW
-%                 d_xx=-max(d);
-%                 d_xy=min(d);
-%             elseif dist_xy(1)<0 && dist_xy(2)>0 && abs(dist_xy(1))>abs(dist_xy(2)) && updownflag==0 % down, towards NWW
-%                 d_xx=max(d);
-%                 d_xy=-min(d);
-%             elseif dist_xy(1)<0 && dist_xy(2)>0 && abs(dist_xy(1))<=abs(dist_xy(2)) && updownflag==1 % up, towards NNW
-%                 d_xx=-min(d);
-%                 d_xy=max(d);
-%             elseif dist_xy(1)<0 && dist_xy(2)>0 && abs(dist_xy(1))<=abs(dist_xy(2)) && updownflag==0 % down, towards NNW
-%                 d_xx=min(d);
-%                 d_xy=-max(d);
-%             elseif dist_xy(1)==0 && dist_xy(2)>0 && updownflag==1 % up, towards N
-%                 d_xx=0;
-%                 d_xy=max(d);
-%             elseif dist_xy(1)==0 && dist_xy(2)>0 && updownflag==0 % down, towards N
-%                 d_xx=0;
-%                 d_xy=-max(d);
-%             elseif dist_xy(1)==0 && dist_xy(2)<0 && updownflag==1 % up, towards S
-%                 d_xx=0;
-%                 d_xy=-max(d);
-%             elseif dist_xy(1)==0 && dist_xy(2)<0 && updownflag==0 % down, towards S
-%                 d_xx=0;
-%                 d_xy=max(d);
-%             elseif dist_xy(2)==0 && dist_xy(1)>0 && updownflag==1 % up, towards E
-%                 d_xx=max(d);
-%                 d_xy=0;
-%             elseif dist_xy(2)==0 && dist_xy(1)>0 && updownflag==0 % down, towards E
-%                 d_xx=-max(d);
-%                 d_xy=0;
-%             elseif dist_xy(2)==0 && dist_xy(1)<0 && updownflag==1 % up, towards W
-%                 d_xx=-max(d);
-%                 d_xy=0;
-%             elseif dist_xy(2)==0 && dist_xy(1)<0 && updownflag==0 % down, towards W
-%                 d_xx=max(d);
-%                 d_xy=0;
-%             else
-%                 d_xx=NaN;
-%                 d_xy=NaN;
-%             end
-% 
-%             % coordinate transformation
-%             temp=helmert([tempdx tempdy],[0 0; 0 dist],[tempx_flip(ii)+d_xx tempy_flip(ii)+d_xy; tempx_flip(ii+anz2)+d_xx tempy_flip(ii+anz2)+d_xy]);
-% 
-%             xn(n-ii+1)=temp(1);
-%             yn(n-ii+1)=temp(2);
-%             zn(n-ii+1)=trh.z(n-ii+1)-hnew+d_z; % correct height
-%         else % no topography present
-%             temp=helmert([tempdx tempdy],[0 0; 0 dist],[tempx_flip(ii) tempy_flip(ii); tempx_flip(ii+anz2) tempy_flip(ii+anz2)]);
-%             xn(n-ii+1)=temp(1);
-%             yn(n-ii+1)=temp(2);
-%         end
-%     end
 
     % Output:
     data_out=[data_out data];

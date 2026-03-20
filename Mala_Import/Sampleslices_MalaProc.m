@@ -15,10 +15,10 @@ clc
 % Bin size of grid
 dx=0.05; % [m]
 
-radius=0.1; % radius in m for valid interpolation (-> mask)
+radius=0.3; % radius in m for valid interpolation (-> mask)
 
 % virtual channels for interpolation:
-virt_chan_num=1; % if =0: only virtual channels between real channels,
+virt_chan_num=3; % if =0: only virtual channels between real channels,
                     % if e.g. =3: extrapolate also to 3 channels before and
                     % after last real channel to the sides
 
@@ -33,10 +33,10 @@ followTopo=0; % =1: yes; =0: horizontal slices
 
 % Downsampling of data
 downsampling=1; % if =1: yes (and use following settings)
-downsampling_factor=4; % only take each downsampling-factor sample (e.g. only take every 2nd sample)
+downsampling_factor=20; % only take each downsampling-factor sample (e.g. only take every 2nd sample)
 % cutting of range
 cut_range=1; % if =1:yes
-cut_time=50; % choose time for cutting [ns]
+cut_time=20; % choose time for cutting [ns]
 
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
