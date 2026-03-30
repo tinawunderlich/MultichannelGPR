@@ -11,12 +11,12 @@ clear all
 close all
 clc
 
-app='SIR4000';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
+app='Tablet';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / UtilityScan (UtilityScan with DF antenna only!)
 
-dataplot=0; % plot radargram for controlling? 1=yes, 0=no
+dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
 convert2utm=1; % convert WGS84 Lat/Long to UTM (=1 if measured with Stonex-GPS)
-zone=33; % if convert2utm==1 -> give UTM-zone
+zone=32; % if convert2utm==1 -> give UTM-zone
 
 offsetGNSS_X=0; % [m] Offset between GNSS and antenna midpoint crossline (in profile direction GNSS left of antenna -> positive)
 offsetGNSS_Y=0.12; % [m] Offset between GNSS and antenna midpoint in profile direction (if GNSS behind antenna midpoint -> positive)

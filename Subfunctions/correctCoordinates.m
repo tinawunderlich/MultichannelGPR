@@ -208,7 +208,7 @@ for ch=channels
 
             % coordinate transformation
             localC=[zeros(numel(dist_all),1) dist_all(:)];
-            globalC=[trh.x(ii:ii+anz2)+d_xx trh.y(ii:ii+anz2)+d_xy];
+            globalC=[reshape(trh.x(ii:ii+anz2),[],1)+d_xx reshape(trh.y(ii:ii+anz2),[],1)+d_xy];
             temp=helmert([offsetGNSS_X offsetGNSS_Y],localC,globalC);
 
             xn(ii)=temp(1);
@@ -216,7 +216,7 @@ for ch=channels
             zn(ii)=trh.z(ii)-hnew+d_z; % correct height
         else % no topography present
             localC=[zeros(numel(dist_all),1) dist_all(:)];
-            globalC=[trh.x(ii:ii+anz2) trh.y(ii:ii+anz2)];
+            globalC=[reshape(trh.x(ii:ii+anz2),[],1) reshape(trh.y(ii:ii+anz2),[],1)];
             temp=helmert([offsetGNSS_X offsetGNSS_Y],localC,globalC);
             xn(ii)=temp(1);
             yn(ii)=temp(2);
