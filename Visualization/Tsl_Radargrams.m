@@ -20,7 +20,7 @@ clc
 %
 % requires content of Plotting and Subfunctions folder
 
-timedepth=1; % 1=time, 2=depth
+timedepth=2; % 1=time, 2=depth
 
 % -------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!

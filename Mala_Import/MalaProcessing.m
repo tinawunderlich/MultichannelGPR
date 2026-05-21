@@ -22,14 +22,14 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Select number of profiles:
-profile_min=58;  % minimum profile number
-profile_max=81;  % maximum profile number
+profile_min=0;  % minimum profile number
+profile_max=25;  % maximum profile number
 % number of channels for this dataset
 channels=16; % number of channels
 
 changeDir=0; % if =1: change the sign of the y-antenna-GNSS-offset, if =0: use offsets as written in file
 
-add_Yoffset=0;    % add a constant offset to the y-antenna-GNSS-offset (e.g. due to non-vertical GNSS-stick), set =0 if not applicable
+add_Yoffset=-0.25;    % add a constant offset to the y-antenna-GNSS-offset (e.g. due to non-vertical GNSS-stick), set =0 if not applicable
 % negative if GNSS is tilted towards front, positive if tilted towards back
 GNSS_height=2.05; % Height of GNSS antenna above ground [m]
 
@@ -39,11 +39,11 @@ settings='settings.txt';
 
 %%% Raw data is only read if userawdata=0! Otherwise mat-files of raw
 %%% data in folder profiles2mat are used.
-userawdata=0;  % if =1: use aready read in raw data and apply new processing steps
+userawdata=1;  % if =1: use aready read in raw data and apply new processing steps
 
 % save radargrams.mat of processed profile data in one variable (requires large memory -> probably not
 % working for every data set)?
-rad=0; % if =0, processed data will be saved in folder proc, but not all radargrams in one file radargrams.mat
+rad=1; % if =0, processed data will be saved in folder proc, but not all radargrams in one file radargrams.mat
 % if =1, processed data will be saved in radargrams.mat...
 
 
@@ -649,7 +649,7 @@ for i=1:length(numbers)
             % write all profiles in one variable
             for ii=1:max(info(3,:)) % for each channel
                 radargrams{anz}=traces(:,info(3,:)==ii);
-                global_coords{anz}=[info(4,info(3,:)==ii)' info(5,info(3,:)==ii)'];
+                global_coords{anz}=[info(4,info(3,:)==ii)' info(5,info(3,:)==ii)' info(6,info(3,:)==ii)'];
                 x{anz}=[0; cumsum(sqrt(diff(global_coords{anz}(:,1)).^2+diff(global_coords{anz}(:,2)).^2))];
                 anz=anz+1;
             end

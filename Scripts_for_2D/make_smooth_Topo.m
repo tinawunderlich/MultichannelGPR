@@ -19,7 +19,7 @@ num_folders=1; % how many folders with radargrams.mat do you want to combine?
 
 plot_flag=1; % if =1: plot some figures for checking
 
-dx=0.04; % grid spacing of area grid
+dx=0.05; % grid spacing of area grid
 
 % Interpolation of topography
 griding=1;  % 1: Griddata (linear interpolation)
@@ -33,7 +33,7 @@ msize=15; % filter size in pixel
 
 % smooth extracted profile heights with 'smooth'
 mprof=55; % filter size in pixel
-prof_num=[1:10:40]; % show these profile numbers for checking correctness (only if plot_flag==1)
+prof_num=[1:5:26]; % show these profile numbers for checking correctness (only if plot_flag==1)
 
 %% -------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!

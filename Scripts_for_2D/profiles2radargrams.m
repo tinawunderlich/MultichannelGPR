@@ -15,10 +15,10 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Filename (without folder!) (folder is selected later)
-name='Duisburg260309'; % Name of datafiles without '_number.mat'
-profiles=58:81;  % profile numbers
+name='BorgsumburgSuedtor'; % Name of datafiles without '_number.mat'
+profiles=0:25;  % profile numbers
 
-channels=[1]; % choose channels (one or several)
+channels=[13:16]; % choose channels (one or several)
 
 % Choose rSlicer folder (MIRA data) or folder with DT1/HD files (Spidar data)!
 

@@ -33,10 +33,10 @@ followTopo=0; % =1: yes; =0: horizontal slices
 
 % Downsampling of data
 downsampling=1; % if =1: yes (and use following settings)
-downsampling_factor=20; % only take each downsampling-factor sample (e.g. only take every 2nd sample)
+downsampling_factor=2; % only take each downsampling-factor sample (e.g. only take every 2nd sample)
 % cutting of range
-cut_range=1; % if =1:yes
-cut_time=20; % choose time for cutting [ns]
+cut_range=0; % if =1:yes
+cut_time=70; % choose time for cutting [ns]
 
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!

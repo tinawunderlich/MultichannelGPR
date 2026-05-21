@@ -16,18 +16,18 @@ app='Tablet';    % Equipment: SIR20 / SIR30 / SIR3000 / SIR4000 / Tablet / Utili
 dataplot=1; % plot radargram for controlling? 1=yes, 0=no
 
 convert2utm=1; % convert WGS84 Lat/Long to UTM (=1 if measured with Stonex-GPS)
-zone=32; % if convert2utm==1 -> give UTM-zone
+zone=35; % if convert2utm==1 -> give UTM-zone
 
 offsetGNSS_X=0; % [m] Offset between GNSS and antenna midpoint crossline (in profile direction GNSS left of antenna -> positive)
-offsetGNSS_Y=0.12; % [m] Offset between GNSS and antenna midpoint in profile direction (if GNSS behind antenna midpoint -> positive)
-h_GNSS=2.0; % [m] height of GNSS/prism above ground
+offsetGNSS_Y=0; % [m] Offset between GNSS and antenna midpoint in profile direction (if GNSS behind antenna midpoint -> positive)
+h_GNSS=0; % [m] height of GNSS/prism above ground
 
 % smoothing of GPS-coordinates before applying antenna-offsets:
 smooth_coords=1; % yes=1, no=0
 numsamp_smooth=5; % number of samples for moving median smoothing
 
 % Options for calculating inline coordinates for each trace:
-coords_opt=2;   % =1: trace coordinate is difference to beginning of profile (only use this for straight profiles!)
+coords_opt=1;   % =1: trace coordinate is difference to beginning of profile (only use this for straight profiles!)
                 % =2: trace coordinates are calculated by taking the cumulative sum of the coordinate differences between subsequent traces (better for curvy profiles, but not useful for strong GPS-antenna movements)
 
 % Attention: still experimental! If you think that the output radargrams
@@ -42,8 +42,8 @@ removeStartEnd=1; % =1: yes, remove start and end traces of profiles (at same po
                     % =0: No. Keep all traces.
 
 % Export to other formats
-export2mat=0; % export to Multichannel-GPR format for radargrams (mat-files)
-export2segy=1; % export all radargrams as segy-files
+export2mat=1; % export to Multichannel-GPR format for radargrams (mat-files)
+export2segy=0; % export all radargrams as segy-files
 constoff=0; % if=1: a constant coordinate offset will be subtracted and coordinates will be in mm accuracy in segy file (offsets will be saved in Inline3D (x) and Crossline3D (y))
 
 
@@ -641,7 +641,7 @@ end
 % Exporting settings:
 disp('Exported settings_DZTconvert.txt!')
 
-if isfield(h,'dt2')
+if ~isfield(h,'dt2')
     if ~exist(fullfile(pfad,'mat'),'dir')
         mkdir(fullfile(pfad,'mat'));
     end
