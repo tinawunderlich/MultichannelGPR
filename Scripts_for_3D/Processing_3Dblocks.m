@@ -15,12 +15,20 @@ clc
 %
 %%% Migration:
 % Isochrone migration 3D with v(z)
+% Topographic migration in 3D (written by Morten Harms 2026, morten.harms@ifg.uni-kiel.de)
 %
 %%% Others:
 % SemblanceSmoothing (modified from Wilken et al. 2019)
 % InverseDistanceWeighting-Interpolation
 % Linear Interpolation
 
+%% REQUIREMENTS FOR TOPOMIGRATION:
+% on Mac: Xcode needs to be installed, partly problem with more than 1 core
+% although more cores are available... if you experience problems with
+% topomigration, test with one core only.
+% on Windows: ...
+% on Linux: ...
+%%
 
 
 % Number of rectangles with binned data
@@ -100,6 +108,7 @@ if ~exist(fullfile(pfad,settings),'file') % if no settings-file is found: create
     
     fid=fopen(fullfile(pfad,settings),'wt');
     fprintf(fid,'do_IsochroneMigration3D_vz 0\naperture[degree] 30\npath_to_vrms.mat .\npath_to_trms.mat .\ninterp 1\n\n');
+    fprintf(fid,'do_TopoMigration3D 0\naperture_topo[degree] 50\nv_topo[m/ns] 0.1\nnCores 8\ndz[m] 0.05\n\n');
     fprintf(fid,'do_Coherence 1\nnwavelength 1\n\n');
     fprintf(fid,'do_Envelope 0\n\n');
     fprintf(fid,'do_IDW_Interpolation 0\nradius[m] 1\npower 1\n\n');
@@ -115,7 +124,7 @@ else
     temp=textscan(fid,'%s%s');
     fclose(fid);
     % get order of processing steps:
-    steps=[{'do_IsochroneMigration3D_vz'} {'do_linearInterpolation'} {'do_IDW_Interpolation'} {'do_Coherence'} {'do_Envelope'} {'do_SemblanceSmoothing'}];
+    steps=[{'do_IsochroneMigration3D_vz'} {'do_TopoMigration3D'} {'do_linearInterpolation'} {'do_IDW_Interpolation'} {'do_Coherence'} {'do_Envelope'} {'do_SemblanceSmoothing'}];
     order=zeros(1,length(steps));
     for i=1:length(steps)
         for j=1:length(temp{1})
@@ -138,6 +147,14 @@ else
             p_vrms=temp{2}{i};
         elseif strcmp(temp{1}(i),'path_to_trms.mat')
             p_trms=temp{2}{i};
+        elseif strcmp(temp{1}(i),'aperture_topo[degree]')
+            aperture_topo=str2num(temp{2}{i});
+        elseif strcmp(temp{1}(i),'v_topo[m/ns]')
+            v_topo=str2num(temp{2}{i});
+        elseif strcmp(temp{1}(i),'nCores')
+            nCores=str2num(temp{2}{i});
+        elseif strcmp(temp{1}(i),'dz[m]')
+            dz=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'nwavelength')
             nwavelength=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'sembwin[bins]')
@@ -171,6 +188,11 @@ else
             disp(['  path_to_vrms.mat = ',p_vrms])
             disp(['  path_to_trms.mat = ',p_trms])
             disp(['  interp = ',num2str(interp)])
+        elseif strcmp('do_TopoMigration3D',steps{order==i})
+            disp(['  aperture_topo[degree] = ',num2str(aperture_topo)])
+            disp(['  v[m/ms] = ',num2str(v_topo)])
+            disp(['  nCores = ',num2str(nCores)])
+            disp(['  dz[m] = ',num2str(dz)])
         elseif strcmp('do_Coherence',steps{order==i})
             disp(['  nwavelength = ',num2str(nwavelength)])
         elseif strcmp('do_IDW_Interpolation',steps{order==i})
@@ -233,7 +255,11 @@ for i=1:length(rectangles)
             temp=load(fullfile(pfad,p_trms));
             temp1=fieldnames(temp);
             vt=getfield(temp,temp1{1});
-            [data,zmig]=isochrone_mig_3d_varV(data,x,y,t,v,vt,aperture,interp,1);
+            [data,t]=isochrone_mig_3d_varV(data,x,y,t,v,vt,aperture,interp,1);
+        end
+
+        if strcmp(steps{order==k},'do_TopoMigration3D')
+            [data,t] = topoMig3D(data,z,x,y,dt,dz,v_topo,aperture_topo,nCores);
         end
         
         if strcmp(steps{order==k},'do_Envelope')

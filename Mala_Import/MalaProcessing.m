@@ -22,8 +22,8 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Select number of profiles:
-profile_min=0;  % minimum profile number
-profile_max=25;  % maximum profile number
+profile_min=1;  % minimum profile number
+profile_max=5;  % maximum profile number
 % number of channels for this dataset
 channels=16; % number of channels
 
@@ -39,7 +39,7 @@ settings='settings.txt';
 
 %%% Raw data is only read if userawdata=0! Otherwise mat-files of raw
 %%% data in folder profiles2mat are used.
-userawdata=1;  % if =1: use aready read in raw data and apply new processing steps
+userawdata=0;  % if =1: use aready read in raw data and apply new processing steps
 
 % save radargrams.mat of processed profile data in one variable (requires large memory -> probably not
 % working for every data set)?

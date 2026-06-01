@@ -36,7 +36,7 @@ downsampling=1; % if =1: yes (and use following settings)
 downsampling_factor=2; % only take each downsampling-factor sample (e.g. only take every 2nd sample)
 % cutting of range
 cut_range=0; % if =1:yes
-cut_time=70; % choose time for cutting [ns]
+cut_time=60; % choose time for cutting [ns]
 
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
