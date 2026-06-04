@@ -22,16 +22,18 @@ clc
 platform=2; % Linux=1, Mac=2, Windows=3
 
 % Select number of profiles:
-profile_min=1;  % minimum profile number
-profile_max=5;  % maximum profile number
+profile_min=35;  % minimum profile number
+profile_max=94;  % maximum profile number
 % number of channels for this dataset
 channels=16; % number of channels
 
 changeDir=0; % if =1: change the sign of the y-antenna-GNSS-offset, if =0: use offsets as written in file
 
-add_Yoffset=-0.25;    % add a constant offset to the y-antenna-GNSS-offset (e.g. due to non-vertical GNSS-stick), set =0 if not applicable
+add_Yoffset=-0.2;    % add a constant offset to the y-antenna-GNSS-offset (e.g. due to non-vertical GNSS-stick), set =0 if not applicable
 % negative if GNSS is tilted towards front, positive if tilted towards back
 GNSS_height=2.05; % Height of GNSS antenna above ground [m]
+
+use_parPool=1; % if =1: yes, use parallel pool
 
 %%% Processing steps before binning in txt-file (a default file with this
 %%% name is created, if not existing)
@@ -43,7 +45,7 @@ userawdata=0;  % if =1: use aready read in raw data and apply new processing ste
 
 % save radargrams.mat of processed profile data in one variable (requires large memory -> probably not
 % working for every data set)?
-rad=1; % if =0, processed data will be saved in folder proc, but not all radargrams in one file radargrams.mat
+rad=0; % if =0, processed data will be saved in folder proc, but not all radargrams in one file radargrams.mat
 % if =1, processed data will be saved in radargrams.mat...
 
 
@@ -434,34 +436,67 @@ if userawdata==0  % first run of program -> read all profiles
     tempx=cell(lnum,1);
     tempy=cell(lnum,1);
     tempz=cell(lnum,1);
-    for i=1:lnum
-        % load data and coordinates
-        [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset,GNSS_height);
-        traces=single(traces); % convert to single for saving memory
-        % delete traces with NaN-coordinates
-        del=find(isnan(tempx{i}));
-        traces(:,del)=[];
-        tempx{i}(del)=[];
-        tempy{i}(del)=[];
-        tempz{i}(del)=[];
-        if ~isempty(dt)
-            % resort into matrices (without cells)
-            numtr=length(tempx{i}); % number of all traces per profile
-            numtrch=numtr/channels; % number of traces per channel
-            info=zeros(9,numtr);   % profilenum, tracenum per channel, channelnum, x, y, z, dt, ns (per trace), tracenum per profile
-            info(1,:)=zeros(1,length(tempx{i}))+numbers(i); % profilenumber
-            info(4:6,:)=[tempx{i}; tempy{i}; tempz{i}]; % x,y,z
-            info(9,:)=1:numtr; % tracenumber per profile
-            for ii=1:channels
-                info(2:3,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[1:numtrch; zeros(1,numtrch)+ii]; % trace number per channel, channelnumber
-                info(7:8,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[zeros(1,numtrch)+dt; zeros(1,numtrch)+ns]; % dt, ns
+    if use_parPool==1
+        parfor i=1:lnum
+            % load data and coordinates
+            [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset,GNSS_height);
+            traces=single(traces); % convert to single for saving memory
+            % delete traces with NaN-coordinates
+            del=find(isnan(tempx{i}));
+            traces(:,del)=[];
+            tempx{i}(del)=[];
+            tempy{i}(del)=[];
+            tempz{i}(del)=[];
+            if ~isempty(dt)
+                % resort into matrices (without cells)
+                numtr=length(tempx{i}); % number of all traces per profile
+                numtrch=numtr/channels; % number of traces per channel
+                info=zeros(9,numtr);   % profilenum, tracenum per channel, channelnum, x, y, z, dt, ns (per trace), tracenum per profile
+                info(1,:)=zeros(1,length(tempx{i}))+numbers(i); % profilenumber
+                info(4:6,:)=[tempx{i}; tempy{i}; tempz{i}]; % x,y,z
+                info(9,:)=1:numtr; % tracenumber per profile
+                for ii=1:channels
+                    info(2:3,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[1:numtrch; zeros(1,numtrch)+ii]; % trace number per channel, channelnumber
+                    info(7:8,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[zeros(1,numtrch)+dt; zeros(1,numtrch)+ns]; % dt, ns
+                end
+                % save profile (raw data)
+                infoname=fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']);
+                trname=fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']);
+                parsave(infoname,info);
+                parsave(trname,traces);
+                disp(['   ',int2str(numbers(i))])
             end
-            % save profile (raw data)
-            infoname=fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']);
-            trname=fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']);
-            parsave(infoname,info);
-            parsave(trname,traces);
-            disp(['   ',int2str(numbers(i))])
+        end
+    else
+        for i=1:lnum
+            % load data and coordinates
+            [traces,dt,ns,tempx{i},tempy{i},tempz{i},channels]=readmala4parfor(foldername,name,numbers(i),changeDir,add_Yoffset,GNSS_height);
+            traces=single(traces); % convert to single for saving memory
+            % delete traces with NaN-coordinates
+            del=find(isnan(tempx{i}));
+            traces(:,del)=[];
+            tempx{i}(del)=[];
+            tempy{i}(del)=[];
+            tempz{i}(del)=[];
+            if ~isempty(dt)
+                % resort into matrices (without cells)
+                numtr=length(tempx{i}); % number of all traces per profile
+                numtrch=numtr/channels; % number of traces per channel
+                info=zeros(9,numtr);   % profilenum, tracenum per channel, channelnum, x, y, z, dt, ns (per trace), tracenum per profile
+                info(1,:)=zeros(1,length(tempx{i}))+numbers(i); % profilenumber
+                info(4:6,:)=[tempx{i}; tempy{i}; tempz{i}]; % x,y,z
+                info(9,:)=1:numtr; % tracenumber per profile
+                for ii=1:channels
+                    info(2:3,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[1:numtrch; zeros(1,numtrch)+ii]; % trace number per channel, channelnumber
+                    info(7:8,(ii-1)*numtrch+ii-(ii-1):ii*numtrch)=[zeros(1,numtrch)+dt; zeros(1,numtrch)+ns]; % dt, ns
+                end
+                % save profile (raw data)
+                infoname=fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info.mat']);
+                trname=fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'.mat']);
+                parsave(infoname,info);
+                parsave(trname,traces);
+                disp(['   ',int2str(numbers(i))])
+            end
         end
     end
     disp('All raw data read and saved in folder: profiles2mat.')
@@ -693,6 +728,20 @@ end
 
 % save settings in proc-folder
 copyfile(fullfile(foldername,settings),fullfile(foldername,'profiles2mat','proc','ProcessingReadMe.txt'));
+
+% save parameters for this script:
+fid=fopen(fullfile(foldername,'profiles2mat','proc','parameters.txt'),'wt');
+fprintf(fid,sprintf('platform=%d\n',platform));
+fprintf(fid,sprintf('profile_min=%d\n',profile_min));
+fprintf(fid,sprintf('profile_max=%d\n',profile_max));
+fprintf(fid,sprintf('channels=%d\n',channels));
+fprintf(fid,sprintf('changeDir=%d\n',changeDir));
+fprintf(fid,sprintf('add_Yoffset=%.2f\n',add_Yoffset));
+fprintf(fid,sprintf('GNSS_height=%.2f\n',GNSS_height));
+fprintf(fid,sprintf('settings=%s\n',settings));
+fprintf(fid,sprintf('userawdata=%d\n',userawdata));
+fprintf(fid,sprintf('rad=%d\n',rad));
+fclose(fid);
 
 % update profile info
 for i=1:length(numbers)

@@ -20,13 +20,13 @@ followTopo=0;
 t_start=0;  % in ns (or m if depth slice starting from top of data (=0m))
 
 % thickness of timeslices
-thick=2; % in ns (or m if dsl=1)
+thick=0.19; % in ns (or m if dsl=1)
 
 % overlap of timeslices
 overlap = 0; % in ns (or m if dsl=1)
 
 % ending time of timeslices
-t_end=60; % in ns (or m if dsl=1, meters below top of data, positive!)
+t_end=69; % in ns (or m if dsl=1, meters below top of data, positive!)
 
 % normalize Timeslice to [0 1]
 normTsl = 0; % if =1: yes

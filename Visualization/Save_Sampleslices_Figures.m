@@ -3,15 +3,14 @@ close all
 clc
 
 
-% Read Timeslices and save as georeferenced figures
+% Read Sampleslices and save as georeferenced figures
 %
 % Dr. Tina Wunderlich, CAU Kiel 2022, tina.wunderlich@ifg.uni-kiel.de
 %
-% requires Timeslices in MultichannelGPR-format (created with
-% make_Timeslices.m)
+% requires Sampleslices in MultichannelGPR-format 
 
 
-colperc=0; % Colorscale clipping in percent (if =0: autoscale min-max)
+colperc=3; % Colorscale clipping in percent (if =0: autoscale min-max)
 
 removeBorder=0; % =1: remove border artifacts from interpolation, =0: leave as it is
 pix=6; % if removeBorder==1: how many pixels are removed from border around area
@@ -37,15 +36,15 @@ if ispc
         end
         fclose(fid);
         if ~isempty(fn{1})
-            pfad=uigetdir(fn{1}{1},'Choose timeslices folder');
+            pfad=uigetdir(fn{1}{1},'Choose sampleslices folder');
         else
-            pfad=uigetdir([],'Choose timeslices folder');
+            pfad=uigetdir([],'Choose sampleslices folder');
         end
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',pfad);
         fclose(fid);
     else
-        pfad=uigetdir([],'Choose timeslices folder'); % path to timeslices-folder
+        pfad=uigetdir([],'Choose sampleslices folder'); % path to sampleslices-folder
 
         fid=fopen('temp.temp','wt');
         fprintf(fid,'%s',pfad);
@@ -57,12 +56,12 @@ else
         fn=textscan(fid,'%s');
         fclose(fid);
         if ~isempty(fn{1})
-            pfad=uigetdir(fn{1}{1},'Choose timeslices folder');
+            pfad=uigetdir(fn{1}{1},'Choose sampleslices folder');
         else
-            pfad=uigetdir([],'Choose timeslices folder');
+            pfad=uigetdir([],'Choose sampleslices folder');
         end
     else
-        pfad=uigetdir([],'Choose timeslices folder'); % path to timeslices-folder
+        pfad=uigetdir([],'Choose sampleslices folder'); % path to timeslices-folder
     end
 
     fid=fopen('.temp.temp','wt');
@@ -80,103 +79,77 @@ addpath(fullfile(curFold,'Subfunctions'));
 %% Load data
 disp('Loading data...')
 
-% load timeslices
-if exist(fullfile(pfad,'tsl.mat'),'file')
-    temp=load(fullfile(pfad,'tsl.mat'));
+% load sampleslices:
+if exist(fullfile(pfad,'mask.mat'),'file')
+    temp=load(fullfile(pfad,'mask.mat'));
     bla=struct2cell(temp);
-    tsl=bla{1};
+    mask=bla{1};
+    temp=load(fullfile(pfad,'mask_interp.mat'));
+    bla=struct2cell(temp);
+    mask_interp=bla{1};
+    if exist(fullfile(pfad,'coordtrans.mat'),'file')
+    temp=load(fullfile(pfad,'coordtrans.mat'));
+    bla=struct2cell(temp);
+    coordtrans=bla{1};
+    else
+        coordtrans=[1 1 1 1; 2 2 2 2];
+    end
     temp=load(fullfile(pfad,'xgrid.mat'));
     bla=struct2cell(temp);
     xgrid=bla{1};
     temp=load(fullfile(pfad,'ygrid.mat'));
     bla=struct2cell(temp);
     ygrid=bla{1};
-    temp=load(fullfile(pfad,'topo.mat'));
-    bla=struct2cell(temp);
-    topo=bla{1};
-    temp=load(fullfile(pfad,'mask.mat'));
-    bla=struct2cell(temp);
-    mask=bla{1};
-    load(fullfile(pfad,'t_startende.mat'));
-else
-    temp=load(fullfile(pfad,'tsl_interp.mat'));
-    bla=struct2cell(temp);
-    tsl=bla{1};
-    temp=load(fullfile(pfad,'xgrid_interp.mat'));
-    bla=struct2cell(temp);
-    xgrid=bla{1};
-    temp=load(fullfile(pfad,'ygrid_interp.mat'));
-    bla=struct2cell(temp);
-    ygrid=bla{1};
     temp=load(fullfile(pfad,'topo_interp.mat'));
     bla=struct2cell(temp);
-    topo=bla{1};
-    temp=load(fullfile(pfad,'mask_interp.mat'));
+    topo_interp=bla{1};
+    temp=load(fullfile(pfad,'slice_channelnum.mat'));
     bla=struct2cell(temp);
-    mask=bla{1};
-    load(fullfile(pfad,'t_startende.mat'));
-end
-if exist(fullfile(pfad,'depth.mat'),'file')
-    load(fullfile(pfad,'depth.mat'));
-    dsl=1;
-else
-    dsl=0;
-end
+    slice_channelnum=bla{1};
+    temp=load(fullfile(pfad,'slice_profilenum.mat'));
+    bla=struct2cell(temp);
+    slice_profilenum=bla{1};
+    load(fullfile(pfad,'t.mat'));
 
-
-%% read info-files
-disp('Read info file:')
-temp=readlines(fullfile(pfad,'tslinfo.txt'));
-for i=1:length(temp)
-    if startsWith(temp{i},'Thickness')
-        temp2=strsplit(temp{i},' ');
-        thickness=str2num(temp2{end-1}); % thickness Tsl
-        unit=temp2{end}; % unit (m or ns)
-        disp(['   Thickness of Tsl: ',num2str(thickness),' ',unit])
-    elseif startsWith(temp{i},'Maximum')
-        temp2=strsplit(temp{i},' ');
-        maxElevation=str2num(temp2{end-1}); % maximum Elevation
-        disp(['   Maximum Elevation: ',num2str(maxElevation),' m'])
+    i=1;
+    while exist(fullfile(pfad,['slice_',int2str(i),'.mat']),'file')
+        temp=load(fullfile(pfad,['slice_',int2str(i),'.mat']));
+        bla=struct2cell(temp);
+        slice{i}=bla{1};
+        i=i+1;
     end
+else
+    disp('No sampleslices found.')
+    return;
 end
+
+
+
 
 
 %% Apply mask on tsl for plotting
-for i=1:length(tsl)
-    if dsl==0
-        maske=mask;
-    else
-        maske=mask{i}; % one mask for every depth
-    end
+if removeBorder==1 % remove interpolation artifacts around area
+    disp('Remove interpolation border around area...')
+    dist = chamfer_DT(mask_interp);
+end
+for i=1:length(slice)
+    disp(['   ',int2str(i),'/',int2str(length(slice))])
 
-    tsl{i}=tsl{i}.*maske;
+    slice{i}=slice{i}.*mask_interp;
+
     if medianFilter==1
-        tsl{i}=medianfilt2(tsl{i},[msize msize]);
+        slice{i}=medianfilt2(slice{i},[msize msize]);
     end
 
     if removeBorder==1 % remove interpolation artifacts around area
-        if i==1
-            disp('Remove interpolation border around area...')
-        end
-        dist = chamfer_DT(maske);
-        tsl{i}(dist<=pix)=NaN;
+        slice{i}(dist<=pix)=NaN;
     end
 end
 
 %% Save timeslices
-disp('Save timeslice figures:');
+disp('Save sampleslice figures:');
 
-if dsl==0
-    maxElevation=[];
-end
-
-if exist(fullfile(pfad,'coordtrans.mat'),'file')
-    load(fullfile(pfad,'coordtrans.mat'));
-    savealltsl(xgrid,ygrid,tsl,topo,t_startende,fullfile(pfad),colperc,dsl,maxElevation,coordtrans,sq);
-else
-    savealltsl(xgrid,ygrid,tsl,topo,t_startende,fullfile(pfad),colperc,dsl,maxElevation,[1 1 1 1; 2 2 2 2],sq);
-end
-
+saveallslices(xgrid,ygrid,slice,topo_interp,t,fullfile(pfad),colperc,coordtrans,sq);
 
 % set original path
 path(oldpath);
@@ -185,16 +158,16 @@ path(oldpath);
 
 
 %%
-function savealltsl(xgrid,ygrid,tsl,topo,t_startende,pfad,colperc,dsl,maxElevation,coordtrans,sq)
+function saveallslices(xgrid,ygrid,slice,topo,t,pfad,colperc,coordtrans,sq)
 dx=abs(xgrid(1,1)-xgrid(1,2));
-for numtsl=1:length(tsl)
-    disp(['   ',int2str(numtsl),'/',int2str(length(tsl))])
+for numtsl=1:length(slice)
+    disp(['   ',int2str(numtsl),'/',int2str(length(slice))])
 
     % Georeferenced png:
     if sq==1
-        cdata=sqrt(tsl{numtsl});
+        cdata=sqrt(slice{numtsl});
     else
-        cdata=tsl{numtsl};
+        cdata=slice{numtsl};
     end
     cmin=min(cdata(:));
     cmax=max(cdata(:));
@@ -203,8 +176,7 @@ for numtsl=1:length(tsl)
         mkdir(fullfile(pfad,'georef'));
     end
 
-
-    tslname = fullfile(pfad,'georef',make_fname(numtsl,'.png',dsl,maxElevation,t_startende));
+    tslname = fullfile(pfad,'georef',make_fname(numtsl,'.png',t));
 
     if colperc==0
         cdata=(cdata-cmin)./(cmax-cmin); % scale to 0-1
@@ -230,7 +202,7 @@ for numtsl=1:length(tsl)
 
 
     % write pngw
-    fname = make_fname(numtsl,'.pgw',dsl,maxElevation,t_startende);
+    fname = make_fname(numtsl,'.pgw',t);
     if ~exist('coordtrans','var')    % local
         fid=fopen(fullfile(pfad,fname),'wt');
         fprintf(fid,[num2str(dx),'\n0\n0\n',num2str(-dx),'\n',num2str(min(xgrid(:))),'\n',num2str(max(ygrid(:)))]);
@@ -243,22 +215,9 @@ end
 end
 
 %%
-function fnameStr = make_fname(numtsl,extension,dsl,maxElevation,t)
-% depth slice or a time slice ?
-if dsl
-    dslStr = ['_-_z',num2str(maxElevation - t(numtsl,2),'%5.2f'), '-',...
-        num2str(maxElevation - t(numtsl,1),'%5.2f'),'m'];
+function fnameStr = make_fname(numtsl,extension,t)
     % create filename
-    fnameStr = ['Tsl','_',num2str(numtsl,'%2d'),'_d',num2str(t(numtsl,1),2),...
-    '-',num2str(t(numtsl,2),2),'m',dslStr,extension];
-else
-    dslStr = [];
-    % create filename
-    fnameStr = ['Tsl','_',num2str(numtsl,'%2d'),'_t',num2str(t(numtsl,1),2),...
-    '-',num2str(t(numtsl,2),2),'ns',dslStr,extension];
-end
-
-
+    fnameStr = ['Tsl','_',num2str(numtsl,'%2d'),'_t',num2str(t(numtsl),2),'ns',extension];
 end
 
 %%

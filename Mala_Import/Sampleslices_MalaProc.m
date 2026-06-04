@@ -2,11 +2,11 @@
 % binning them onto a rectangular grid (for each channel individually to
 % get balanced channel energies and less stripes in timeslices)
 %
-% Dr. Tina Wunderlich, CAU Kiel 2025, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2025-2026, tina.wunderlich@ifg.uni-kiel.de
+% OPTIMIZED VERSION (by help of Claude.ai free version, manually checked!)
 %
 % requires MATLAB-files in following folders (path will be temporarily
 % set):  Subfunctions
-
 
 clear all
 close all
@@ -36,7 +36,18 @@ downsampling=1; % if =1: yes (and use following settings)
 downsampling_factor=2; % only take each downsampling-factor sample (e.g. only take every 2nd sample)
 % cutting of range
 cut_range=0; % if =1:yes
-cut_time=60; % choose time for cutting [ns]
+cut_time=40; % choose time for cutting [ns]
+
+% save Sampleslices as geopng?
+save_geopng=1; % 1=yes
+colperc=3; % Colorscale clipping in percent (if =0: autoscale min-max)
+removeBorder=0; % =1: remove border artifacts from interpolation, =0: leave as it is
+pix=6; % if removeBorder==1: how many pixels are removed from border around area
+medianFilter=1; % do you want to apply a 2D-median filter (1=yes, 0=no)
+msize=3; % filter size in pixel
+% use squareroot of amplitudes for visualization?
+sq=0; % 1=yes, 0=no
+
 
 %--------------------------------------------------------------------------
 % DO NOT CHANGE FROM HERE ON!
@@ -127,26 +138,20 @@ anz=0;
 channel_num=cell(length(numbers),1);
 numtraces=zeros(length(numbers),1);
 for i=1:length(numbers)
+    % read info for this profile:
     if exist(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info_proc.mat']),'file')
         load(fullfile(foldername,'profiles2mat',[name,'_',int2str(numbers(i)),'_info_proc.mat'])); % variable info
-        if i==1
-            xylist(1:profileinfo(i,4)*profileinfo(i,5),:)=[zeros(length(info(4,:)),1)+numbers(i) info(4,:)' info(5,:)' info(6,:)' info(3,:)' [1:profileinfo(i,4)*profileinfo(i,5)]' info(2,:)']; % Number, x, y, z, channel of profile, tracenumber in profile, tracenumber in channel
-            anz=anz+profileinfo(i,4)*profileinfo(i,5);
-        else
-            xylist(anz+1:anz+length(info(4,:)),:)=[zeros(length(info(4,:)),1)+numbers(i) info(4,:)' info(5,:)' info(6,:)' info(3,:)' [1:length(info(3,:))]' info(2,:)']; % Number, x, y, z, channel of profile, tracenumber in profile, tracenumber in channel
-            anz=anz+length(info(4,:));
-        end
     elseif exist(fullfile(foldername,'profiles2mat',[name_withoutGPS,'_',int2str(numbers(i)),'_info_proc.mat']),'file')
         load(fullfile(foldername,'profiles2mat',[name_withoutGPS,'_',int2str(numbers(i)),'_info_proc.mat']));
         name=name_withoutGPS; % set correct name
-        if i==1
-            xylist(1:profileinfo(i,4)*profileinfo(i,5),:)=[zeros(length(info(4,:)),1)+numbers(i) info(4,:)' info(5,:)' info(6,:)' info(3,:)' [1:profileinfo(i,4)*profileinfo(i,5)]' info(2,:)']; % Number, x, y, z, channel of profile, tracenumber in profile, tracenumber in channel
-            anz=anz+profileinfo(i,4)*profileinfo(i,5);
-        else
-            xylist(anz+1:anz+length(info(4,:)),:)=[zeros(length(info(4,:)),1)+numbers(i) info(4,:)' info(5,:)' info(6,:)' info(3,:)' [1:length(info(3,:))]' info(2,:)']; % Number, x, y, z, channel of profile, tracenumber in profile, tracenumber in channel
-            anz=anz+length(info(4,:));
-        end
+    else
+        continue;
     end
+
+    nrows = length(info(4,:));
+    idx = anz+1:anz+nrows;
+    xylist(idx,:) = [repmat(numbers(i),nrows,1) info(4,:)' info(5,:)' info(6,:)' info(3,:)' (1:nrows)' info(2,:)'];  % Number, x, y, z, channel of profile, tracenumber in profile, tracenumber in channel
+    anz = anz + nrows;
 
     if i==1
         channels=unique(xylist(xylist(:,1)==numbers(i),5));
@@ -159,7 +164,7 @@ end
 
 % optional: rotate area
 if rotate_area==1
-    [xylist(:,2:3),rotbest,shiftx,shifty,coordtrans]=rotatearea(xylist(:,2:3)); % disp() included in function
+    [xylist(:,2:3),rotbest,shiftx,shifty,coordtrans]=rotatearea(xylist(:,2:3));
 
     fig1=figure('Visible','off');
     plot(xylist(:,2),xylist(:,3),'k.')
@@ -226,7 +231,7 @@ for n=1:length(numbers) %  loop over profiles
     fprintf('%d\t',numbers(n));
 
     % load data of this profile
-    load(fullfile(foldername,'profiles2mat','proc',[name,'_',int2str(numbers(n)),'.mat'])); % traces
+    load(fullfile(foldername,'profiles2mat','proc',[name,'_',int2str(numbers(n)),'.mat'])); % -> traces (all channels)
 
     % coords of this profile
     ctemp=xylist(xylist(:,1)==numbers(n),[2:3 5 7])'; % x/y-coordinates & channel number & trace number in channel
@@ -235,36 +240,103 @@ for n=1:length(numbers) %  loop over profiles
 
     % get profile data for relevant time samples only:
     traces=traces(timesamplenum,:);
-    % normalize that each channel has a mean of 100 for each time sample:
-    for ch=1:channels
-        traces(:,ctemp(3,:)==channels(ch))=100.*(traces(:,ctemp(3,:)==channels(ch))-mean(traces(:,ctemp(3,:)==channels(ch)),2))./std(traces(:,ctemp(3,:)==channels(ch)),0,2);
+
+    % --- OPTIMIZATION: vectorized per-channel normalization ---
+    for ch=1:length(channels)
+        mask_ch = (ctemp(3,:)==channels(ch));
+        blk = traces(:, mask_ch); % only data of one channel
+        mu  = mean(blk(:,all(~isnan(blk),1)), 2);
+        sg  = std(blk(:,all(~isnan(blk),1)), 0, 2);
+        sg(sg==0) = 1; % avoid divide-by-zero
+        traces(:, mask_ch) = 100 .* (blk-mu) ./ sg;
     end
 
-    % create virtual channels in between real channels:
+    % --- OPTIMIZATION: vectorized virtual channel creation ---
     trnum=unique(ctemp(4,:)); % all trace numbers
-    virtchan=[min(channels)-virt_chan_num*0.5:0.5:min(channels)-0.01 min(channels)+0.5:max(channels)-0.5 fliplr(max(channels)+0.5*virt_chan_num:-0.5:max(channels)+0.01)]; % virtual channel numbers
-    virtchan_data=zeros(numel(timesamplenum),max(trnum)*numel(virtchan)); % initialization
-    virtchan_xy=zeros(4,max(trnum)*numel(virtchan));
-    for tr=1:length(trnum)
-        if ~mod(tr,round(length(trnum)/10))
-            fprintf('.');
+    nTr = length(trnum);
+    virtchan=[min(channels)-virt_chan_num*0.5:0.5:min(channels)-0.01, ...
+              min(channels)+0.5:max(channels)-0.5, ...
+              fliplr(max(channels)+0.5*virt_chan_num:-0.5:max(channels)+0.01)];
+    nVirt = numel(virtchan);
+    nSamp = numel(timesamplenum);
+
+    virtchan_data = zeros(nSamp, nTr * nVirt);
+    virtchan_xy   = zeros(4, nTr * nVirt);
+
+    % Build lookup: for each trace number, gather channel data matrix
+    % interp1 over channels dimension — vectorize across all traces at once
+    % by building a 3-D array: (samples x channels x traces)
+    nCh = length(channels);
+    % Check all trace numbers have same channel count (typical for Mala)
+    % and build 3-D arrays for batch interp
+    allSame = all(accumarray(ctemp(4,:)', 1) == nCh);
+
+    if allSame && nTr > 1
+        % Fast path: reshape into 3D and interp once
+        % Sort ctemp by (trnum, channel) for reliable reshape
+        [~, sortIdx] = sortrows(ctemp([4,3],:)');
+        traces_sorted = traces(:, sortIdx);   % nSamp x (nTr*nCh)
+        xy_sorted     = ctemp(:, sortIdx);
+
+        % Reshape: nSamp x nCh x nTr  and  4 x nCh x nTr
+        D3 = reshape(traces_sorted, nSamp, nCh, nTr);   % data
+        X3 = reshape(xy_sorted,     4,     nCh, nTr);   % coords
+
+        % channels per trace (same for all): use channels vector
+        c_vec = squeeze(X3(3, :, 1));  % nCh channel IDs for first trace
+
+        % interp over channel dimension for all traces simultaneously
+        % Result: nSamp x nVirt x nTr
+        Dv = zeros(nSamp, nVirt, nTr);
+        Xv = zeros(2,     nVirt, nTr);
+        for vv = 1:nVirt
+            % linear interp weight
+            xi = virtchan(vv);
+            % find bracket
+            lo = find(c_vec <= xi, 1, 'last');
+            hi = find(c_vec >= xi, 1, 'first');
+            if isempty(lo) || isempty(hi)
+                % extrapolate: use two nearest
+                if isempty(lo), lo=1; hi=2; end
+                if isempty(hi), hi=nCh; lo=nCh-1; end
+            end
+            if lo==hi
+                w=1; % exact match
+                Dv(:, vv, :) = D3(:, lo, :);
+                Xv(:, vv, :) = X3(1:2, lo, :);
+            else
+                w = (xi - c_vec(lo)) / (c_vec(hi) - c_vec(lo));
+                Dv(:, vv, :) = (1-w)*D3(:, lo, :) + w*D3(:, hi, :);
+                Xv(:, vv, :) = (1-w)*X3(1:2, lo, :) + w*X3(1:2, hi, :);
+            end
         end
-        d=traces(:,ctemp(4,:)==trnum(tr)); % data for this trace number of all channels
-        xytemp=ctemp(1:2,ctemp(4,:)==trnum(tr)); % xy coordinates for these data
-        c=ctemp(3,ctemp(4,:)==trnum(tr)); % corresponding channel numbers
-        % interpolate data and coordinates for this trace number:
-        virtchan_data(:,numel(virtchan)*(tr-1)+1:numel(virtchan)*tr)=interp1(c,d',virtchan,'linear','extrap')'; % data of virtual channels
-        virtchan_xy(1:2,numel(virtchan)*(tr-1)+1:numel(virtchan)*tr)=interp1(c,xytemp',virtchan,'linear','extrap')'; % xy of virtual channels
-        % set trace number and channel number
-        virtchan_xy(3,numel(virtchan)*(tr-1)+1:numel(virtchan)*tr)=virtchan;
-        virtchan_xy(4,numel(virtchan)*(tr-1)+1:numel(virtchan)*tr)=trnum(tr);
+        % Reshape back to 2D
+        virtchan_data = reshape(Dv, nSamp, nVirt*nTr);
+        virtchan_xy(1:2,:) = reshape(Xv, 2, nVirt*nTr);
+        % channel and trace labels
+        virtchan_xy(3,:) = repmat(virtchan(:), nTr, 1)';
+        virtchan_xy(4,:) = repelem(trnum(:)', nVirt);
+    else
+        % Fallback: original per-trace loop (for unequal channel counts)
+        for tr=1:nTr
+            if ~mod(tr,round(length(trnum)/10))
+                fprintf('.');
+            end
+            d=traces(:,ctemp(4,:)==trnum(tr));
+            xytemp=ctemp(1:2,ctemp(4,:)==trnum(tr));
+            c=ctemp(3,ctemp(4,:)==trnum(tr));
+            virtchan_data(:,nVirt*(tr-1)+1:nVirt*tr)=interp1(c,d',virtchan,'linear','extrap')';
+            virtchan_xy(1:2,nVirt*(tr-1)+1:nVirt*tr)=interp1(c,xytemp',virtchan,'linear','extrap')';
+            virtchan_xy(3,nVirt*(tr-1)+1:nVirt*tr)=virtchan;
+            virtchan_xy(4,nVirt*(tr-1)+1:nVirt*tr)=trnum(tr);
+        end
     end
+    fprintf('x\t\t');
+
     % add to real channel data:
     channels_all=[virtchan(:); channels(:)]; %  virtual channels first
     traces=[virtchan_data traces];
     ctemp=[virtchan_xy ctemp];
-
-    fprintf('x\t\t');
 
     % bin data:
     profiledata=[];
@@ -273,19 +345,30 @@ for n=1:length(numbers) %  loop over profiles
         if ~mod(ch,2)
             fprintf('.');
         end
-        dtemp=bindata3_oneTracePerBin(traces(:,ctemp(3,:)==channels_all(ch)),ctemp(1,ctemp(3,:)==channels_all(ch)),ctemp(2,ctemp(3,:)==channels_all(ch)),xrg,yrg);
+        chanInd=ctemp(3,:)==channels_all(ch);
+        dtemp=bindata3_oneTracePerBin(traces(:,chanInd),ctemp(1,chanInd),ctemp(2,chanInd),xrg,yrg);
         % valid data points:
         validdata=linearindex(~isnan(dtemp(:,:,1))); % indices with data
         % initialize variable for all data:
-        pdata=zeros(numel(validdata),numel(timesamplenum));
-        pdata(:,1)=validdata; 
-        % normalize data that mean is 100 for each channel for each slice:
-        for sl=1:size(dtemp,3)
-            ddtemp=100.*(dtemp(:,:,sl)-mean(dtemp(:,:,sl),'all','omitnan'))/std(dtemp(:,:,sl),0,'all','omitnan');
-            pdata(:,sl+1)=ddtemp(validdata);
-        end
+        nValid = numel(validdata);
+        nSl    = size(dtemp, 3);
+        pdata  = zeros(nValid, nSl+1);
+        pdata(:,1) = validdata;
+
+        % --- OPTIMIZATION: vectorized slice normalization ---
+        % Extract valid pixels for all slices at once: nValid x nSl
+        % Reshape dtemp to (ny*nx) x nSl, pick valid rows
+        nY = size(dtemp,1); nX = size(dtemp,2);
+        flat = reshape(dtemp, nY*nX, nSl);   % (ny*nx) x nSl
+        valid_flat = flat(validdata, :);      % nValid x nSl
+
+        mu_sl  = mean(valid_flat, 1, 'omitnan');   % 1 x nSl
+        sg_sl  = std(valid_flat,  0, 1, 'omitnan'); % 1 x nSl
+        sg_sl(sg_sl==0) = 1;
+        pdata(:, 2:end) = 100 .* bsxfun(@minus, valid_flat, mu_sl) ./ sg_sl;
+
         profiledata=[profiledata; pdata];
-        chan_prof=[chan_prof; zeros(size(validdata))+channels_all(ch)]; % channel number / profile number according to rows in profiledata
+        chan_prof=[chan_prof; zeros(nValid,1)+channels_all(ch)];
     end
     chan_prof(:,2)=numbers(n); % profile number
     fprintf('x\t');
@@ -298,12 +381,27 @@ for n=1:length(numbers) %  loop over profiles
     fprintf('\t%.1f\n',toc(tstart));    
 end
 
+%%
 disp('-----------')
 disp(['Creating ',int2str(numel(timesamplenum)),' sample slices'])
 fprintf('#\tData\t\t\tSaved\tMask\tTime elapsed [s]\n')
+
 for n=1:length(numbers)
     m{n}=matfile(fullfile(foldername,'SampleSlices',['profiledata_',int2str(numbers(n)),'.mat']));
     mcp(n)=load(fullfile(foldername,'SampleSlices',['chan_prof_',int2str(numbers(n)),'.mat']));
+end
+
+% Pre-load linear indices and first-slice data for all profiles to avoid
+% repeated matfile property access inside the time loop
+disp('Pre-loading profile indices...')
+all_linidx  = cell(length(numbers),1);
+all_data_tt = cell(length(numbers),1); % will be filled per tt below
+for n=1:length(numbers)
+    try
+        all_linidx{n} = m{n}.profiledata(:,1); % first column is linear index in slice
+    catch
+        all_linidx{n} = [];
+    end
 end
 
 for tt=1:length(timesamplenum) % for each time sample
@@ -311,15 +409,20 @@ for tt=1:length(timesamplenum) % for each time sample
     fprintf('%d\t',tt);
 
     slice=NaN(size(xgrid));
-    
-    % fill with data (in case that one bin has a virtual and real channel
-    % data: real channel data overwrites the virtual channel)
+
+    % --- OPTIMIZATION: read column tt+1 from matfile once per profile ---
     for n=1:length(numbers)
-        fprintf('.');
-        slice(m{n}.profiledata(:,1))=m{n}.profiledata(:,tt+1);
-        if tt==1
-            slice_chan(m{n}.profiledata(:,1))=mcp(n).chan_prof(:,1); % channel number
-            slice_prof(m{n}.profiledata(:,1))=mcp(n).chan_prof(:,2); % profile number
+        if isempty(all_linidx{n}), fprintf('.'); continue; end
+        try
+            fprintf('.');
+            col_data = m{n}.profiledata(:, tt+1);  % read single column
+            slice(all_linidx{n}) = col_data;
+            if tt==1
+                slice_chan(all_linidx{n}) = mcp(n).chan_prof(:,1);
+                slice_prof(all_linidx{n}) = mcp(n).chan_prof(:,2);
+            end
+        catch
+            bla=1;
         end
     end
     fprintf('x\t');
@@ -332,6 +435,8 @@ for tt=1:length(timesamplenum) % for each time sample
 end
 
 
+
+
 disp('-----------')
 disp('Creating mask')
 for tt=1:length(timesamplenum) % for each time sample
@@ -342,41 +447,61 @@ for tt=1:length(timesamplenum) % for each time sample
 
         temp=ones(size(mask));
         temp(mask==1)=0;
-        eucmap=chamfer_DT(temp);  % approximated euclidian distance map (Distance to next neighbor in bins)
-        mask_interp=ones(size(eucmap)); % initialize new grid
-        mask_interp(eucmap.*dx>radius)=0;   % set 0 for pixels with distance to nearest neighbor > radius
-    elseif tz_flag==2 % DEPTHslices -> combine masks into maximum mask
+        eucmap=chamfer_DT(temp);
+        mask_interp=ones(size(eucmap));
+        mask_interp(eucmap.*dx>radius)=0;
+    elseif tz_flag==2 % DEPTHslices
         if tt==1
-            mask=zeros(size(slice)); % initialize mask
+            mask=zeros(size(slice));
         end
         mask(~isnan(slice))=1;
 
         temp=ones(size(mask));
         temp(mask>=1)=0;
-        eucmap=chamfer_DT(temp);  % approximated euclidian distance map (Distance to next neighbor in bins)
-        mask_interp=ones(size(eucmap)); % initialize new grid
-        mask_interp(eucmap.*dx>radius)=0;   % set 0 for pixels with distance to nearest neighbor > radius
+        eucmap=chamfer_DT(temp);
+        mask_interp=ones(size(eucmap));
+        mask_interp(eucmap.*dx>radius)=0;
     end
 end
 
 disp('-----------')
 disp('Interpolate topography...')
-% interpolate topography:
 F=scatteredInterpolant(xgrid(mask>0),ygrid(mask>0),topo(mask>0));
 topo_interp=reshape(F(xgrid(:),ygrid(:)),size(xgrid));
-topo_interp(mask_interp==0)=NaN; % apply mask to topo
+topo_interp(mask_interp==0)=NaN;
+
+% geopng:
+if save_geopng==1
+    disp('Saving sampleslices as geopng...')
+
+    clear slice;
+    i=1;
+    while exist(fullfile(foldername,'SampleSlices',['slice_',int2str(i),'.mat']),'file')
+        temp=load(fullfile(foldername,'SampleSlices',['slice_',int2str(i),'.mat']));
+        bla=struct2cell(temp);
+        slice{i}=bla{1}.*mask_interp;
+        i=i+1;
+    end
+
+    if removeBorder==1 % remove interpolation artifacts around area
+        disp('Remove interpolation border around area...')
+        dist = chamfer_DT(mask_interp);
+    else
+        dist=[];
+    end
+
+    saveallslices(xgrid,ygrid,slice,topo_interp,t,fullfile(foldername,'SampleSlices'),colperc,coordtrans,sq,medianFilter,msize,removeBorder,dist,pix);
+end
+
+
 
 disp('-----------')
 disp('Saving additional infos...')
-% save slice_chan/slice_prof:
 save(fullfile(foldername,'SampleSlices','slice_channelnum.mat'),'slice_chan','-v7.3');
 save(fullfile(foldername,'SampleSlices','slice_profilenum.mat'),'slice_prof','-v7.3');
-% save topo:
 save(fullfile(foldername,'SampleSlices','topo_interp.mat'),'topo_interp','-v7.3');
-% save masks:
 save(fullfile(foldername,'SampleSlices','mask_interp.mat'),'mask_interp','-v7.3');
 save(fullfile(foldername,'SampleSlices','mask.mat'),'mask','-v7.3');
-% save figure
 if rotate_area==1
     saveas(fig1,fullfile(foldername,'SampleSlices','area.png'));
 end
@@ -410,43 +535,136 @@ path(oldpath);
 function [xy,rotbest,shiftx,shifty,coordtrans]=rotatearea(xy)
 %%% Rotate area for minimum memory
 disp('Find optimum rotation angle...')
-rot=[-45:5:45];
-new=zeros(size(xy));
+rot=-45:5:45;
+area_sz = zeros(size(rot));
+
+% Build all rotation matrices at once and apply vectorized
 for r=1:length(rot)
-    rmat=[cosd(rot(r)) -sind(rot(r)); sind(rot(r)) cosd(rot(r))]; % rotational matrix
-    for rr=1:length(xy(:,1))
-        new(rr,:)=xy(rr,:)*rmat;   % rotate coordinates
-    end
-    area(r)=(max(new(:,1))-min(new(:,1)))*(max(new(:,2))-min(new(:,2)));    % area size of rotated coordinates
+    rmat=[cosd(rot(r)) -sind(rot(r)); sind(rot(r)) cosd(rot(r))];
+    new = xy * rmat';   % (N x 2) * (2 x 2) 
+    area_sz(r)=(max(new(:,1))-min(new(:,1)))*(max(new(:,2))-min(new(:,2)));
 end
-rotbest=rot(area==min(area)); % best rotation angle => smallest area
+rotbest=rot(area_sz==min(area_sz));
 disp(['Optimum rotation angle is ',num2str(rotbest),' degree. Area has been rotated. Saving coordtrans.mat for later transformation.'])
-rmat=[cosd(rotbest) -sind(rotbest); sind(rotbest) cosd(rotbest)]; % rotational matrix
-for rr=1:length(xy(:,1))
-    new(rr,:)=xy(rr,:)*rmat;   % rotate coordinates
-end
+
+rmat=[cosd(rotbest) -sind(rotbest); sind(rotbest) cosd(rotbest)];
+new = xy * rmat'; 
+
 % move origin
 shiftx=floor(min(new(:,1)));
 shifty=floor(min(new(:,2)));
 new(:,1)=new(:,1)-shiftx;
 new(:,2)=new(:,2)-shifty;
+
 % save coordinate pairs for later transformation
 coordtrans=[new(new(:,1)==min(new(:,1)),:) xy(new(:,1)==min(new(:,1)),:);...
     new(new(:,1)==max(new(:,1)),:) xy(new(:,1)==max(new(:,1)),:);...
     new(new(:,2)==min(new(:,2)),:) xy(new(:,2)==min(new(:,2)),:);...
-    new(new(:,2)==max(new(:,2)),:) xy(new(:,2)==max(new(:,2)),:)]; % [local x, local y, global x, global y]
-% overwrite coordinates in position
+    new(new(:,2)==max(new(:,2)),:) xy(new(:,2)==max(new(:,2)),:)];
 xy=new;
 disp(['Area size is now ',int2str(round(max(new(:,1))-min(new(:,1)))),' x ',int2str(round(max(new(:,2))-min(new(:,2)))),' m (x/y).'])
 end
 
 function [xy]=apply_rotatearea(xy,rot,shiftx,shifty)
-%%% Rotate area with given parameters
-rmat=[cosd(rot) -sind(rot); sind(rot) cosd(rot)]; % rotational matrix
-for rr=1:length(xy(:,1))
-    xy(rr,:)=xy(rr,:)*rmat;   % rotate coordinates
-end
-% move origin
+%%% Rotate area with given parameters 
+rmat=[cosd(rot) -sind(rot); sind(rot) cosd(rot)];
+xy = xy * rmat';
 xy(:,1)=xy(:,1)-shiftx;
 xy(:,2)=xy(:,2)-shifty;
+end
+
+function saveallslices(xgrid,ygrid,slice,topo,t,pfad,colperc,coordtrans,sq,medianFilter,msize,removeBorder,dist,pix)
+dx=abs(xgrid(1,1)-xgrid(1,2));
+for numtsl=1:length(slice)
+    disp(['   ',int2str(numtsl),'/',int2str(length(slice))])
+
+    if medianFilter==1
+        slice{numtsl}=medianfilt2(slice{numtsl},[msize msize]);
+    end
+
+    if removeBorder==1 % remove interpolation artifacts around area
+        slice{numtsl}(dist<=pix)=NaN;
+    end
+
+    % Georeferenced png:
+    if sq==1
+        cdata=sqrt(slice{numtsl});
+    else
+        cdata=slice{numtsl};
+    end
+
+    cmin=min(cdata(:));
+    cmax=max(cdata(:));
+
+    if ~exist(fullfile(pfad,'georef'),'dir')
+        mkdir(fullfile(pfad,'georef'));
+    end
+
+    tslname = fullfile(pfad,'georef',make_fname(numtsl,'.png',t));
+
+    if colperc==0
+        cdata=(cdata-cmin)./(cmax-cmin); % scale to 0-1
+        cdata(isnan(cdata))=0;  % set nan to 0
+        imwrite(flipud(cdata).*256,flipud(gray(256)),tslname,'Transparency',0);
+    else
+        coldata=sort(cdata(~isnan(cdata)));
+        if ~isempty(coldata) && length(coldata)>2
+            cmin=coldata(round(length(coldata)/100*colperc));
+            cmax=coldata(end-round(length(coldata)/100*colperc));
+            range=cmax-cmin;
+            cdata=(cdata-cmin)/range;
+            cdata(cdata<=0)=0;
+            cdata(cdata>=1)=1;
+            m=ones(size(cdata));
+            m(isnan(cdata))=0;
+        end
+        im=cdata.*256;
+        im(im<=2)=2;
+        im(isnan(cdata))=0;  % set nan to 0
+        imwrite(flipud(im),flipud(gray(256)),tslname,'Transparency',0);
+    end
+
+
+    % write pngw
+    fname = make_fname(numtsl,'.pgw',t);
+    if ~exist('coordtrans','var')    % local
+        fid=fopen(fullfile(pfad,fname),'wt');
+        fprintf(fid,[num2str(dx),'\n0\n0\n',num2str(-dx),'\n',num2str(min(xgrid(:))),'\n',num2str(max(ygrid(:)))]);
+        fclose(fid);
+    else % global
+        write_geoPNGW(xgrid,ygrid,coordtrans,fullfile(pfad,'georef',fname));
+    end
+
+end
+end
+
+%%
+function fnameStr = make_fname(numtsl,extension,t)
+    % create filename
+    fnameStr = ['Tsl','_',num2str(numtsl,'%2d'),'_t',num2str(t(numtsl),2),'ns',extension];
+end
+
+%%
+function []=write_geoPNGW(x,y,coordtrans,filename)
+
+dx=abs(x(1,2)-x(1,1));
+dy=abs(y(2,1)-y(1,1));
+
+% determine global coords of upper left and upper right pixel
+pix_ol=helmert([min(x(:)) max(y(:))],coordtrans(:,1:2),coordtrans(:,3:4));
+pix_or=helmert([max(x(:)) max(y(:))],coordtrans(:,1:2),coordtrans(:,3:4));
+alpha=atand(abs(pix_ol(2)-pix_or(2))/abs(pix_ol(1)-pix_or(1))); % angle against west
+if pix_ol(2)>pix_or(2)
+    alpha=-alpha;
+end
+% determine pixel-lengths in all directions
+A=dx*cosd(alpha);
+D=dx*sind(alpha);
+E=dy*cosd(alpha);
+B=dy*sind(alpha);
+    
+% write pngw
+fid=fopen(filename,'wt');
+fprintf(fid,[num2str(A),'\n',num2str(D),'\n',num2str(B),'\n',num2str(-E),'\n',num2str(pix_ol(1)),'\n',num2str(pix_ol(2))]);
+fclose(fid);
 end
