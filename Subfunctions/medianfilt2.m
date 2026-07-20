@@ -10,8 +10,8 @@ nc=(n(2)-1)/2; % half width for columns
 
 [r,c]=size(A);
 
-% padding with zeros
-B=[zeros(nr,c+2*nc); zeros(r,nc) A zeros(r,nc); zeros(nr,c+2*nc)];
+% padding with nan
+B=[NaN(nr,c+2*nc); NaN(r,nc) A NaN(r,nc); NaN(nr,c+2*nc)];
 
 for i=nc+1:nc+c
     for j=nr+1:nr+r

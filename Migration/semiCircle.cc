@@ -109,12 +109,10 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* --- output and accumulation arrays --- */
     std::vector<double> migcube  (NxNyNz, 0.0);
     std::vector<double> countcube(NxNyNz, 0.0);
-    std::vector<double> mask_buf (NxNyNz, 0.0);
 
     /* --- pre-migration constants --- */
     const double alpha0Rad    = (alpha0 / 360.0) * (2.0 * M_PI);
     const double halfAperture = alpha0Rad / 2.0;           // aperture half-angle [rad]
-    const double b            = (2.0 * M_PI) / alpha0Rad; // taper frequency factor
 
     /* --- print parameters and start time --- */
     char text[100];
@@ -127,6 +125,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
     int tr = 0;
     mexPrintf("- migrating trace 0 of %d (0%%)\n", nTraces);
     mexEvalString("drawnow");
+	
+	// axis spacing
+	const double dx = x_axis[1] - x_axis[0];
 
     /* --- main migration loop ---
      *
@@ -154,13 +155,19 @@ void mexFunction(int nlhs, mxArray *plhs[],
                 const double yAnt = y_axis[iyt];
                 const double zAnt = topography[ixt*Ny + iyt];
 
-                std::fill(mask_buf.begin(), mask_buf.end(), 0.0);
+                // maximum lateral reach of aperture cone at this antenna position
+				const double maxLat = std::tan(halfAperture) * (z_axis[Nz-1] - zAnt);
 
-                #pragma omp parallel for collapse(2)
-                for (int ixd = 0; ixd < Nx; ixd++)
-                {
-                    for (int iyd = 0; iyd < Ny; iyd++)
-                    {
+				const int ixMin = std::max(0,    static_cast<int>(std::floor((xAnt - maxLat - x_axis[0]) / dx)));
+				const int ixMax = std::min(Nx-1, static_cast<int>(std::ceil ((xAnt + maxLat - x_axis[0]) / dx)));
+				const int iyMin = std::max(0,    static_cast<int>(std::floor((yAnt - maxLat - y_axis[0]) / dx)));
+				const int iyMax = std::min(Ny-1, static_cast<int>(std::ceil ((yAnt + maxLat - y_axis[0]) / dx)));
+
+				#pragma omp parallel for collapse(2)
+				for (int ixd = ixMin; ixd <= ixMax; ixd++)
+				{
+					for (int iyd = iyMin; iyd <= iyMax; iyd++)
+					{
                         if (mask_in[ixd*Ny + iyd] > 0)
                         {
                             // vector (d): from antenna to migration bin projected onto surface
@@ -193,6 +200,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
                                     const double cosC = std::max(-1.0, std::min(1.0, cosVal));
                                     alphaRad = (M_PI / 2.0) - std::acos(cosC);
                                 }
+                                
 
                                 // two-way travel time to input sample index
                                 const double twt  = lengthR * 2.0 / v;
@@ -200,22 +208,18 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
                                 if (indx >= 0 && indx < ns && alphaRad < halfAperture)
                                 {
-                                    // cosine taper: 1 at beam centre, 0 at aperture edge
-                                    const double taper  = 1.0 - ((std::cos(alphaRad * b) + 1.0) * 0.5);
+                                    // hanning taper: 1 at beam centre, 0 at aperture edge
+                                    const double taper = (std::cos(alphaRad * M_PI / halfAperture) + 1.0) * 0.5;
                                     const double sample = datacube[ixt*Ny*ns + iyt*ns + indx];
                                     const int    midx   = ixd*Ny*Nz + iyd*Nz + iz;
 
-                                    mask_buf[midx]  += sample * taper;
+                                    migcube[midx]  += sample * taper;
                                     countcube[midx] += 1.0;
                                 }
                             } // iz
                         } // mask_in
                     } // iyd
                 } // ixd
-
-                for (int idx = 0; idx < NxNyNz; idx++)
-                    migcube[idx] += mask_buf[idx];
-
             } // besetzung
         } // iyt
     } // ixt

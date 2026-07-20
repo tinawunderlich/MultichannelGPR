@@ -2,6 +2,10 @@
 % binning them onto a rectangular grid (for each channel individually to
 % get balanced channel energies and less stripes in timeslices)
 %
+% ONLY WORKS IN TIME DOMAIN! IF YOU WANT TO USE DEPTH DOMAIN OR TOPOGRAPHY
+% SETTINGS, PLEASE EXPORT PROFILES AS radargrams.mat AND USE
+% SAMPLESLICES_FROMRADARGRAMS.m
+%
 % Dr. Tina Wunderlich, CAU Kiel 2025-2026, tina.wunderlich@ifg.uni-kiel.de
 % OPTIMIZED VERSION (by help of Claude.ai free version, manually checked!)
 %
@@ -25,18 +29,13 @@ virt_chan_num=3; % if =0: only virtual channels between real channels,
 % Automatic rotation of measurement area for minimum memory size
 rotate_area=1;  % 1=yes (recommended), 0=no
 
-% time or depth?
-tz_flag=1;  % 1: time -> [ns], 2: depth -> [m]
-
-% if depth: follow Topography or horizontal slices?
-followTopo=0; % =1: yes; =0: horizontal slices
 
 % Downsampling of data
 downsampling=1; % if =1: yes (and use following settings)
-downsampling_factor=2; % only take each downsampling-factor sample (e.g. only take every 2nd sample)
+downsampling_factor=20; % only take each downsampling-factor sample (e.g. only take every 2nd sample)
 % cutting of range
 cut_range=0; % if =1:yes
-cut_time=40; % choose time for cutting [ns]
+cut_time=20; % choose time for cutting [ns]
 
 % save Sampleslices as geopng?
 save_geopng=1; % 1=yes
@@ -181,12 +180,14 @@ end
 [xgrid,ygrid]=meshgrid(min(xylist(:,2)):dx:max(xylist(:,2)),min(xylist(:,3)):dx:max(xylist(:,3)));
 linearindex=reshape(1:numel(xgrid),size(xgrid)); % linear indices of grid
 
-if ~exist(fullfile(foldername,'SampleSlices'),'dir')
-    mkdir(fullfile(foldername,'SampleSlices'))
+newfolder='SampleSlices_time_parallel2surface';
+
+if ~exist(fullfile(foldername,newfolder),'dir')
+    mkdir(fullfile(foldername,newfolder))
 end
 % save x/y-grids:
-save(fullfile(foldername,'SampleSlices','xgrid.mat'),'xgrid','-v7.3');
-save(fullfile(foldername,'SampleSlices','ygrid.mat'),'ygrid','-v7.3');
+save(fullfile(foldername,newfolder,'xgrid.mat'),'xgrid','-v7.3');
+save(fullfile(foldername,newfolder,'ygrid.mat'),'ygrid','-v7.3');
 
 % bin edges:
 xrg=min(xylist(:,2))-dx/2:dx:max(xylist(:,2))+dx/2;
@@ -214,8 +215,8 @@ end
 t=t(timesamplenum); % new time vector
 
 % save time vector and coordtrans:
-save(fullfile(foldername,'SampleSlices','t.mat'),'t','-v7.3');
-save(fullfile(foldername,'SampleSlices','coordtrans.mat'),'coordtrans','-v7.3');
+save(fullfile(foldername,newfolder,'t.mat'),'t','-v7.3');
+save(fullfile(foldername,newfolder,'coordtrans.mat'),'coordtrans','-v7.3');
 
 % create inital profnum & channum slices:
 slice_chan=NaN(size(xgrid));
@@ -374,8 +375,8 @@ for n=1:length(numbers) %  loop over profiles
     fprintf('x\t');
 
     % Save profiledata:
-    save(fullfile(foldername,'SampleSlices',['profiledata_',int2str(numbers(n)),'.mat']),'profiledata','-v7.3');
-    save(fullfile(foldername,'SampleSlices',['chan_prof_',int2str(numbers(n)),'.mat']),'chan_prof','-v7.3');
+    save(fullfile(foldername,newfolder,['profiledata_',int2str(numbers(n)),'.mat']),'profiledata','-v7.3');
+    save(fullfile(foldername,newfolder,['chan_prof_',int2str(numbers(n)),'.mat']),'chan_prof','-v7.3');
     fprintf('x\t');
 
     fprintf('\t%.1f\n',toc(tstart));    
@@ -387,8 +388,8 @@ disp(['Creating ',int2str(numel(timesamplenum)),' sample slices'])
 fprintf('#\tData\t\t\tSaved\tMask\tTime elapsed [s]\n')
 
 for n=1:length(numbers)
-    m{n}=matfile(fullfile(foldername,'SampleSlices',['profiledata_',int2str(numbers(n)),'.mat']));
-    mcp(n)=load(fullfile(foldername,'SampleSlices',['chan_prof_',int2str(numbers(n)),'.mat']));
+    m{n}=matfile(fullfile(foldername,newfolder,['profiledata_',int2str(numbers(n)),'.mat']));
+    mcp(n)=load(fullfile(foldername,newfolder,['chan_prof_',int2str(numbers(n)),'.mat']));
 end
 
 % Pre-load linear indices and first-slice data for all profiles to avoid
@@ -428,7 +429,7 @@ for tt=1:length(timesamplenum) % for each time sample
     fprintf('x\t');
 
     % save slice:
-    save(fullfile(foldername,'SampleSlices',['slice_',int2str(tt),'.mat']),'slice','-v7.3');
+    save(fullfile(foldername,newfolder,['slice_',int2str(tt),'.mat']),'slice','-v7.3');
     fprintf('x\t');
 
     fprintf('\t%.1f\n',toc(tstart));
@@ -439,30 +440,15 @@ end
 
 disp('-----------')
 disp('Creating mask')
-for tt=1:length(timesamplenum) % for each time sample
-    % Mask:
-    if tt==1 && tz_flag==1 % TIMEslice
-        mask=zeros(size(slice));
-        mask(~isnan(slice))=1;
+% Mask, the same for all
+mask=zeros(size(slice));
+mask(~isnan(slice))=1;
 
-        temp=ones(size(mask));
-        temp(mask==1)=0;
-        eucmap=chamfer_DT(temp);
-        mask_interp=ones(size(eucmap));
-        mask_interp(eucmap.*dx>radius)=0;
-    elseif tz_flag==2 % DEPTHslices
-        if tt==1
-            mask=zeros(size(slice));
-        end
-        mask(~isnan(slice))=1;
-
-        temp=ones(size(mask));
-        temp(mask>=1)=0;
-        eucmap=chamfer_DT(temp);
-        mask_interp=ones(size(eucmap));
-        mask_interp(eucmap.*dx>radius)=0;
-    end
-end
+temp=ones(size(mask));
+temp(mask==1)=0;
+eucmap=chamfer_DT(temp);
+mask_interp=ones(size(eucmap));
+mask_interp(eucmap.*dx>radius)=0;
 
 disp('-----------')
 disp('Interpolate topography...')
@@ -476,8 +462,8 @@ if save_geopng==1
 
     clear slice;
     i=1;
-    while exist(fullfile(foldername,'SampleSlices',['slice_',int2str(i),'.mat']),'file')
-        temp=load(fullfile(foldername,'SampleSlices',['slice_',int2str(i),'.mat']));
+    while exist(fullfile(foldername,newfolder,['slice_',int2str(i),'.mat']),'file')
+        temp=load(fullfile(foldername,newfolder,['slice_',int2str(i),'.mat']));
         bla=struct2cell(temp);
         slice{i}=bla{1}.*mask_interp;
         i=i+1;
@@ -490,24 +476,24 @@ if save_geopng==1
         dist=[];
     end
 
-    saveallslices(xgrid,ygrid,slice,topo_interp,t,fullfile(foldername,'SampleSlices'),colperc,coordtrans,sq,medianFilter,msize,removeBorder,dist,pix);
+    saveallslices(xgrid,ygrid,slice,topo_interp,t,fullfile(foldername,newfolder),colperc,coordtrans,sq,medianFilter,msize,removeBorder,dist,pix);
 end
 
 
 
 disp('-----------')
 disp('Saving additional infos...')
-save(fullfile(foldername,'SampleSlices','slice_channelnum.mat'),'slice_chan','-v7.3');
-save(fullfile(foldername,'SampleSlices','slice_profilenum.mat'),'slice_prof','-v7.3');
-save(fullfile(foldername,'SampleSlices','topo_interp.mat'),'topo_interp','-v7.3');
-save(fullfile(foldername,'SampleSlices','mask_interp.mat'),'mask_interp','-v7.3');
-save(fullfile(foldername,'SampleSlices','mask.mat'),'mask','-v7.3');
+save(fullfile(foldername,newfolder,'slice_channelnum.mat'),'slice_chan','-v7.3');
+save(fullfile(foldername,newfolder,'slice_profilenum.mat'),'slice_prof','-v7.3');
+save(fullfile(foldername,newfolder,'topo_interp.mat'),'topo_interp','-v7.3');
+save(fullfile(foldername,newfolder,'mask_interp.mat'),'mask_interp','-v7.3');
+save(fullfile(foldername,newfolder,'mask.mat'),'mask','-v7.3');
 if rotate_area==1
-    saveas(fig1,fullfile(foldername,'SampleSlices','area.png'));
+    saveas(fig1,fullfile(foldername,newfolder,'area.png'));
 end
 
 % write config file:
-fid=fopen(fullfile(foldername,'SampleSlices','configuration.txt'),'wt');
+fid=fopen(fullfile(foldername,newfolder,'configuration.txt'),'wt');
 fprintf(fid,['Number of channels: ',int2str(length(channels)),'\n']);
 fprintf(fid,['Bin size in m: ',num2str(dx),'\n']);
 fprintf(fid,['Original number of samples: ',int2str(ns),'\n']);

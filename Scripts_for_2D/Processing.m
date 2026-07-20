@@ -4,7 +4,7 @@ clc
 
 
 % Read radargrams (radargrams.mat, global_coords.mat, x.mat and t.mat) from
-% make_Radargrams or Bins2radargrams or other radargrams in same format
+% make_Radargrams or Bins2radargrams or profiles2radargrams or other radargrams in same format
 % (e.g. from DZT_Convert) and do processing of them -> save in new folder
 % "processed"
 %
@@ -18,7 +18,7 @@ numbers=[]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Processing options:
 settings='settings.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
-plotflag=1; % =1 plot and show all radargrams during processing, =0 do not plot
+plotflag=0; % =1 plot and show all radargrams during processing, =0 do not plot
 
 % Plotting options
 colorclip=3; % 0 is colorscale from min(data) to max(data), 1 is 1% clip value, 2 is 2% clip value and 3 is 3% clip value, ... (will not be saved, for plotting only!)
@@ -76,30 +76,41 @@ end
 
 % temporarily set path to required scripts
 oldpath=path;
-addpath('../Processing/','../Subfunctions/','../Migration/');
+addpath('../Processing/','../Subfunctions/','../Migration/','../Export_Import/');
 
 
 %%% Read data
 disp('Reading data...')
-temp=load(fullfile(pfad_rad,'global_coords.mat'));
-gc=temp.global_coords; % global coordinates of starting end ending point
-temp=load(fullfile(pfad_rad,'x.mat'));
-xx=temp.x;   % profile coordinates
-temp=load(fullfile(pfad_rad,'radargrams.mat'));
-data=temp.radargrams;   % radargrams
-temp=load(fullfile(pfad_rad,'t.mat'));
+if exist(fullfile(pfad_rad,'global_coords.mat'),'file') % everything in one file
+    dataStore_flag=0;
+    temp=load(fullfile(pfad_rad,'global_coords.mat'));
+    gc=temp.global_coords; % global coordinates of starting end ending point
+    temp=load(fullfile(pfad_rad,'x.mat'));
+    xx=temp.x;   % profile coordinates
+    temp=load(fullfile(pfad_rad,'radargrams.mat'));
+    data=temp.radargrams;   % radargrams
+    temp=load(fullfile(pfad_rad,'t.mat'));
+else % several files, use datastore
+    dataStore_flag=1;
+    readFcn_gc = @(f) load(f).global_coords;
+    fds = fileDatastore(fullfile(pfad_rad,'global_coords_*.mat'), "ReadFcn", readFcn_gc);
+    anz=numel(fds.Files);
+    temp=load(fullfile(pfad_rad,'t.mat'));
+end
 t=temp.t;   % time vector
 dt=t(2)-t(1);
 
 if isempty(numbers)
-    numbers=1:length(data); % all radargrams
+    if dataStore_flag==0
+        numbers=1:length(data); % all radargrams
+    end
 end
 
 %-------------------------------------------------------------------------
 disp('Reading processing settings:')
 if ~exist(fullfile(pfad_rad,settings),'file') % if no settings-file is found: create default file
     disp(['No file ',settings,' found. Creating default file ',settings,'.']);
-    
+
     fid=fopen(fullfile(pfad_rad,settings),'wt');
     fprintf(fid,'do_DCremoval 1\n\n');
     fprintf(fid,'do_bandpass 2\nfstart 100\nfend 600\n\n');
@@ -125,7 +136,7 @@ if ~exist(fullfile(pfad_rad,settings),'file') % if no settings-file is found: cr
     fprintf(fid,'do_topomigration 0\ntopofile topo.mat\nvfile_topomig vgrid.mat\naperture_topomig 30\nflag 1\nverbose_topomig 1\nzmin -2\nzmax 0\n\n');
     fprintf(fid,'do_applyGain 5\ng -20 0 10 15 20\n');
     fclose(fid);
-    
+
     disp(['Edit ',settings,' and start script again.'])
     return;
 else
@@ -144,458 +155,310 @@ else
     % get settings for parameters:
     for i=1:length(temp{1})
         if strcmp(temp{1}(i),'sigma')
-            sigma=str2num(temp{2}{i});
+            params.sigma=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'eps')
-            eps=str2num(temp{2}{i});
+            params.eps=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'numsamp')
-            numsamp=str2num(temp{2}{i});
+            params.numsamp=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'numsamp_x')
-            numsamp_x=str2num(temp{2}{i});
+            params.numsamp_x=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'tstart_x')
-            tstart_x=str2num(temp{2}{i});
+            params.tstart_x=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'t0')
-            t0=str2num(temp{2}{i});
+            params.t0=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'t0s')
-            t0s=str2num(temp{2}{i});
+            params.t0s=str2num(temp{2}{i});
         elseif strcmp(temp{2}(i),'threshold')
-            threshold=str2num(temp{2}{i});
+            params.threshold=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'dist')
-            dist=str2num(temp{2}{i});
+            params.dist=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'cutT')
-            cutT=str2num(temp{2}{i});
+            params.cutT=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'n')
-            n=str2num(temp{2}{i});
+            params.n=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'fstart')
-            fstart=str2num(temp{2}{i});
+            params.fstart=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'fend')
-            fend=str2num(temp{2}{i});
+            params.fend=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'qclip')
-            qclip=str2num(temp{2}{i});
+            params.qclip=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'coordsfile')
-            coordsfile=temp{2}{i};
+            params.coordsfile=temp{2}{i};
         elseif strcmp(temp{1}(i),'vfile_mig')
-            vfilem=temp{2}{i};
+            params.vfilem=temp{2}{i};
         elseif strcmp(temp{1}(i),'aperture_mig')
-            aperturem=str2num(temp{2}{i});
+            params.aperturem=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'verbose_mig')
-            verbosem=str2num(temp{2}{i});
+            params.verbosem=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'vfile_topomig')
-            vfile=temp{2}{i};
+            params.vfile=temp{2}{i};
         elseif strcmp(temp{1}(i),'topofile')
-            topofile=temp{2}{i};
+            params.topofile=temp{2}{i};
         elseif strcmp(temp{1}(i),'aperture_topomig')
-            aperture=str2num(temp{2}{i});
+            params.aperture=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'flag')
-            flag=str2num(temp{2}{i});
+            params.flag=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'verbose_topomig')
-            verbose=str2num(temp{2}{i});
+            params.verbose=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'zmin')
-            zmin=str2num(temp{2}{i});
+            params.zmin=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'zmax')
-            zmax=str2num(temp{2}{i});
+            params.zmax=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'meanMedian')
-            meanMedian=str2num(temp{2}{i});
+            params.meanMedian=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'numberOfTraces')
-            numtraces=str2num(temp{2}{i});
+            params.numtraces=str2num(temp{2}{i});
         elseif strcmp(temp{1}(i),'kcutoff')
-            kcutoff=str2num(temp{2}{i});
+            params.kcutoff=str2num(temp{2}{i});
         elseif strcmp(temp{1}{i},'g')
-            g=[str2num(temp{2}{i}) str2num(temp{1}{i+1}) str2num(temp{2}{i+1}) str2num(temp{1}{i+2}) str2num(temp{2}{i+2})];
+            params.g=[str2num(temp{2}{i}) str2num(temp{1}{i+1}) str2num(temp{2}{i+1}) str2num(temp{1}{i+2}) str2num(temp{2}{i+2})];
         elseif strcmp(temp{1}(i),'gap')
-            gap=str2num(temp{2}{i});
+            params.gap=str2num(temp{2}{i});
         end
     end
     % display order of steps
     for i=1:length(order(order>0))
         disp([int2str(i),'. ',steps{order==i}])
         if strcmp('do_attenuationCorrection',steps{order==i})
-            disp(['  sigma = ',num2str(sigma),' S/m'])
-            disp(['  eps = ',num2str(eps)])
+            disp(['  sigma = ',num2str(params.sigma),' S/m'])
+            disp(['  eps = ',num2str(params.eps)])
         elseif strcmp('do_bandpass',steps{order==i})
-            disp(['  fstart = ',num2str(fstart),' MHz'])
-            disp(['  fend = ',num2str(fend),' MHz'])
+            disp(['  fstart = ',num2str(params.fstart),' MHz'])
+            disp(['  fend = ',num2str(params.fend),' MHz'])
         elseif strcmp('do_constTraceDist',steps{order==i})
-            disp(['  dist = ',num2str(dist),' m'])
+            disp(['  dist = ',num2str(params.dist),' m'])
         elseif strcmp('do_medfilt',steps{order==i})
-            disp(['  numsamp = ',num2str(numsamp)])
+            disp(['  numsamp = ',num2str(params.numsamp)])
         elseif strcmp('do_medfilt_x',steps{order==i})
-            disp(['  numsamp_x = ',num2str(numsamp_x)])
-            disp(['  tstart_x = ',num2str(tstart_x),' ns'])
+            disp(['  numsamp_x = ',num2str(params.numsamp_x)])
+            disp(['  tstart_x = ',num2str(params.tstart_x),' ns'])
         elseif strcmp('do_normalization',steps{order==i})
-            disp(['  qclip = ',num2str(qclip)])
+            disp(['  qclip = ',num2str(params.qclip)])
         elseif strcmp('do_cutTWT',steps{order==i})
-            disp(['  cutT = ',num2str(cutT),' ns'])
+            disp(['  cutT = ',num2str(params.cutT),' ns'])
         elseif strcmp('do_reduceNumberOfSamples',steps{order==i})
-            disp(['  n = ',num2str(n)])
+            disp(['  n = ',num2str(params.n)])
         elseif strcmp('do_t0correction',steps{order==i})
-            disp(['  t0 = ',num2str(t0),' ns'])
+            disp(['  t0 = ',num2str(params.t0),' ns'])
         elseif strcmp('do_t0shift',steps{order==i})
-            disp(['  t0 = ',num2str(t0s),' ns'])
+            disp(['  t0 = ',num2str(params.t0s),' ns'])
         elseif strcmp('do_t0Threshold',steps{order==i})
-            disp(['  threshold = ',num2str(threshold)])
+            disp(['  threshold = ',num2str(params.threshold)])
         elseif strcmp('do_helmertTransformation',steps{order==i})
-            disp(['  coordsfile = ',coordsfile])
+            disp(['  coordsfile = ',params.coordsfile])
         elseif strcmp('do_migration',steps{order==i})
-            disp(['  vfile_mig = ',vfilem])
-            disp(['  aperture_mig = ',num2str(aperturem),' degree'])
-            disp(['  verbose_mig = ',num2str(verbosem)])
+            disp(['  vfile_mig = ',params.vfilem])
+            disp(['  aperture_mig = ',num2str(params.aperturem),' degree'])
+            disp(['  verbose_mig = ',num2str(params.verbosem)])
         elseif strcmp('do_topomigration',steps{order==i})
-            disp(['  topofile = ',topofile])
-            disp(['  vfile_topomig = ',vfile])
-            disp(['  aperture_topomig = ',num2str(aperture),' degree'])
-            if ~isempty(zmin)
-                disp(['  zmin = ',num2str(zmin),' m'])
+            disp(['  topofile = ',params.topofile])
+            disp(['  vfile_topomig = ',params.vfile])
+            disp(['  aperture_topomig = ',num2str(params.aperture),' degree'])
+            if ~isempty(params.zmin)
+                disp(['  zmin = ',num2str(params.zmin),' m'])
             else
                 disp('zmin will be determined automatically.')
             end
-            if ~isempty(zmax)
-                disp(['  zmax = ',num2str(zmax),' m'])
+            if ~isempty(params.zmax)
+                disp(['  zmax = ',num2str(params.zmax),' m'])
             else
                 disp('zmax will be determined automatically.')
             end
-            disp(['  flag = ',num2str(flag)])
-            disp(['  verbose_topomig = ',num2str(verbose)])
+            disp(['  flag = ',num2str(params.flag)])
+            disp(['  verbose_topomig = ',num2str(params.verbose)])
         elseif strcmp('do_removeMeanTrace',steps{order==i})
-            if meanMedian==1
-                meanMedian='mean';
+            if params.meanMedian==1
+                params.meanMedian='mean';
             else
-                meanMedian='median';
+                params.meanMedian='median';
             end
-            disp(['  meanMedian = ',meanMedian])
+            disp(['  meanMedian = ',params.meanMedian])
             if ~exist('numtraces','var')
-                numtraces=0;
+                params.numtraces=0;
             end
-            disp(['  numberOfTraces = ',numtraces])
+            disp(['  numberOfTraces = ',params.numtraces])
         elseif strcmp('do_kHighpass',steps{order==i})
-            disp(['  kcutoff = ',num2str(kcutoff)])
+            disp(['  kcutoff = ',num2str(params.kcutoff)])
         elseif strcmp('do_applyGain',steps{order==i})
-            disp(['  gain = ',num2str(g)])
+            disp(['  gain = ',num2str(params.g)])
         elseif strcmp('do_interpolation',steps{order==i})
-            disp(['  gap = ',num2str(gap)])
+            disp(['  gap = ',num2str(params.gap)])
         end
     end
 end
 disp('--------------------------------------')
 
 %--------------------------------------------------------------------------
-h=waitbar(0,'Processing, please wait!');
-numsteps=length(order(order>0));    % number of steps per radargram
-anz=length(numbers);
-radargrams=cell(anz,1);
-nn=0;
-for kk=numbers % loop over radargrams
-    disp(['   -> Profile ',int2str(kk),' of ',int2str(anz)])
+if dataStore_flag==0
 
-    if ~isempty(data{kk}) && any(~isnan(data{kk}(:)))
-        
-        nn=nn+1;
-        datatraces=data{kk};  % raw data of current radargram
-        
-        tcut_flag=0; % set to 0 for each new profile
-        amp_flag=0; % if amplitude spectrum
-        z_flag=0; % if depth migrated data
-        
-        if kk==1
-            tplot=t; % save t for plotting of raw data
-        else
-            t=tplot; % reset raw data t for new profile
+    fprintf('  Profile: %s\t',sprintf('%3d',numbers));
+    fprintf('Saved\n');
+    fprintf('           ');
+
+    % Processing:
+    [radargrams,global_coords,x,t,tnew,z_flag,tcut_flag,z,znew]=processing_loop_over_radargrams(numbers,data,xx,gc,t,order,steps,params,plotflag,colorclip,aspectratio_t,aspectratio_z,pfad_rad);
+
+    %--------------------------------------------------------------------------
+    fprintf('%3s', 'x');
+    fprintf('\n\n')
+    % completely processed radargrams are stored in variable "radargrams"
+    % save processed radargrams:
+    if ~exist(fullfile(pfad_rad,'processed'),'dir')
+        mkdir(fullfile(pfad_rad,'processed'));
+    end
+
+    if z_flag==1 && tcut_flag==1
+        t=znew;
+    elseif z_flag==1 && tcut_flag==0
+        t=z;
+    elseif z_flag==0 && tcut_flag==1
+        t=tnew;
+    end
+    % save processed radargrams
+    save(fullfile(pfad_rad,'processed','radargrams.mat'),'radargrams','-v7.3');
+    save(fullfile(pfad_rad,'processed','x.mat'),'x','-v7.3');
+    save(fullfile(pfad_rad,'processed','global_coords.mat'),'global_coords','-v7.3');
+    save(fullfile(pfad_rad,'processed','t.mat'),'t','-v7.3'); % can be time or depth!
+    % copy settings
+    copyfile(fullfile(pfad_rad,settings),fullfile(pfad_rad,'processed','ProcessingReadMe.txt'));
+
+    disp('Done!')
+
+else % datastore:
+    files = dir(fullfile(pfad_rad, 'radargrams_*.mat'));
+
+    % sort numerically:
+    nums = arrayfun(@(f) sscanf(f.name, 'radargrams_%d.mat'), files);
+    [~, sortIdx] = sort(nums);
+    files = files(sortIdx);
+
+    % with sorted list: 1, 2, 3, .... (instead of 1, 10, 11, ..., 19, 2, 20, ...)
+    filePaths = fullfile(pfad_rad, {files.name});
+    ds = fileDatastore(filePaths, ...
+        'ReadFcn', @(f) readGroup(f));
+
+    % change file names for topomigration: (in settings.txt:
+    % vgrid.mat/topo.mat -> vgrid_*.mat and topo_*.mat)
+    if any(cellfun(@(x) strcmp(x,'do_topomigration'),steps(order>0)))
+        % vfile
+        vname=params.vfile;
+        temp1=strsplit(vname,'.');    
+        % topofile
+        tname=params.topofile;
+        temp2=strsplit(tname,'.');
+    end
+
+    while hasdata(ds)
+        grp = read(ds);          % liest immer eine vollständige Gruppe
+
+        data = grp.radargrams;
+        gc = grp.global_coords;
+        xx = grp.x;
+        group=grp.index;
+
+        numbers=1:length(data); % all radargrams
+
+        % change file names for topomigration: (in settings.txt:
+        % vgrid.mat/topo.mat -> vgrid_*.mat and topo_*.mat)
+        if any(cellfun(@(x) strcmp(x,'do_topomigration'),steps(order>0)))
+            % vfile
+            params.vfile=[temp1{1},'_',int2str(group),'.',temp1{2}];
+            % topofile
+            params.topofile=[temp2{1},'_',int2str(group),'.',temp2{2}];
         end
-        if plotflag==1
-            % Plot raw data
-            figure(kk)
-            subplot(2,1,1)
-            imagesc(xx{kk},tplot,datatraces)
-            grid on
-            xlabel('x [m]')
-            ylabel('t [ns]')
-            title(['Original data of radargram ',int2str(kk)])
-            colormap(flipud(gray));
-            if aspectratio_t~=0
-                set(gca,'Dataaspectratio',[1 aspectratio_t 1])
-            end
-            if colorclip~=0
-                % determine color limits for plotting:
-                coldata=sort(unique(datatraces));
-                coldata(isnan(coldata))=[]; % delete nans
-                cmin=coldata(round(length(coldata)/100*colorclip));
-                cmax=coldata(end-round(length(coldata)/100*colorclip));
-                set(gca,'CLim',[cmin cmax])
+            
+
+        fprintf('  Profile: %s\t',sprintf('%3d',numbers));
+        fprintf('Saved\n');
+        fprintf('           ');
+
+
+        % Processing:
+        [radargrams,global_coords,x,t,tnew,z_flag,tcut_flag,z,znew]=processing_loop_over_radargrams(numbers,data,xx,gc,t,order,steps,params,plotflag,colorclip,aspectratio_t,aspectratio_z,pfad_rad);
+        
+        %--------------------------------------------------------------------------
+        fprintf('%3s', 'x');
+        fprintf('\n\n')
+        % completely processed radargrams are stored in variable "radargrams_*.mat"
+        % save processed radargrams:
+        if ~exist(fullfile(pfad_rad,'processed'),'dir')
+            mkdir(fullfile(pfad_rad,'processed'));
+        end
+
+        % save processed radargrams
+        rg = struct();
+        for i = 1:numel(radargrams)
+            rg.(sprintf('rg_%02d', i)) = radargrams{i};
+        end
+        save(fullfile(pfad_rad,'processed',['radargrams_',int2str(group),'.mat']), 'rg', '-v7.3');
+        save(fullfile(pfad_rad,'processed',['x_',int2str(group),'.mat']),'x','-v7.3');
+        save(fullfile(pfad_rad,'processed',['global_coords_',int2str(group),'.mat']),'global_coords','-v7.3');
+
+        time_old=t;
+        if z_flag==1 && tcut_flag==1
+            t=znew;
+        elseif z_flag==1 && tcut_flag==0
+            t=z;
+        elseif z_flag==0 && tcut_flag==1
+            t=tnew;
+        end
+        save(fullfile(pfad_rad,'processed','t.mat'),'t','-v7.3'); % can be time or depth
+        % reset t:
+        t=time_old;
+
+    end
+
+
+    % copy settings
+    copyfile(fullfile(pfad_rad,settings),fullfile(pfad_rad,'processed','ProcessingReadMe.txt'));
+    disp('Done!')
+
+end
+
+
+
+
+% restore original path
+path(oldpath);
+
+
+%%
+
+
+function [radargrams,global_coords,x,t,tnew,z_flag,tcut_flag,amp_flag,z,znew]=processing_loop_over_radargrams(numbers,data,xx,gc,t,order,steps,params,plotflag,colorclip,aspectratio_t,aspectratio_z,pfad_rad)
+    % Processing loop over radargrams:
+    anz=length(numbers);
+    numsteps=length(order(order>0));    % number of steps per radargram
+    radargrams=cell(anz,1);
+    nn=0;
+    for kk=numbers % loop over radargrams
+
+        if ~isempty(data{kk}) && any(~isnan(data{kk}(:)))
+
+            nn=nn+1;
+            datatraces=data{kk};  % raw data of current radargram
+
+            tcut_flag=0; % set to 0 for each new profile
+            amp_flag=0; % if amplitude spectrum =1
+            z_flag=0; % if depth migrated data =1
+
+            if kk==1
+                tplot=t; % save t for plotting of raw data
             else
-                set(gca,'ClimMode','auto');
+                t=tplot; % reset raw data t for new profile
             end
-        end
-        
-        
-        for k=1:length(order(order>0))  % for all processing steps in right order
-            
-            %%% trace-wise median filter
-            if strcmp(steps{order==k},'do_medfilt')
-                [datatraces]=medfilt(datatraces,numsamp);
-            end
-
-            %%% x-wise median filter
-            if strcmp(steps{order==k},'do_medfilt_x')
-                [datatraces]=medfilt_x(datatraces,t,numsamp_x,tstart_x);
-            end
-            
-            %%% Make constant trace distance
-            if strcmp(steps{order==k},'do_constTraceDist')
-                [datatraces,xx{kk},gc{kk}]=constTraceDist(datatraces,dist,xx{kk},gc{kk});
-            end
-            
-            %%% Turn Profiles
-            if strcmp(steps{order==k},'do_turnProfiles')
-                [datatraces,xx{kk},gc{kk}]=turnProfiles(datatraces,xx{kk},gc{kk});
-            end
-
-            %%% Exchange x and y
-            if strcmp(steps{order==k},'do_exchange_x_y')
-                gc{kk}=exchange_x_y(gc{kk});
-            end
-            
-            %%% Reduce Number of samples
-            if strcmp(steps{order==k},'do_reduceNumberOfSamples')
-                if tcut_flag==0
-                    [datatraces,tnew]=reduceNumberOfSamples(datatraces,t,n);
-                    nsnew=length(tnew);
-                    tcut_flag=1;
-                else
-                    [datatraces,tnew]=reduceNumberOfSamples(datatraces,tnew,n);
-                    nsnew=length(tnew);
-                end
-                dt=tnew(2)-tnew(1);
-            end
-                
-            %%% Topomigration with 2d-v-model
-            if strcmp(steps{order==k},'do_topomigration')
-                % read required files and check format:
-                top=load(fullfile(pfad_rad,topofile));
-                name=fieldnames(top);
-                eval(['topo=top.' name{1} ';']); % make variable topo from structure
-                if length(xx{kk})~=length(topo{kk})
-                    disp('Size of topography vector does not match number of traces! Please check and start again.')
-                    return;
-                end
-                vf=load(fullfile(pfad_rad,vfile));
-                name=fieldnames(vf);
-                eval(['v=vf.' name{1} ';']); % make variable v from structure
-                if length(v{kk})>1 && any(size(v{kk})~=size(datatraces))
-                    disp('Size of vgrid does not match size of radargram! Trying to fix this...')
-                    if length(v{kk}(1,:))~=length(datatraces(1,:))
-                        disp('   Number of traces in vgrid and radargram does not match. Please check and start again.')
-                        return;
-                    elseif length(v{kk}(:,1))<length(datatraces(:,1))
-                        v{kk}=[v{kk}; repmat(v{kk}(end,:),[length(datatraces(:,1))-length(v{kk}(:,1)),1])];
-                        disp('   Extrapolated vgrid for all times in radargram. Problem solved.')
-                    elseif length(v{kk}(:,1))>length(datatraces(:,1))
-                        v{kk}=v{kk}(1:length(datatraces(:,1)));
-                        disp('   Shortened vgrid corresponding to samples in radargram. Problem solved.')
-                    end
-                end
-                
-                if isempty(zmin) % if no zmin/zmax given -> determine one for all profiles
-                    zm=[];
-                    vm=[];
-                    zmi=[];
-                    for kk2=numbers
-                        zm=[zm; max(topo{kk2})];
-                        zmi=[zmi; min(topo{kk2})];
-                        vm=[vm; max(v{kk2}(:))];
-                    end
-                    zmax=ceil(max(zm));
-                    zmin=floor(min(zmi)-max(t)/2*max(vm));
-                end
-                    
-                if tcut_flag==0
-                    [datatraces,z]=topomig2d_varV(datatraces,xx{kk},t,topo{kk},v{kk},aperture,flag,verbose,zmin,zmax); % Output t is depth z in m!
-                else % if t has been cut
-                    [datatraces,znew]=topomig2d_varV(datatraces,xx{kk},tnew,topo{kk},v{kk},aperture,flag,verbose,zmin,zmax); % Output tnew is depth z in m!
-                end
-                z_flag=1;
-            end
-            
-            %%% Isochrone migration with 2d-v-model
-            if strcmp(steps{order==k},'do_migration')
-                % read required files and check format:
-                vf=load(fullfile(pfad_rad,vfilem));
-                name=fieldnames(vf);
-                eval(['v=vf.' name{1} ';']); % make variable topo from structure
-                if length(v{kk})>1 && any(size(v{kk})~=size(datatraces))
-                    disp('Size of vgrid does not match size of radargram! Trying to fix this...')
-                    if length(v{kk}(1,:))~=length(datatraces(1,:))
-                        disp('   Number of traces in vgrid and radargram does not match. Please check and start again.')
-                        return;
-                    elseif length(v{kk}(:,1))<length(datatraces(:,1))
-                        v{kk}=[v{kk}; repmat(v{kk}(end,:),[length(datatraces(:,1))-length(v{kk}(:,1)),1])];
-                        disp('   Extrapolated vgrid for all times in radargram. Problem solved.')
-                    elseif length(v{kk}(:,1))>length(datatraces(:,1))
-                        v{kk}=v{kk}(1:length(datatraces(:,1)));
-                        disp('   Shortened vgrid corresponding to samples in radargram. Problem solved.')
-                    end
-                end
-                if tcut_flag==0
-                    [datatraces,z]=isochrone_mig_2d_varV(datatraces,xx{kk},t,v{kk},aperturem,verbosem); % Output t is depth z in m!
-                else % if t has been cut
-                    [datatraces,znew]=isochrone_mig_2d_varV(datatraces,xx{kk},tnew,v{kk},aperturem,verbosem); % Output tnew is depth z in m!
-                end
-                z_flag=1;
-            end
-            
-            %%% Helmert Transformation
-            if strcmp(steps{order==k},'do_helmertTransformation')
-                coords=load(fullfile(pfad_rad,coordsfile));
-                gc{kk}=helmert(gc{kk},coords(:,1:2),coords(:,3:4));
-            end
-            
-            %%% t0 correction (correlation with first trace as reference)
-            if strcmp(steps{order==k},'do_t0correction')
-                [datatraces]=t0correction(datatraces,datatraces(:,1),t0,dt);
-            end
-            
-            %%% t0 shift
-            if strcmp(steps{order==k},'do_t0shift')
-                [datatraces]=t0shift(datatraces,t0s,dt);
-            end
-
-            %%% t0 threshold
-            if strcmp(steps{order==k},'do_t0Threshold')
-                [datatraces]=t0corr_thresh(datatraces,threshold);
-            end
-            
-            %%% DCremoval
-            if strcmp(steps{order==k},'do_DCremoval')
-                if tcut_flag==0
-                    [datatraces]=DCremoval(datatraces,t);
-                else
-                    [datatraces]=DCremoval(datatraces,tnew);
-                end
-            end
-            
-            %%% cut TWT
-            if strcmp(steps{order==k},'do_cutTWT')
-                if tcut_flag==1 % if reduceNumberofSamples before
-                    [datatraces,tnew,nsnew]=cutTWT(datatraces,tnew,cutT);
-                elseif tcut_flag==0 && z_flag==0
-                    [datatraces,tnew,nsnew]=cutTWT(datatraces,t,cutT);
-                elseif z_flag==1 % if depth migration before
-                    % make new depth vector starting from top of radargram
-                    % pointing downwards (compatible with time direction)
-                    z2=abs(z-max(z));
-                    cutT2=abs(cutT-max(z));
-                    [datatraces,znew2,nsnew]=cutTWT(datatraces,z2,cutT2);
-                    % converting back to original z vector:
-                    znew=-znew2+max(z);
-                end
-                tcut_flag=1;
-            end
-            
-            %%% makeAmpSpec
-            if strcmp(steps{order==k},'do_makeAmpSpec')
-                if tcut_flag==0
-                    [t,datatraces]=makeAmpspec(t,datatraces); % Output t is frequency and output datatraces is spectrum!
-                else
-                    [tnew,datatraces]=makeAmpspec(tnew,datatraces); % Output tnew is frequency and output datatraces is spectrum!
-                end
-                amp_flag=1;
-            end
-            
-            %%% correct for spherical divergence
-            if strcmp(steps{order==k},'do_sphericalDivergence')
-                if tcut_flag==0
-                    [datatraces]=sphericalDivergence(datatraces,t);
-                else
-                    [datatraces]=sphericalDivergence(datatraces,tnew);
-                end
-            end
-            
-            %%% attenuation correction
-            if strcmp(steps{order==k},'do_attenuationCorrection')
-                if tcut_flag==0
-                    [datatraces]=attenuationcorrection(datatraces,t,sigma,eps);
-                else
-                    [datatraces]=attenuationcorrection(datatraces,tnew,sigma,eps);
-                end
-            end
-            
-            %%% apply bandpass
-            if strcmp(steps{order==k},'do_bandpass')
-                [datatraces]=bandpass_gpr(datatraces,dt,fstart,fend);
-            end
-            
-            %%% trace normalization
-            if strcmp(steps{order==k},'do_normalization')
-                [datatraces]=normalize2d(datatraces,qclip);
-            end
-            
-            %%% remove horizontal Lines (subtract mean trace)
-            if strcmp(steps{order==k},'do_removeMeanTrace')
-                [datatraces]=removeHorizontalLines(datatraces,meanMedian,numtraces);
-            end
-            
-            %%% k-highpass for horizontal lines removal
-            if strcmp(steps{order==k},'do_kHighpass')
-                if length(datatraces(1,:))<24
-                    disp('No k_highpass can be applied due to too less traces! Needs to have more than 24 traces. Continuing processing.');
-                else
-                    [datatraces]=k_highpass(datatraces,mean(diff(xx{kk})),kcutoff);
-                end
-            end
-            
-            %%% apply gain
-            if strcmp(steps{order==k},'do_applyGain')
-                [datatraces]=applygain(datatraces,g);
-            end
-            
-            %%% interpolate gaps
-            if strcmp(steps{order==k},'do_interpolation')
-                [datatraces]=interpolation(datatraces,gap);
-            end
-            
-            waitbar(((kk-1)*numsteps+k)/(numsteps*length(numbers)),h);
-        end
-       
-        
-        % set new coordinates (if changed during processing...)
-        global_coords{nn}=gc{kk};
-        x{nn}=xx{kk};
-        
-        if plotflag==1
-            % Plot processed data
-            figure(kk)
-            subplot(2,1,2)
-            if amp_flag==0
-                % plot processed radargram
-                if z_flag==0
-                    if tcut_flag==0
-                        imagesc(x{nn},t,datatraces)
-                    else
-                        imagesc(x{nn},tnew,datatraces)
-                    end
-                else
-                    if tcut_flag==0
-                        imagesc(x{nn},z,datatraces)
-                    else
-                        imagesc(x{nn},znew,datatraces)
-                    end
-                end
+            if plotflag==1
+                % Plot raw data
+                figure(kk)
+                subplot(2,1,1)
+                imagesc(xx{kk},tplot,datatraces)
                 grid on
                 xlabel('x [m]')
                 ylabel('t [ns]')
-                if z_flag==1
-                    xlabel('x [m]')
-                    ylabel('z [m]')
-                    axis xy
-                end
-                title(['Processed data of radargram ',int2str(kk)])
+                title(['Original data of radargram ',int2str(kk)])
                 colormap(flipud(gray));
-                if z_flag==0
-                    if aspectratio_t~=0
-                        set(gca,'Dataaspectratio',[1 aspectratio_t 1])
-                    end
-                else
-                    if aspectratio_z~=0
-                        set(gca,'Dataaspectratio',[1 aspectratio_z 1])
-                    end
+                if aspectratio_t~=0
+                    set(gca,'Dataaspectratio',[1 aspectratio_t 1])
                 end
                 if colorclip~=0
                     % determine color limits for plotting:
@@ -607,58 +470,320 @@ for kk=numbers % loop over radargrams
                 else
                     set(gca,'ClimMode','auto');
                 end
-            else
-                % plot amplitude spectrum
-                subplot(2,1,2)
-                if tcut_flag==0
-                    plot(t,datatraces)
-                    hold on
-                    plot(t,mean(datatraces,2),'k','Linewidth',2)
-                else
-                    plot(tnew,datatraces)
-                    hold on
-                    plot(tnew,mean(datatraces,2),'k','Linewidth',2)
-                end
-                xlabel('f [MHz]')
-                ylabel('Amplitude')
-                grid on
-                title(['Amplitude spectrum of processed radargram ',int2str(kk)])
             end
+
+            for k=1:length(order(order>0))  % for all processing steps in right order
+
+                %%% trace-wise median filter
+                if strcmp(steps{order==k},'do_medfilt')
+                    [datatraces]=medfilt(datatraces,params.numsamp);
+                end
+
+                %%% x-wise median filter
+                if strcmp(steps{order==k},'do_medfilt_x')
+                    [datatraces]=medfilt_x(datatraces,t,params.numsamp_x,params.tstart_x);
+                end
+
+                %%% Make constant trace distance
+                if strcmp(steps{order==k},'do_constTraceDist')
+                    [datatraces,xx{kk},gc{kk}]=constTraceDist(datatraces,params.dist,xx{kk},gc{kk});
+                end
+
+                %%% Turn Profiles
+                if strcmp(steps{order==k},'do_turnProfiles')
+                    [datatraces,xx{kk},gc{kk}]=turnProfiles(datatraces,xx{kk},gc{kk});
+                end
+
+                %%% Exchange x and y
+                if strcmp(steps{order==k},'do_exchange_x_y')
+                    gc{kk}=exchange_x_y(gc{kk});
+                end
+
+                %%% Reduce Number of samples
+                if strcmp(steps{order==k},'do_reduceNumberOfSamples')
+                    if tcut_flag==0
+                        [datatraces,tnew]=reduceNumberOfSamples(datatraces,t,params.n);
+                        nsnew=length(tnew);
+                        tcut_flag=1;
+                    else
+                        [datatraces,tnew]=reduceNumberOfSamples(datatraces,tnew,params.n);
+                        nsnew=length(tnew);
+                    end
+                    dt=tnew(2)-tnew(1);
+                end
+
+                %%% Topomigration with 2d-v-model
+                if strcmp(steps{order==k},'do_topomigration')
+                    % read required files and check format:
+                    top=load(fullfile(pfad_rad,params.topofile));
+                    name=fieldnames(top);
+                    eval(['topo=top.' name{1} ';']); % make variable topo from structure
+                    if length(xx{kk})~=length(topo{kk})
+                        disp('Size of topography vector does not match number of traces! Please check and start again.')
+                        return;
+                    end
+                    vf=load(fullfile(pfad_rad,params.vfile));
+                    name=fieldnames(vf);
+                    eval(['v=vf.' name{1} ';']); % make variable v from structure
+                    if length(v{kk})>1 && any(size(v{kk})~=size(datatraces))
+                        disp('Size of vgrid does not match size of radargram! Trying to fix this...')
+                        if length(v{kk}(1,:))~=length(datatraces(1,:))
+                            disp('   Number of traces in vgrid and radargram does not match. Please check and start again.')
+                            return;
+                        elseif length(v{kk}(:,1))<length(datatraces(:,1))
+                            v{kk}=[v{kk}; repmat(v{kk}(end,:),[length(datatraces(:,1))-length(v{kk}(:,1)),1])];
+                            disp('   Extrapolated vgrid for all times in radargram. Problem solved.')
+                        elseif length(v{kk}(:,1))>length(datatraces(:,1))
+                            v{kk}=v{kk}(1:length(datatraces(:,1)));
+                            disp('   Shortened vgrid corresponding to samples in radargram. Problem solved.')
+                        end
+                    end
+
+                    if isempty(params.zmin) % if no zmin/zmax given -> determine one for all profiles
+                        zm=[];
+                        vm=[];
+                        zmi=[];
+                        for kk2=numbers
+                            zm=[zm; max(topo{kk2})];
+                            zmi=[zmi; min(topo{kk2})];
+                            vm=[vm; max(v{kk2}(:))];
+                        end
+                        params.zmax=ceil(max(zm));
+                        params.zmin=floor(min(zmi)-max(t)/2*max(vm));
+                    end
+
+                    if tcut_flag==0
+                        [datatraces,z]=topomig2d_varV(datatraces,xx{kk},t,topo{kk},v{kk},params.aperture,params.flag,params.verbose,params.zmin,params.zmax); % Output t is depth z in m!
+                    else % if t has been cut
+                        [datatraces,znew]=topomig2d_varV(datatraces,xx{kk},tnew,topo{kk},v{kk},params.aperture,params.flag,params.verbose,params.zmin,params.zmax); % Output tnew is depth z in m!
+                    end
+                    z_flag=1;
+                end
+
+                %%% Isochrone migration with 2d-v-model
+                if strcmp(steps{order==k},'do_migration')
+                    % read required files and check format:
+                    vf=load(fullfile(pfad_rad,params.vfilem));
+                    name=fieldnames(vf);
+                    eval(['v=vf.' name{1} ';']); % make variable topo from structure
+                    if length(v{kk})>1 && any(size(v{kk})~=size(datatraces))
+                        disp('Size of vgrid does not match size of radargram! Trying to fix this...')
+                        if length(v{kk}(1,:))~=length(datatraces(1,:))
+                            disp('   Number of traces in vgrid and radargram does not match. Please check and start again.')
+                            return;
+                        elseif length(v{kk}(:,1))<length(datatraces(:,1))
+                            v{kk}=[v{kk}; repmat(v{kk}(end,:),[length(datatraces(:,1))-length(v{kk}(:,1)),1])];
+                            disp('   Extrapolated vgrid for all times in radargram. Problem solved.')
+                        elseif length(v{kk}(:,1))>length(datatraces(:,1))
+                            v{kk}=v{kk}(1:length(datatraces(:,1)));
+                            disp('   Shortened vgrid corresponding to samples in radargram. Problem solved.')
+                        end
+                    end
+                    if tcut_flag==0
+                        [datatraces,z]=isochrone_mig_2d_varV(datatraces,xx{kk},t,v{kk},params.aperturem,params.verbosem); % Output t is depth z in m!
+                    else % if t has been cut
+                        [datatraces,znew]=isochrone_mig_2d_varV(datatraces,xx{kk},tnew,v{kk},params.aperturem,params.verbosem); % Output tnew is depth z in m!
+                    end
+                    z_flag=1;
+                end
+
+                %%% Helmert Transformation
+                if strcmp(steps{order==k},'do_helmertTransformation')
+                    coords=load(fullfile(pfad_rad,params.coordsfile));
+                    gc{kk}=helmert(gc{kk},coords(:,1:2),coords(:,3:4));
+                end
+
+                %%% t0 correction (correlation with first trace as reference)
+                if strcmp(steps{order==k},'do_t0correction')
+                    [datatraces]=t0correction(datatraces,datatraces(:,1),params.t0,params.dt);
+                end
+
+                %%% t0 shift
+                if strcmp(steps{order==k},'do_t0shift')
+                    [datatraces]=t0shift(datatraces,params.t0s,params.dt);
+                end
+
+                %%% t0 threshold
+                if strcmp(steps{order==k},'do_t0Threshold')
+                    [datatraces]=t0corr_thresh(datatraces,params.threshold);
+                end
+
+                %%% DCremoval
+                if strcmp(steps{order==k},'do_DCremoval')
+                    if tcut_flag==0
+                        [datatraces]=DCremoval(datatraces,t);
+                    else
+                        [datatraces]=DCremoval(datatraces,tnew);
+                    end
+                end
+
+                %%% cut TWT
+                if strcmp(steps{order==k},'do_cutTWT')
+                    if tcut_flag==1 % if reduceNumberofSamples before
+                        [datatraces,tnew,nsnew]=cutTWT(datatraces,tnew,params.cutT);
+                    elseif tcut_flag==0 && z_flag==0
+                        [datatraces,tnew,nsnew]=cutTWT(datatraces,t,params.cutT);
+                    elseif z_flag==1 % if depth migration before
+                        % make new depth vector starting from top of radargram
+                        % pointing downwards (compatible with time direction)
+                        z2=abs(z-max(z));
+                        cutT2=abs(cutT-max(z));
+                        [datatraces,znew2,nsnew]=cutTWT(datatraces,z2,params.cutT2);
+                        % converting back to original z vector:
+                        znew=-znew2+max(z);
+                    end
+                    tcut_flag=1;
+                end
+
+                %%% makeAmpSpec
+                if strcmp(steps{order==k},'do_makeAmpSpec')
+                    if tcut_flag==0
+                        [t,datatraces]=makeAmpspec(t,datatraces); % Output t is frequency and output datatraces is spectrum!
+                    else
+                        [tnew,datatraces]=makeAmpspec(tnew,datatraces); % Output tnew is frequency and output datatraces is spectrum!
+                    end
+                    amp_flag=1;
+                end
+
+                %%% correct for spherical divergence
+                if strcmp(steps{order==k},'do_sphericalDivergence')
+                    if tcut_flag==0
+                        [datatraces]=sphericalDivergence(datatraces,t);
+                    else
+                        [datatraces]=sphericalDivergence(datatraces,tnew);
+                    end
+                end
+
+                %%% attenuation correction
+                if strcmp(steps{order==k},'do_attenuationCorrection')
+                    if tcut_flag==0
+                        [datatraces]=attenuationcorrection(datatraces,t,params.sigma,params.eps);
+                    else
+                        [datatraces]=attenuationcorrection(datatraces,tnew,params.sigma,params.eps);
+                    end
+                end
+
+                %%% apply bandpass
+                if strcmp(steps{order==k},'do_bandpass')
+                    [datatraces]=bandpass_gpr(datatraces,params.dt,params.fstart,params.fend);
+                end
+
+                %%% trace normalization
+                if strcmp(steps{order==k},'do_normalization')
+                    [datatraces]=normalize2d(datatraces,params.qclip);
+                end
+
+                %%% remove horizontal Lines (subtract mean trace)
+                if strcmp(steps{order==k},'do_removeMeanTrace')
+                    [datatraces]=removeHorizontalLines(datatraces,params.meanMedian,params.numtraces);
+                end
+
+                %%% k-highpass for horizontal lines removal
+                if strcmp(steps{order==k},'do_kHighpass')
+                    if length(datatraces(1,:))<24
+                        disp('No k_highpass can be applied due to too less traces! Needs to have more than 24 traces. Continuing processing.');
+                    else
+                        [datatraces]=k_highpass(datatraces,mean(diff(xx{kk})),params.kcutoff);
+                    end
+                end
+
+                %%% apply gain
+                if strcmp(steps{order==k},'do_applyGain')
+                    [datatraces]=applygain(datatraces,params.g);
+                end
+
+                %%% interpolate gaps
+                if strcmp(steps{order==k},'do_interpolation')
+                    [datatraces]=interpolation(datatraces,params.gap);
+                end
+            end
+
+            % set new coordinates (if changed during processing...)
+            global_coords{nn}=gc{kk};
+            x{nn}=xx{kk};
+
+            if plotflag==1
+                % Plot processed data
+                figure(kk)
+                subplot(2,1,2)
+                if amp_flag==0
+                    % plot processed radargram
+                    if z_flag==0
+                        if tcut_flag==0
+                            imagesc(x{nn},t,datatraces)
+                        else
+                            imagesc(x{nn},tnew,datatraces)
+                        end
+                    else
+                        if tcut_flag==0
+                            imagesc(x{nn},z,datatraces)
+                        else
+                            imagesc(x{nn},znew,datatraces)
+                        end
+                    end
+                    grid on
+                    xlabel('x [m]')
+                    ylabel('t [ns]')
+                    if z_flag==1
+                        xlabel('x [m]')
+                        ylabel('z [m]')
+                        axis xy
+                    end
+                    title(['Processed data of radargram ',int2str(kk)])
+                    colormap(flipud(gray));
+                    if z_flag==0
+                        if aspectratio_t~=0
+                            set(gca,'Dataaspectratio',[1 aspectratio_t 1])
+                        end
+                    else
+                        if aspectratio_z~=0
+                            set(gca,'Dataaspectratio',[1 aspectratio_z 1])
+                        end
+                    end
+                    if colorclip~=0
+                        % determine color limits for plotting:
+                        coldata=sort(unique(datatraces));
+                        coldata(isnan(coldata))=[]; % delete nans
+                        cmin=coldata(round(length(coldata)/100*colorclip));
+                        cmax=coldata(end-round(length(coldata)/100*colorclip));
+                        set(gca,'CLim',[cmin cmax])
+                    else
+                        set(gca,'ClimMode','auto');
+                    end
+                else
+                    % plot amplitude spectrum
+                    subplot(2,1,2)
+                    if tcut_flag==0
+                        plot(t,datatraces)
+                        hold on
+                        plot(t,mean(datatraces,2),'k','Linewidth',2)
+                    else
+                        plot(tnew,datatraces)
+                        hold on
+                        plot(tnew,mean(datatraces,2),'k','Linewidth',2)
+                    end
+                    xlabel('f [MHz]')
+                    ylabel('Amplitude')
+                    grid on
+                    title(['Amplitude spectrum of processed radargram ',int2str(kk)])
+                end
+            end
+
+
+            radargrams{nn}=datatraces;
+        else
+            radargrams{nn}=data{kk};
         end
-        
-        
-        radargrams{nn}=datatraces;
-    else
-        radargrams{nn}=data{kk};
+        fprintf('%3s', 'x');
+    end
+
+    if ~exist('z','var')
+        z=[];
+    end
+    if ~exist('znew','var')
+        znew=[];
+    end
+    if ~exist('tnew','var')
+        tnew=[];
     end
 end
-close(h);
-if z_flag==1
-    if tcut_flag==0
-        t=z;
-    else
-        tnew=znew;
-    end
-end
-%--------------------------------------------------------------------------
-disp('Saving data...')
-% completely processed radargrams are stored in variable "radargrams"
-% save processed radargrams:
-if ~exist(fullfile(pfad_rad,'processed'),'dir')
-    mkdir(fullfile(pfad_rad,'processed'));
-end
-if tcut_flag==1
-    t=tnew; % set new t
-end
-% save processed radargrams
-save(fullfile(pfad_rad,'processed','radargrams.mat'),'radargrams','-v7.3');
-save(fullfile(pfad_rad,'processed','x.mat'),'x','-v7.3');
-save(fullfile(pfad_rad,'processed','global_coords.mat'),'global_coords','-v7.3');
-save(fullfile(pfad_rad,'processed','t.mat'),'t','-v7.3'); % can be time or depth!
-% copy settings
-copyfile(fullfile(pfad_rad,settings),fullfile(pfad_rad,'processed','ProcessingReadMe.txt'));
-
-disp('Done!')
-
-% restore original path
-path(oldpath);

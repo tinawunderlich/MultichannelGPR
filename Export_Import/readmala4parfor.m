@@ -110,7 +110,8 @@ if fid~=-1
     
     if ~isempty(pos_orig) && num_traces/numchannels>=15  % if number of traces in file is too small -> omit file (=do not save in position-matrix)
         % interpolate between traces
-        pos_new=[[pos_orig(1,1):pos_orig(end,1)]' interp1(pos_orig(:,1),pos_orig(:,3),[pos_orig(1,1):pos_orig(end,1)]') interp1(pos_orig(:,1),pos_orig(:,2),[pos_orig(1,1):pos_orig(end,1)]') interp1(pos_orig(:,1),pos_orig(:,4),[pos_orig(1,1):pos_orig(end,1)]')];  % trace number, x(now Rw!), y(now Hw!), z
+        [a,b]=unique(pos_orig(:,1));
+        pos_new=[[pos_orig(1,1):pos_orig(end,1)]' interp1(pos_orig(b,1),pos_orig(b,3),[pos_orig(1,1):pos_orig(end,1)]') interp1(pos_orig(b,1),pos_orig(b,2),[pos_orig(1,1):pos_orig(end,1)]') interp1(pos_orig(b,1),pos_orig(b,4),[pos_orig(1,1):pos_orig(end,1)]')];  % trace number, x(now Rw!), y(now Hw!), z
         num_traces2=length(pos_new(:,1))*numchannels; % update number of traces (for all channels), if less valid coordinates are present
 
         % create positioning file

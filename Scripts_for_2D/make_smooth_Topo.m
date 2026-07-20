@@ -29,7 +29,7 @@ radius=6;   % Radius for IDW and masking of interpolated timeslice (in bins)
 power=10;    % Power of IDW
 
 % smoothing area with 2D median filter
-msize=15; % filter size in pixel
+msize=55; % filter size in pixel
 
 % smooth extracted profile heights with 'smooth'
 mprof=55; % filter size in pixel
@@ -96,9 +96,24 @@ addpath(fullfile(curFold,'Subfunctions'),fullfile(curFold,'Processing'));
 % read coordinates:
 coords=[];
 for j=1:length(pfad) % for each folder:
-    load(fullfile(pfad{j},'global_coords.mat'));
-    for i=1:length(global_coords)
-        coords=[coords; global_coords{i}];
+    % check if there is global_coords.mat or several global_coords_*.mat
+    if exist(fullfile(pfad{j},'global_coords.mat'),'file')
+        load(fullfile(pfad{j},'global_coords.mat'));
+        for i=1:length(global_coords)
+            coords=[coords; global_coords{i}];
+        end
+        flag=0;
+    else
+        % use datastore:
+        readFcn = @(f) load(f).global_coords;
+        fds = fileDatastore(fullfile(pfad{j},'global_coords_*.mat'), "ReadFcn", readFcn);
+        while hasdata(fds)
+            global_coords=read(fds);
+            for i=1:length(global_coords)
+                coords=[coords; global_coords{i}];
+            end
+        end
+        flag=1;
     end
 end
 
@@ -132,6 +147,16 @@ end
 % smoothing
 disp('Smoothing with 2D median filter...')
 topo=medianfilt2(topo,[msize msize]);
+% mask:
+mask=zeros(size(xgrid));
+mask(~isnan(topobin))=1;
+temp=ones(size(mask));
+temp(mask==1)=0;
+eucmap=chamfer_DT(temp);
+mask_interp=ones(size(eucmap));
+mask_interp(eucmap.*dx>dx*3)=0;
+
+topo=topo.*mask_interp;
 
 if plot_flag==1
     figure
@@ -150,24 +175,51 @@ for j=1:num_folders
     if ~exist(fullfile(pfad{j},'original_coords'),'dir')
         mkdir(fullfile(pfad{j},'original_coords'));
     end
-    copyfile(fullfile(pfad{j},'global_coords.mat'),fullfile(pfad{j},'original_coords','global_coords.mat')); % save original coords file as backup
-    load(fullfile(pfad{j},'global_coords.mat'));
-    for i=1:length(global_coords)
-        if any(i==prof_num) && plot_flag==1
-            figure
-            plot(global_coords{i}(:,3),'Linewidth',2,'DisplayName','original heights')
-            hold on
-            temp=F(global_coords{i}(:,1),global_coords{i}(:,2)); % get new heights
-            plot(temp,'Linewidth',2,'DisplayName','new heights')
-            global_coords{i}(:,3)=smooth(temp,mprof); % smoothing
-            plot(global_coords{i}(:,3),'Linewidth',2,'DisplayName','smoothed new heights')
-            legend
-            title(['Folder ',int2str(j),'/Profile ',int2str(prof_num(i==prof_num))])
-        else
-            global_coords{i}(:,3)=smooth(F(global_coords{i}(:,1),global_coords{i}(:,2)),mprof);
+    if flag==0
+        copyfile(fullfile(pfad{j},'global_coords.mat'),fullfile(pfad{j},'original_coords','global_coords.mat')); % save original coords file as backup
+        load(fullfile(pfad{j},'global_coords.mat'));
+        for i=1:length(global_coords)
+            if any(i==prof_num) && plot_flag==1
+                figure
+                plot(global_coords{i}(:,3),'Linewidth',2,'DisplayName','original heights')
+                hold on
+                temp=F(global_coords{i}(:,1),global_coords{i}(:,2)); % get new heights
+                plot(temp,'Linewidth',2,'DisplayName','new heights')
+                global_coords{i}(:,3)=smooth(temp,mprof); % smoothing
+                plot(global_coords{i}(:,3),'Linewidth',2,'DisplayName','smoothed new heights')
+                legend
+                title(['Folder ',int2str(j),'/Profile ',int2str(prof_num(i==prof_num))])
+            else
+                global_coords{i}(:,3)=smooth(F(global_coords{i}(:,1),global_coords{i}(:,2)),mprof);
+            end
+        end
+        save(fullfile(pfad{j},'global_coords.mat'),'global_coords','-v7.3');
+    else
+        % datastore...
+        list=dir(fullfile(pfad{j},'global_coords_*.mat'));
+        for k=1:length(list)
+            disp(['    - File ',int2str(k),'/',int2str(length(list))])
+            copyfile(fullfile(pfad{j},list(k).name),fullfile(pfad{j},'original_coords',list(k).name)); % save original coords file as backup
+            global_coords=load(fullfile(pfad{j},list(k).name)).global_coords;
+            for i=1:length(global_coords)
+                if any(i==prof_num) && plot_flag==1
+                    temp=F(global_coords{i}(:,1),global_coords{i}(:,2)); % get new heights
+                    global_coords{i}(:,3)=smooth(temp,mprof); % smoothing
+
+                    figure
+                    plot(global_coords{i}(:,3),'Linewidth',2,'DisplayName','original heights')
+                    hold on
+                    plot(temp,'Linewidth',2,'DisplayName','new heights')
+                    plot(global_coords{i}(:,3),'Linewidth',2,'DisplayName','smoothed new heights')
+                    legend
+                    title(['Folder ',int2str(j),'/Profile ',int2str(prof_num(i==prof_num))])
+                else
+                    global_coords{i}(:,3)=smooth(F(global_coords{i}(:,1),global_coords{i}(:,2)),mprof);
+                end
+            end
+            save(fullfile(pfad{j},list(k).name),'global_coords','-v7.3');
         end
     end
-    save(fullfile(pfad{j},'global_coords.mat'),'global_coords','-v7.3');
 end
 
 

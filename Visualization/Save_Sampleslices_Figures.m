@@ -5,7 +5,7 @@ clc
 
 % Read Sampleslices and save as georeferenced figures
 %
-% Dr. Tina Wunderlich, CAU Kiel 2022, tina.wunderlich@ifg.uni-kiel.de
+% Dr. Tina Wunderlich, CAU Kiel 2026, tina.wunderlich@ifg.uni-kiel.de
 %
 % requires Sampleslices in MultichannelGPR-format 
 
