@@ -38,7 +38,7 @@ save_georef=1; % yes=1, no=0
 % save profile coordinates as geoJSON file? (-> profile lines for QGIS)
 save_geoJSON=1; % yes=1, no=0
 jsonname='GPR_Profiles.json'; % give name for geoJSON file
-epsg=25835; % EPGS code for CRS
+epsg=32632; % EPGS code for CRS
 
 % Plotting options for map:
 plot_map=1; % plot map? yes=1, no=0
@@ -168,15 +168,27 @@ end
 
 %% Read data
 disp('Reading data...')
-temp=load(fullfile(pfad_rad,'global_coords.mat'));
-global_coords=temp.global_coords; % global coordinates of starting end ending point
-temp=load(fullfile(pfad_rad,'x.mat'));
-x=temp.x;   % profile coordinates
-temp=load(fullfile(pfad_rad,'radargrams.mat'));
-data=temp.radargrams;   % radargrams
-temp=load(fullfile(pfad_rad,'t.mat'));
+
+if exist(fullfile(pfad_rad,'global_coords.mat'),'file') % everything in one file
+    dataStore_flag=0;
+    temp=load(fullfile(pfad_rad,'global_coords.mat'));
+    global_coords=temp.global_coords; % global coordinates of starting end ending point
+    temp=load(fullfile(pfad_rad,'x.mat'));
+    x=temp.x;   % profile coordinates
+    temp=load(fullfile(pfad_rad,'radargrams.mat'));
+    data=temp.radargrams;   % radargrams
+    temp=load(fullfile(pfad_rad,'t.mat'));
+else % several files, use datastore
+    dataStore_flag=1;
+    readFcn_gc = @(f) load(f).global_coords;
+    fds = fileDatastore(fullfile(pfad_rad,'global_coords_*.mat'), "ReadFcn", readFcn_gc);
+    anz=numel(fds.Files);
+    temp=load(fullfile(pfad_rad,'t.mat'));
+end
 t=temp.t;   % time vector
 dt=t(2)-t(1);
+
+%%% ab hier noch datastore iebauen!
 
 if isempty(numbers)
     numbers=1:length(data); % all radargrams

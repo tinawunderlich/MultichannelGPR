@@ -16,7 +16,7 @@ clc
 % Bin size of grid
 dx=0.05; % [m]
 
-radius=0.3; % radius in m for valid interpolation (-> mask)
+radius=0.2; % radius in m for valid interpolation (-> mask)
 
 % Automatic rotation of measurement area for minimum memory size
 rotate_area=1;  % 1=yes (recommended), 0=no
@@ -53,7 +53,7 @@ downsampling=1; % if =1: yes (and use following settings)
 downsampling_factor=20; % only take each downsampling-factor sample (e.g. only take every 2nd sample)
 % cutting of range
 cut_range=0; % if =1:yes
-cut_time_depth=30; % choose time/depth for cutting (tz_flag=1&followTopo=0: [ns] or all other combinations: [m])
+cut_time_depth=10; % choose time/depth for cutting (tz_flag=1&followTopo=0: [ns] or all other combinations: [m])
 
 % save Sampleslices as geopng or geotif?
 save_geopng=0; % 1=yes
@@ -66,7 +66,7 @@ msize=3; % filter size in pixel
 % use squareroot of amplitudes for visualization?
 sq=0; % 1=yes, 0=no
 % for geotif: epsg code of CRS
-epsg=25832;
+epsg=32829;
 
 
 %--------------------------------------------------------------------------

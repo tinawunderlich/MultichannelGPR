@@ -17,8 +17,8 @@ clc
 numbers=[]; % give numbers of processed radargrams or leave empty =[] for all
 
 % Processing options:
-settings='settings.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
-plotflag=0; % =1 plot and show all radargrams during processing, =0 do not plot
+settings='settings_mig.txt'; % give filename of settings-file in Radargram-folder (also give a filename, if you want to create a default file!)
+plotflag=1; % =1 plot and show all radargrams during processing, =0 do not plot
 
 % Plotting options
 colorclip=3; % 0 is colorscale from min(data) to max(data), 1 is 1% clip value, 2 is 2% clip value and 3 is 3% clip value, ... (will not be saved, for plotting only!)
@@ -286,6 +286,7 @@ else
         end
     end
 end
+params.dt=dt;
 disp('--------------------------------------')
 
 %--------------------------------------------------------------------------
@@ -310,7 +311,11 @@ if dataStore_flag==0
     if z_flag==1 && tcut_flag==1
         t=znew;
     elseif z_flag==1 && tcut_flag==0
-        t=z;
+        if numel(z)>1
+            t=z;
+        else
+            t=znew;
+        end
     elseif z_flag==0 && tcut_flag==1
         t=tnew;
     end

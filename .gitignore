@@ -1,4 +1,4 @@
 *.temp
 *.asv
 .*.temp
-
+IDS_Import/*
