@@ -185,6 +185,13 @@ function c=remout(c,anz,grenze)
 % anz: number of values for median calculation
 % grenze: height difference over anz values in m
 
+if anz>numel(c)
+    anz=round(numel(c)/2);
+    if anz/2==round(anz/2)
+        anz=anz-1; % make odd
+    end
+end
+
 % moving median calculation
 for i=(anz-1)/2+1:length(c)-(anz-1)/2
     med(i)=median(c(i-(anz-1)/2:i+(anz-1)/2));
